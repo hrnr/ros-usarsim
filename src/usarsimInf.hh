@@ -133,7 +133,7 @@ private:
   int handleConfAcoustic (char *msg);
   int handleConfVictim (char *msg);
   int handleConfGripper (char *msg);
-  int handleConfMispkg (char *msg);
+  int handleConfActuator (char *msg);
   int handleConfGroundvehicle (char *msg);
   int handleConfBasemachine (char *msg);
   int handleConfStaticplatform (char *msg);
@@ -153,12 +153,12 @@ private:
   int handleGeoAcoustic (char *msg);
   int handleGeoVictim (char *msg);
   int handleGeoGripper (char *msg);
-  int handleGeoMispkg (char *msg);
+  int handleGeoActuator (char *msg);
   int handleGeoGroundvehicle (char *msg);
   int handleGeoBasemachine (char *msg);
   int handleGeoStaticplatform (char *msg);
 
-  int handleMissta (char *msg);
+  int handleAsta (char *msg);
   int handleMsg (char *msg);
   int handleSen (char *msg);
   int handleSenEncoder (char *msg);

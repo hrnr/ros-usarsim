@@ -202,6 +202,7 @@ public:
   UsarsimActuator ();
   sensor_msgs::JointState joints;
   std::vector <geometry_msgs::TransformStamped> jointTf; // transforms for links
+  sensor_msgs::JointState jstate;
 };
 
 #endif

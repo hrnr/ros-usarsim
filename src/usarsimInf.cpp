@@ -118,21 +118,19 @@ UsarsimInf::init (GenericInf * siblingIn)
      we need to force a request for geo and conf information. It may
      come back empty.
    */
+  ulapi_snprintf (str, sizeof (str), "GETCONF {Type Actuator}\r\n");
+  NULLTERM (str);
+  ulapi_mutex_take (socket_mutex);
+  usarsim_socket_write (socket_fd, str, strlen (str));
+  ulapi_mutex_give (socket_mutex);
+
+  ulapi_snprintf (str, sizeof (str), "GETGEO {Type Actuator}\r\n");
+  NULLTERM (str);
+  ulapi_mutex_take (socket_mutex);
+  usarsim_socket_write (socket_fd, str, strlen (str));
+  ulapi_mutex_give (socket_mutex);
 
   /*
-  ulapi_snprintf (str, sizeof (str), "GETCONF {Type Act}\r\n");
-  NULLTERM (str);
-  ulapi_mutex_take (socket_mutex);
-  usarsim_socket_write (socket_fd, str, strlen (str));
-  ulapi_mutex_give (socket_mutex);
-
-  ulapi_snprintf (str, sizeof (str), "GETGEO {Type Act}\r\n");
-  NULLTERM (str);
-  ulapi_mutex_take (socket_mutex);
-  usarsim_socket_write (socket_fd, str, strlen (str));
-  ulapi_mutex_give (socket_mutex);
-  */
-
   ulapi_snprintf (str, sizeof (str), "GETCONF {Type MisPkg}\r\n");
   NULLTERM (str);
   ulapi_mutex_take (socket_mutex);
@@ -144,6 +142,7 @@ UsarsimInf::init (GenericInf * siblingIn)
   ulapi_mutex_take (socket_mutex);
   usarsim_socket_write (socket_fd, str, strlen (str));
   ulapi_mutex_give (socket_mutex);
+  */
 
   //  printf( "usarsiminf: Getting gripper(2) conf\n");
   ulapi_snprintf (str, sizeof (str), "GETCONF {Type Gripper}\r\n");
@@ -582,7 +581,7 @@ UsarsimInf::handleMsg (char *msg)
   unsigned int headindex = 0;
   int count;
 
-  //  ROS_ERROR ("msg: %s", msg);
+  //ROS_ERROR ("msg: %s", msg);
 
   while (isspace (*ptr))
     ptr++;			/* skip over space  */
@@ -621,13 +620,13 @@ UsarsimInf::handleMsg (char *msg)
      count = handleEff (msg);
      }
    */
-  else if (!strcmp (head, "STA") || !strcmp (head, "ASTA"))
+  else if (!strcmp (head, "STA") )
     {
       count = handleSta (msg);
     }
-  else if (!strcmp (head, "MISSTA"))
+  else if (!strcmp (head, "MISSTA") || !strcmp (head, "ASTA"))
     {
-      count = handleMissta (msg);
+      count = handleAsta (msg);
     }
   /*
      else if (!strcmp (head, "RES"))
@@ -665,8 +664,8 @@ UsarsimInf::handleMsg (char *msg)
   doSenConfs (victims, (char *) "VictSensor");
   doSenConfs (tachometers, (char *) "Tachometer");
   doSenConfs (acoustics, (char *) "Acoustic");
-  doSenConfs (misstas, (char *) "MisPkg");
-
+  //  doSenConfs (misstas, (char *) "MisPkg");
+  doSenConfs (misstas, (char *) "Actuator");
   doEffConfs (grippers, (char *) "Gripper");
 
   doRobotConfs (robot);
@@ -2725,10 +2724,10 @@ UsarsimInf::handleConfGripper (char *msg)
 }
 
 /*
-  CONF {Type MisPkg} {Name TeleMaxArm} {Link 1} {JointType Revolute} {MaxSpeed 0.17} {MaxTorque 300.00} {MinRange 1.00} {MaxRange 0.00} ...
+  CONF {Type Actuator} {Name TeleMaxArm} {Link 1} {JointType Revolute} {MaxSpeed 0.17} {MaxTorque 300.00} {MinRange 1.00} {MaxRange 0.00} ...
 */
 int
-UsarsimInf::handleConfMispkg (char *msg)
+UsarsimInf::handleConfActuator (char *msg)
 {
   sensorInfo info;
   int i;
@@ -2738,7 +2737,7 @@ UsarsimInf::handleConfMispkg (char *msg)
   setSensorInfo (msg, &info);
   linkindex = 0;
 
-  ROS_ERROR( "HandleConfMisPkg: %s", msg );
+  //  ROS_ERROR( "HandleConfActuator: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -2748,14 +2747,14 @@ UsarsimInf::handleConfMispkg (char *msg)
 
       if (!strcmp (info.token, "Type"))
 	{
-	  expect (&info, "MisPkg");
+	  expect (&info, "Actuator");
 	}
       else if (!strcmp (info.token, "Name"))
 	{
 	  getName (misstas, &info, SW_ACT_SET);
 	  sw = info.where->getSW ();
 	  info.where->setDidConf (1);
-	  sw->data.mispkg.number = 0;
+	  sw->data.actuator.number = 0;
 	}
       else if (!strcmp (info.token, "Link"))
 	{
@@ -2779,8 +2778,8 @@ UsarsimInf::handleConfMispkg (char *msg)
 	    }
 	  linkindex = i - 1;
 	  info.ptr = info.nextptr;
-	  if (i > sw->data.mispkg.number)
-	    sw->data.mispkg.number = i;
+	  if (i > sw->data.actuator.number)
+	    sw->data.actuator.number = i;
 	  info.count++;
 	}
       else if (!strcmp (info.token, "JointType"))
@@ -2791,21 +2790,21 @@ UsarsimInf::handleConfMispkg (char *msg)
 	    return -1;
 	  if (!strcmp (info.token, "Prismatic"))
 	    {
-	      sw->data.mispkg.link[linkindex].type = SW_LINK_PRISMATIC;
+	      sw->data.actuator.link[linkindex].type = SW_LINK_PRISMATIC;
 	    }
 	  else if (!strcmp (info.token, "Revolute"))
 	    {
-	      sw->data.mispkg.link[linkindex].type = SW_LINK_REVOLUTE;
+	      sw->data.actuator.link[linkindex].type = SW_LINK_REVOLUTE;
 	    }
 	  else if (!strcmp (info.token, "Scissor"))
 	    {
-	      sw->data.mispkg.link[linkindex].type = SW_LINK_SCISSOR;
+	      sw->data.actuator.link[linkindex].type = SW_LINK_SCISSOR;
 	    }
 	  else
 	    {
 	      ROS_ERROR ("bad value for %s JointType: %s", sw->name.c_str (),
 			 info.token);
-	      sw->data.mispkg.link[linkindex].type = SW_NONE;
+	      sw->data.actuator.link[linkindex].type = SW_NONE;
 	    }
 	  info.ptr = info.nextptr;
 	  /* all ok, so credit the count */
@@ -2813,19 +2812,19 @@ UsarsimInf::handleConfMispkg (char *msg)
 	}
       else if (!strcmp (info.token, "MaxSpeed"))
 	{
-	  sw->data.mispkg.link[linkindex].maxspeed = getReal (&info);
+	  sw->data.actuator.link[linkindex].maxspeed = getReal (&info);
 	}
       else if (!strcmp (info.token, "MaxTorque"))
 	{
-	  sw->data.mispkg.link[linkindex].maxtorque = getReal (&info);
+	  sw->data.actuator.link[linkindex].maxtorque = getReal (&info);
 	}
       else if (!strcmp (info.token, "MinRange"))
 	{
-	  sw->data.mispkg.link[linkindex].minrange = getReal (&info);
+	  sw->data.actuator.link[linkindex].minrange = getReal (&info);
 	}
       else if (!strcmp (info.token, "MaxRange"))
 	{
-	  sw->data.mispkg.link[linkindex].maxrange = getReal (&info);
+	  sw->data.actuator.link[linkindex].maxrange = getReal (&info);
 	}
       else
 	{
@@ -2839,15 +2838,15 @@ UsarsimInf::handleConfMispkg (char *msg)
      set the number of links to be the max.
    */
 
-  if (0 == sw->data.mispkg.number)
+  if (0 == sw->data.actuator.number)
     {
-      sw->data.mispkg.number = SW_ACT_LINK_MAX;
+      sw->data.actuator.number = SW_ACT_LINK_MAX;
     }
 
   /*
      Only do the 'tell' operation if we got data -- this will ignore
-     empty "GEO {Type MisPkg}" strings that may be sent out after a
-     "GETGEO {Type MisPkg}" if there are no mission packages.
+     empty "GEO {Type Actuator}" strings that may be sent out after a
+     "GETGEO {Type Actuator}" if there are no mission packages.
 
      FIXME -- should do this for all messages
    */
@@ -3123,9 +3122,9 @@ UsarsimInf::handleConf (char *msg)
 	    {
 	      return handleConfGripper (msg);
 	    }
-	  else if (!strcmp (token, "MisPkg"))
+	  else if (!strcmp (token, "Actuator"))
 	    {
-	      return handleConfMispkg (msg);
+	      return handleConfActuator (msg);
 	    }
 	  else if (!strcmp (token, "GroundVehicle"))
 	    {
@@ -3141,7 +3140,7 @@ UsarsimInf::handleConf (char *msg)
 	    }
 	  else
 	    {
-	      ROS_WARN ("Unknown conf type %s", token);
+	      ROS_ERROR ("Unknown conf type %s", token);
 	      /* skip it and keep going */
 	    }
 	}
@@ -3890,7 +3889,7 @@ UsarsimInf::handleGeoGripper (char *msg)
 }
 
 /*
-  GEO {Type MisPkg} {Name TeleMaxArm} {Link 1} {ParentLink -1} {Location 0.1789,-0.0014,-0.0905} {Orientation 3.1415,0.0000,0.0000} {Link 2} {ParentLink 1} {Location 0.0258,-0.0720,0.1566} {Orientation 1.5707,0.0000,0.0000} ...
+  GEO {Type Actuator} {Name TeleMaxArm} {Link 1} {Parent -1} {Location 0.1789,-0.0014,-0.0905} {Orientation 3.1415,0.0000,0.0000} {Link 2} {ParentLink 1} {Location 0.0258,-0.0720,0.1566} {Orientation 1.5707,0.0000,0.0000} ...
 
   where the location and orientation of each link are with respect to
   the base frame of the mission package at the current location. This
@@ -3899,7 +3898,7 @@ UsarsimInf::handleGeoGripper (char *msg)
   which won't change.
 */
 int
-UsarsimInf::handleGeoMispkg (char *msg)
+UsarsimInf::handleGeoActuator (char *msg)
 {
   sensorInfo info;
   int i;
@@ -3909,7 +3908,7 @@ UsarsimInf::handleGeoMispkg (char *msg)
   setSensorInfo( msg, &info );
   linkindex = 0;
 
-  ROS_ERROR( "HandleGeoMispkg: %s", msg );
+  //ROS_ERROR( "HandleGeoActuator: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -3919,27 +3918,27 @@ UsarsimInf::handleGeoMispkg (char *msg)
 
       if (!strcmp (info.token, "Type"))
 	{
-	  expect (&info, "MisPkg");
+	  expect (&info, "Actuator");
 	}
       else if (!strcmp (info.token, "Name"))
 	{ 
 	  getName (misstas, &info, SW_ACT_SET);
 	  sw = info.where->getSW();
 	  info.where->setDidConf(1);
-	  sw->data.mispkg.number = 0;
+	  sw->data.actuator.number = 0;
 
 	  expect (&info, "Location");
-	  sw->data.mispkg.mount.x = getReal (&info);
-	  sw->data.mispkg.mount.y = getReal (&info);
-	  sw->data.mispkg.mount.z = getReal (&info);
+	  sw->data.actuator.mount.x = getReal (&info);
+	  sw->data.actuator.mount.y = getReal (&info);
+	  sw->data.actuator.mount.z = getReal (&info);
 
 	  expect (&info, "Orientation");
-	  sw->data.mispkg.mount.roll = getReal (&info);
-	  sw->data.mispkg.mount.pitch = getReal (&info);
-	  sw->data.mispkg.mount.yaw = getReal (&info);
+	  sw->data.actuator.mount.roll = getReal (&info);
+	  sw->data.actuator.mount.pitch = getReal (&info);
+	  sw->data.actuator.mount.yaw = getReal (&info);
 	  expect (&info, "Mount");
 	  info.nextptr = getValue (info.ptr, info.token);
-	  ulapi_strncpy (sw->data.mispkg.mount.offsetFrom, info.token,
+	  ulapi_strncpy (sw->data.actuator.mount.offsetFrom, info.token,
 			 SW_NAME_MAX);
 	}
       else if (!strcmp (info.token, "Link"))
@@ -3969,12 +3968,12 @@ UsarsimInf::handleGeoMispkg (char *msg)
 	      return -1;
 	    }
 	  linkindex = i - 1; // links start at 1, arrays at 0
-	  if (i > sw->data.mispkg.number) //more links!
-	    sw->data.mispkg.number = i;
+	  if (i > sw->data.actuator.number) //more links!
+	    sw->data.actuator.number = i;
 	  info.count++;
 	  info.ptr = info.nextptr;
 	}
-      else if (!strcmp (info.token, "ParentLink"))
+      else if (!strcmp (info.token, "Parent"))
 	{
 	  // expecting number 
 	  info.nextptr = getValue (info.ptr, info.token);
@@ -4001,33 +4000,33 @@ UsarsimInf::handleGeoMispkg (char *msg)
 	      return -1;
 	    }
 	  // change convention of base at -1 to base at 0 
-	  if (i < 0)
-	    i = 0;
-	  sw->data.mispkg.link[linkindex].parent = i;
+	  //	  if (i < 0)
+	  //	    i = 0;
+	  sw->data.actuator.link[linkindex].parent = i;
 	  info.count++;
 	  info.ptr = info.nextptr;
 	}
       else if (!strcmp (info.token, "Location"))
 	{
-	  sw->data.mispkg.link[linkindex].mount.x = getReal(&info); 
-	  sw->data.mispkg.link[linkindex].mount.y = getReal(&info); 
-	  sw->data.mispkg.link[linkindex].mount.z = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.x = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.y = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.z = getReal(&info); 
 	}
       else if (!strcmp (info.token, "Orientation"))
 	{
-	  sw->data.mispkg.link[linkindex].mount.roll = getReal(&info); 
-	  sw->data.mispkg.link[linkindex].mount.pitch = getReal(&info); 
-	  sw->data.mispkg.link[linkindex].mount.yaw = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.roll = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.pitch = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.yaw = getReal(&info); 
 	}
       else
 	{
 	  // skip unknown entry 
-	  ROS_WARN ("Unknown entry in MISPKG: %s", info.ptr );
+	  ROS_WARN ("Unknown entry in ACTUATOR: %s", info.ptr );
 	  info.nextptr = getValue (info.ptr, info.token);
 	}
     }
 
-  // as with handle_conf_mispkg, we inhibit telling of blank messages 
+  // as with handle_conf_actuator, we inhibit telling of blank messages 
   if (info.count > 0)
     {
       info.op = SW_ACT_SET;
@@ -4238,9 +4237,9 @@ UsarsimInf::handleGeo (char *msg)
 	    {
 	      return handleGeoGripper (msg);
 	    }
-	  else if (!strcmp (token, "MisPkg"))
+	  else if (!strcmp (token, "Actuator"))
 	    {
-	      return handleGeoMispkg (msg);
+	      return handleGeoActuator (msg);
 	    }
 	  else if (!strcmp (token, "GroundVehicle"))
 	    {
@@ -4266,13 +4265,13 @@ UsarsimInf::handleGeo (char *msg)
 }
 
 /*
-  MISSTA {Time 5609.45} {Name CameraPanTilt} {Link 1} {Value 0.0000} {Torque -20.00} {Link 2} {Value 0.0000} {Torque -20.00}
+  ASTA {Time 5609.45} {Name CameraPanTilt} {Link 1} {Value 0.0000} {Torque -20.00} {Link 2} {Value 0.0000} {Torque -20.00}
 
-  MISSTA {Time 48.22} {Name TeleMaxArm} {Link 1} {Value 0.0000} {Torque -300.00} {Link 2} {Value -0.0000} {Torque -300.00} {Link 3} {Value 0.0002} {Torque -300.00} {Link 4} {Value 0.0000} {Torque -300.00} {Link 5} {Value 0.0000} {Torque -300.00} {Link 6} {Value 0.0000} {Torque -300.00} {Link 7} {Value 0.0000} {Torque -300.00} {Link 8} {Value 0.0000} {Torque -300.00} {Link 9} {Value 0.0000} {Torque -300.00} {Link 10} {Value 0.0000} {Torque -300.00} {Link 11} {Value 0.0000} {Torque -300.00}
+  ASTA {Time 48.22} {Name TeleMaxArm} {Link 1} {Value 0.0000} {Torque -300.00} {Link 2} {Value -0.0000} {Torque -300.00} {Link 3} {Value 0.0002} {Torque -300.00} {Link 4} {Value 0.0000} {Torque -300.00} {Link 5} {Value 0.0000} {Torque -300.00} {Link 6} {Value 0.0000} {Torque -300.00} {Link 7} {Value 0.0000} {Torque -300.00} {Link 8} {Value 0.0000} {Torque -300.00} {Link 9} {Value 0.0000} {Torque -300.00} {Link 10} {Value 0.0000} {Torque -300.00} {Link 11} {Value 0.0000} {Torque -300.00}
 */
 
 int
-UsarsimInf::handleMissta (char *msg)
+UsarsimInf::handleAsta (char *msg)
 {
   sensorInfo info;
   int i;
@@ -4280,6 +4279,7 @@ UsarsimInf::handleMissta (char *msg)
 
   sw_struct *sw = misstas->getSW();
   setSensorInfo( msg, &info );
+  //  ROS_ERROR( "%s", msg );
 
   while (1)
     {
@@ -4297,7 +4297,7 @@ UsarsimInf::handleMissta (char *msg)
 	  getName (misstas, &info, SW_ACT_STAT);
 	  sw = info.where->getSW ();
 	  //	  info.where->setDidConf (1);
-	  sw->data.mispkg.number = 0;
+	  sw->data.actuator.number = 0;
 	}
       else if (!strcmp (info.token, "Link"))
 	{
@@ -4320,18 +4320,19 @@ UsarsimInf::handleMissta (char *msg)
 	      i = SW_ACT_LINK_MAX;
 	    }
 	  linkindex = i - 1;
-	  if (i > sw->data.mispkg.number)
-	    sw->data.mispkg.number = i;
+	  sw->data.actuator.link[linkindex].torque = 0;
+	  if (i > sw->data.actuator.number)
+	    sw->data.actuator.number = i;
 	  info.count++;
 	  info.ptr = info.nextptr;
 	}
       else if (!strcmp (info.token, "Value"))
 	{
-	  sw->data.mispkg.link[linkindex].position = getReal (&info);
+	  sw->data.actuator.link[linkindex].position = getReal (&info);
 	}
       else if (!strcmp (info.token, "Torque"))
 	{
-	  sw->data.mispkg.link[linkindex].torque = getReal (&info);
+	  sw->data.actuator.link[linkindex].torque = getReal (&info);
 	}
       else
 	{

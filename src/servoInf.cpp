@@ -100,6 +100,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	  for( unsigned int count=0; count<actuators[num].jointTf.size(); 
 	       count++ )
 	    rosTfBroadcaster.sendTransform (actuators[num].jointTf[count]);
+	  actuators[num].pub.publish (actuators[num].jstate);
 	  break;
 
 	case SW_ACT_SET:
@@ -464,56 +465,67 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
   act->jointTf.clear();
   currentJointTf.header.stamp = currentTime;
   // compute transform for entire package
-  quat = tf::createQuaternionFromRPY (sw->data.mispkg.mount.roll,
-				      sw->data.mispkg.mount.pitch,
-				      sw->data.mispkg.mount.yaw);
+  quat = tf::createQuaternionFromRPY (sw->data.actuator.mount.roll,
+				      sw->data.actuator.mount.pitch,
+				      sw->data.actuator.mount.yaw);
   tf::quaternionTFToMsg (quat, quatMsg);
-  act->tf.transform.translation.x = sw->data.mispkg.mount.x;
-  act->tf.transform.translation.y = sw->data.mispkg.mount.y;
-  act->tf.transform.translation.z = sw->data.mispkg.mount.z;
+  act->tf.transform.translation.x = sw->data.actuator.mount.x;
+  act->tf.transform.translation.y = sw->data.actuator.mount.y;
+  act->tf.transform.translation.z = sw->data.actuator.mount.z;
   act->tf.transform.rotation = quatMsg;
   act->tf.header.stamp = currentTime;
   act->tf.child_frame_id = act->name;
-  if (!ulapi_strcasecmp (sw->data.mispkg.mount.offsetFrom, "HARD"))
+  if (!ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom, "HARD"))
     {
       act->tf.header.frame_id = "base_link";
+      act->jstate.header.frame_id = "base_link";
     }
-  else if( !ulapi_strcasecmp (sw->data.mispkg.mount.offsetFrom,
+  else if( !ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom,
 			      basePlatform->platformName.c_str ()))
     {
       act->tf.header.frame_id = "base_link";
+      act->jstate.header.frame_id = "base_link";
     }
   else
     {
-      ROS_ERROR( "mispkg base being set to %s since platform is %s",
-		sw->data.mispkg.mount.offsetFrom,
+      ROS_ERROR( "actuator base being set to %s since platform is %s",
+		sw->data.actuator.mount.offsetFrom,
 		basePlatform->platformName.c_str());
-      act->tf.header.frame_id = sw->data.mispkg.mount.offsetFrom;
+      act->tf.header.frame_id = sw->data.actuator.mount.offsetFrom;
+      act->jstate.header.frame_id = sw->data.actuator.mount.offsetFrom;
     }
 
-  for( int i=0; i<sw->data.mispkg.number; i++ )
+  act->jstate.header.stamp = currentTime;
+  act->jstate.position.clear();
+  act->jstate.name.clear();
+  for( int i=0; i<sw->data.actuator.number; i++ )
     {
-      quat = tf::createQuaternionFromRPY (sw->data.mispkg.link[i].mount.roll,
-					  sw->data.mispkg.link[i].mount.pitch,
-					  sw->data.mispkg.link[i].mount.yaw);
+      quat = tf::createQuaternionFromRPY (sw->data.actuator.link[i].mount.roll,
+					  sw->data.actuator.link[i].mount.pitch,
+					  sw->data.actuator.link[i].mount.yaw);
       tf::quaternionTFToMsg (quat, quatMsg);
-      currentJointTf.transform.translation.x = sw->data.mispkg.link[i].mount.x;
-      currentJointTf.transform.translation.y = sw->data.mispkg.link[i].mount.y;
-      currentJointTf.transform.translation.z = sw->data.mispkg.link[i].mount.z;
+      currentJointTf.transform.translation.x = sw->data.actuator.link[i].mount.x;
+      currentJointTf.transform.translation.y = sw->data.actuator.link[i].mount.y;
+      currentJointTf.transform.translation.z = sw->data.actuator.link[i].mount.z;
       currentJointTf.transform.rotation = quatMsg;
 
       tempSS.str("");
       tempSS << i+1; // link is array index + 1;
       currentJointTf.child_frame_id = std::string("Link_") + tempSS.str ();
-      if( sw->data.mispkg.link[i].parent == 0 )
+      if( sw->data.actuator.link[i].parent == 0 )
 	currentJointTf.header.frame_id = act->tf.child_frame_id;
       else
 	{
 	  tempSS.str("");
-	  tempSS << sw->data.mispkg.link[i].parent;
+	  tempSS << sw->data.actuator.link[i].parent;
 	  currentJointTf.header.frame_id = std::string("Link_") + tempSS.str ();
 	}
       act->jointTf.push_back(currentJointTf);
+      // now create actuator message
+      tempSS.str("");
+      tempSS << i;
+      act->jstate.name.push_back((std::string("Link_") + tempSS.str ()));
+      act->jstate.position.push_back(sw->data.actuator.link[i].position);
     }	    
 
   // now set the message
@@ -757,6 +769,7 @@ ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
 {
   unsigned int t;
   UsarsimActuator newActuator;
+  std::string pubName;
 
   for (t = 0; t < actuatorsIn.size (); t++)
     {
@@ -769,11 +782,11 @@ ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
   //unable to find the sensor, so must create it.
   newActuator.name = name;
   newActuator.time = 0;
-  newActuator.pub = nh->advertise < sensor_msgs::JointState > (name.c_str (), 2);
+  pubName = name + "_status";
+  newActuator.pub = nh->advertise < sensor_msgs::JointState > (pubName.c_str (), 2);
   newActuator.tf.header.frame_id = "base_link";
   newActuator.tf.child_frame_id = name.c_str ();
-
-
+  newActuator.jstate.header.frame_id = "base_link";
   actuatorsIn.push_back (newActuator);
   return actuatorsIn.size () - 1;
 }

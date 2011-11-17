@@ -417,7 +417,7 @@ typedef struct
   sw_pose mount;
   sw_link_struct link[SW_ACT_LINK_MAX];
   int number;			/*!< how many links */
-} sw_mispkg_struct;
+} sw_actuator_struct;
 
 typedef struct
 {
@@ -452,8 +452,8 @@ typedef struct
     sw_sen_victim_struct victim;
     sw_sen_tachometer_struct tachometer;
     sw_sen_acoustic_struct acoustic;
-    /* mission packages */
-    sw_mispkg_struct mispkg;
+    /* actuators */
+    sw_actuator_struct actuator;
   } data;
 } sw_struct;
 
