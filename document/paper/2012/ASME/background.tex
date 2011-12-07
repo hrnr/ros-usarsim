@@ -1,28 +1,58 @@
-\section*{BACKGROUND}\label{s:background}
+\section*{BACKGROUND}
 An effective interface to multiple robot programs is an important aspect to consider for a multi-robot applications simulation. The effort describes in this paper uses USARSim as a server allowing robot control programs (ROS)
 to act as clients.
 
 \subsection*{The USARSim Framework}
-USARSim~\cite{CARPIN.LNAI.2006,WANG.WSC.2003} is a high-fidelity physics-based simulation system based on the industrial game engine Unreal Engine\footnote{http://www.unrealengine.com/}. USARSim was developed under a National Science Foundation grant to study Robot, Agent, Person Teams in Urban Search and Rescue~\cite{LEWIS.ICHC.2003}. Since Unreal
-Engine has been deployed for the development of networked multi-player 3D
-games, it solves many of the issues related to modeling, animation and rendering
-of the virtual environment. Altogether, the Karma Physics
-engine~\cite{KarmEngine} and high-quality 3D rendering facilities of the Unreal game engine allow the creation of realistic simulation environments that provide the embodiment of a robotic system. Furthermore, USARSim comes with tools to develop objects and environments (Unreal Editor) and it is possible to control actors in the game through a TCP/IP socket API.
-%\begin{figure}[h!tbp]
-%\centering \mbox{ \subfigure[]
-%{\parbox{4.5cm}{\psfig{file=arda1,width=4.5cm}}}} \quad
-%\mbox{ \subfigure[] {\parbox{4.5cm
-%}{\psfig{file=arda4,width=4.5cm }}}}
-%\caption{3D worlds in USARSim.} \label{usarsim}
-%\end{figure}
 
-%\begin{figure}[t]
-%\begin{center}
-%\includegraphics[scale=0.1]{arda1}
-%\end{center}
-%\caption{EXAMPLE OF VIRTUAL ENVIRONMENTS IN USARSIM.}
-%\label{figure_ASME}
-%\end{figure}
+
+USARSim~\cite{CARPIN.LNAI.2006,WANG.WSC.2003} is a high-fidelity physics-based simulation system based on the industrial game engine Unreal Engine\footnote{http://www.unrealengine.com/}. USARSim was developed under a National Science Foundation grant to study Robot, Agent, Person Teams in Urban Search and Rescue~\cite{LEWIS.ICHC.2003}. Since Unreal Engine has been deployed for the development of networked multi-player 3D games, it solves many of the issues related to modeling, animation and rendering
+of the virtual environment.
+
+%Altogether, the Karma Physics engine~\cite{KarmEngine} and high-quality 3D rendering facilities of the Unreal game engine allow the creation of realistic simulation environments that provide the embodiment of a robotic system. Furthermore, USARSim comes with tools to develop objects and environments (Unreal Editor) and it is possible to control actors in the game through a TCP/IP socket API.
+
+USARSimutilizes the Karma Physics engine~\cite{KarmEngine} and high-quality 3D rendering facilities of the Unreal game engine to create a realistic simulation environment that provides the embodiment of a robotic
+system. The current release of USARSim consists of various environmental models, models of commercial and experimental robots, and sensor models. High fidelity at low cost is made possible by building the simulation on top of a game engine. By loading the most
+difficult aspects of simulation to a high volume commercial platform which provides superior visual rendering and physical modeling, full effort can be devoted to the robotics-specific tasks of modeling platforms, control systems, sensors, interface tools and environments. These tasks are in turn, accelerated by the advanced editing and development tools integrated with the game engine leading to a virtuous spiral in which a wide range of platforms can be modeled with greater fidelity in short time.
+
+USARSim was originally based upon simulated environments in the USAR domain.
+Since then, USARSim has been used worldwide and more environments have been developed for different purposes. In addition to USAR, the simulator has been applied to the DARPA Urban Challenge (see Figure~\ref{3D_World-a}). Other environments such as the NIST campus (see Figure~\ref{3D_World-b}) and factories (see Figure~\ref{3D_World-c}) have been used to test the performance of algorithms in different efforts~\cite{WANG.HFES.2005,BALAGUER.IROS.2008,KOOTBALLY.ITEA.2010}.
+
+\begin{figure}[t!]
+\centering
+\subfigure[ARDA.]{\label{3D_World-a}\psfig{file=Figures/Worlds/arda1.eps,width=4cm}}\qquad
+\subfigure[NIST main
+campus.]{\label{3D_World-b}\psfig{file=Figures/Worlds/nist1.eps,width=4cm}}\qquad
+\subfigure[Factory.]{\label{3D_World-c}\psfig{file=Figures/Worlds/factory.eps,width=4cm}}%
+\caption{Sample of 3D environments in USARSim.} \label{3D_World}
+\end{figure}
+
+USARSim was initially developed with a focus on wheeled robots, in
+particular differential drive systems. Interest and wide community
+support offer multiple robots, including underwater vehicles, legged
+platforms, and humanoids. In USARSim, robots are based on the real
+robots and are implemented by specific classes, thus making it
+easier to develop new platforms that model custom designs. Three
+base classes model different kinds of wheeled locomotion, namely
+differential drives (Figure~\ref{Differential}), omnidirectional
+vehicles (Figure~\ref{Omnidirectional}) and Ackerman steered
+vehicles (Figures~\ref{Ackerman}).
+
+
+
+All robots in USARSim have a chassis, multiple wheels, sensors and
+effecters. The robots are configurable (specify types of
+sensors/effecters for example). The properties of the robots can
+also be configured, such as the battery life and the frequency of
+data transmission.
+
+\begin{figure}[t!]
+\centering
+\subfigure[ ATRV Jr.]{\label{Differential}\psfig{file=Figures/Robots/ATRV-JR.eps,width=4cm}}\qquad
+\subfigure[Passarola.]{\label{Omnidirectional}\psfig{file=Figures/Robots/passarola.eps,width=4cm}}\qquad
+\subfigure[ NIST HMMWV.]{\label{Ackerman}\psfig{file=Figures/Robots/hmmwv1.eps,width=4cm}}
+\caption{Sample of vehicles in USARSim.}
+\end{figure}
+
 
 \subsection*{The ROS Framework}
 
@@ -53,4 +83,5 @@ node may publish and/or subscribe to multiple topics.
 \item[-] Service: A remote procedure call defined by a string name and a pair
 of strictly typed messages: one for the request and one for
 the response.
-\end{itemize}
+\item[-] Stack: Packages in ROS are organized into ROS stacks. Whereas the goal of packages is to create minimal collections of code for easy reuse, the goal of stacks is to simplify the process of code sharing. Stacks are the primary mechanism in ROS for distributing software. Each stack has an associated version and can declare dependencies on other stacks. These dependencies also declare a version number, which provides greater stability in development.
+\end{itemize} 
