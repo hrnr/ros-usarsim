@@ -157,3 +157,28 @@ UsarsimRngScnSensor::UsarsimRngScnSensor ():UsarsimSensor ()
 UsarsimActuator::UsarsimActuator ():UsarsimSensor ()
 {
 }
+
+////////////////////////////////////////////////////////////////////////
+// UsarsimConverter
+////////////////////////////////////////////////////////////////////////
+geometry_msgs::Vector3
+UsarsimConverter::PointToVector(geometry_msgs::Point pointIn)
+{
+  geometry_msgs::Vector3 retValue;
+
+  retValue.x = pointIn.x;
+  retValue.y = pointIn.y;
+  retValue.z = pointIn.z;
+  return retValue;
+}
+
+geometry_msgs::Point
+UsarsimConverter::VectorToPoint(geometry_msgs::Vector3 pointIn)
+{
+  geometry_msgs::Point retValue;
+
+  retValue.x = pointIn.x;
+  retValue.y = pointIn.y;
+  retValue.z = pointIn.z;
+  return retValue;
+}

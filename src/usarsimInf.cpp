@@ -2737,7 +2737,7 @@ UsarsimInf::handleConfActuator (char *msg)
   setSensorInfo (msg, &info);
   linkindex = 0;
 
-  //  ROS_ERROR( "HandleConfActuator: %s", msg );
+    ROS_ERROR( "HandleConfActuator: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -3908,7 +3908,7 @@ UsarsimInf::handleGeoActuator (char *msg)
   setSensorInfo( msg, &info );
   linkindex = 0;
 
-  //ROS_ERROR( "HandleGeoActuator: %s", msg );
+  ROS_ERROR( "HandleGeoActuator: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);

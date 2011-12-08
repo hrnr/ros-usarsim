@@ -58,6 +58,32 @@ ServoInf::ServoInf ():GenericInf ()
   basePlatform = &grdVehSettings;
 }
 
+const UsarsimActuator*
+ServoInf::getActuator( unsigned int num)
+{
+  if( num > actuators.size() )
+    return NULL;
+  return &actuators[num];
+}
+
+unsigned int
+ServoInf::getNumActuators()
+{
+  return actuators.size();
+}
+
+const std::string
+ServoInf::getPlatformName()
+{
+  return basePlatform->platformName;
+}
+
+const geometry_msgs::Vector3 
+ServoInf::getPlatformSize()
+{
+  return basePlatform->platformSize;
+}
+
 /* The interface must be initialized prior to use.
    Still more to do in this routine!
 */
@@ -95,22 +121,18 @@ ServoInf::peerMsg (sw_struct * sw)
 	{
 	case SW_ACT_STAT:
 	  num = actuatorIndex (actuators, sw->name);
-	  copyActuator( &actuators[num], sw );
-	  rosTfBroadcaster.sendTransform (actuators[num].tf);
-	  for( unsigned int count=0; count<actuators[num].jointTf.size(); 
-	       count++ )
-	    rosTfBroadcaster.sendTransform (actuators[num].jointTf[count]);
-	  actuators[num].pub.publish (actuators[num].jstate);
+	  if( copyActuator( &actuators[num], sw ) )
+	    actuators[num].pub.publish (actuators[num].jstate);
 	  break;
 
 	case SW_ACT_SET:
 	  num = actuatorIndex (actuators, sw->name);
 	  copyActuator( &actuators[num], sw );
-	  rosTfBroadcaster.sendTransform (actuators[num].tf);
+	  //	  rosTfBroadcaster.sendTransform (actuators[num].tf);
 	  //	  ROS_INFO ( "Act setting %d joints", actuators[num].jointTf.size() );
-	  for( unsigned int count=0; count<actuators[num].jointTf.size(); 
-	       count++ )
-	    rosTfBroadcaster.sendTransform (actuators[num].jointTf[count]);
+	  //	  for( unsigned int count=0; count<actuators[num].jointTf.size(); 
+	  //	       count++ )
+	  //	    rosTfBroadcaster.sendTransform (actuators[num].jointTf[count]);
 	  break;
 
 	default:
@@ -430,7 +452,7 @@ ServoInf::msgIn ()
 
   // manage subscriptions
   static ros::Subscriber sub =
-    n.subscribe ("cmd_vel", 2, &ServoInf::VelCmdCallback, this);
+    n.subscribe ("cmd_vel", 10, &ServoInf::VelCmdCallback, this);
   ROS_INFO ("servoInf going to spin");
   ros::spin ();
   return 1;
@@ -460,55 +482,58 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
   geometry_msgs::Quaternion quatMsg;
   geometry_msgs::TransformStamped currentJointTf;
   std::stringstream tempSS;
+  tf::TransformListener tfListener(ros::Duration(10));
+  geometry_msgs::PoseStamped linkPose, basePose;
+  int invertZ = 0;
+  double mountRoll, mountZ;
 
   currentTime = ros::Time::now ();
   act->jointTf.clear();
   currentJointTf.header.stamp = currentTime;
-  // compute transform for entire package
-  quat = tf::createQuaternionFromRPY (sw->data.actuator.mount.roll,
-				      sw->data.actuator.mount.pitch,
-				      sw->data.actuator.mount.yaw);
-  tf::quaternionTFToMsg (quat, quatMsg);
-  act->tf.transform.translation.x = sw->data.actuator.mount.x;
-  act->tf.transform.translation.y = sw->data.actuator.mount.y;
-  act->tf.transform.translation.z = sw->data.actuator.mount.z;
-  act->tf.transform.rotation = quatMsg;
-  act->tf.header.stamp = currentTime;
-  act->tf.child_frame_id = act->name;
-  if (!ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom, "HARD"))
+  if (!ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom, "HARD") ||
+      !ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom,
+			 basePlatform->platformName.c_str ()))
     {
       act->tf.header.frame_id = "base_link";
       act->jstate.header.frame_id = "base_link";
-    }
-  else if( !ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom,
-			      basePlatform->platformName.c_str ()))
-    {
-      act->tf.header.frame_id = "base_link";
-      act->jstate.header.frame_id = "base_link";
+      invertZ = 1;
     }
   else
     {
-      ROS_ERROR( "actuator base being set to %s since platform is %s",
+      ROS_INFO( "actuator base being set to %s since platform is %s",
 		sw->data.actuator.mount.offsetFrom,
 		basePlatform->platformName.c_str());
       act->tf.header.frame_id = sw->data.actuator.mount.offsetFrom;
       act->jstate.header.frame_id = sw->data.actuator.mount.offsetFrom;
     }
 
+  // compute transform for entire package
+  mountRoll = sw->data.actuator.mount.roll;
+  mountZ = sw->data.actuator.mount.z;
+  if( invertZ )
+    {
+      mountRoll += M_PI;
+      mountZ *= -1;
+    }
+  quat = tf::createQuaternionFromRPY ( mountRoll,
+				      sw->data.actuator.mount.pitch,
+				      sw->data.actuator.mount.yaw);
+  tf::quaternionTFToMsg (quat, quatMsg);
+  act->tf.transform.translation.x = sw->data.actuator.mount.x;
+  act->tf.transform.translation.y = sw->data.actuator.mount.y;
+  act->tf.transform.translation.z = mountZ;
+  act->tf.transform.rotation = quatMsg;
+  act->tf.header.stamp = currentTime;
+  act->tf.child_frame_id = act->name;
+
+  rosTfBroadcaster.sendTransform (act->tf);
+  ROS_INFO( "sent transform from \"%s\" to \"%s\"", act->tf.header.frame_id.c_str(), act->tf.child_frame_id.c_str() );
+
   act->jstate.header.stamp = currentTime;
   act->jstate.position.clear();
   act->jstate.name.clear();
   for( int i=0; i<sw->data.actuator.number; i++ )
     {
-      quat = tf::createQuaternionFromRPY (sw->data.actuator.link[i].mount.roll,
-					  sw->data.actuator.link[i].mount.pitch,
-					  sw->data.actuator.link[i].mount.yaw);
-      tf::quaternionTFToMsg (quat, quatMsg);
-      currentJointTf.transform.translation.x = sw->data.actuator.link[i].mount.x;
-      currentJointTf.transform.translation.y = sw->data.actuator.link[i].mount.y;
-      currentJointTf.transform.translation.z = sw->data.actuator.link[i].mount.z;
-      currentJointTf.transform.rotation = quatMsg;
-
       tempSS.str("");
       tempSS << i+1; // link is array index + 1;
       currentJointTf.child_frame_id = std::string("Link_") + tempSS.str ();
@@ -520,43 +545,44 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
 	  tempSS << sw->data.actuator.link[i].parent;
 	  currentJointTf.header.frame_id = std::string("Link_") + tempSS.str ();
 	}
+      quat = tf::createQuaternionFromRPY (sw->data.actuator.link[i].mount.roll,
+					  sw->data.actuator.link[i].mount.pitch,
+					  sw->data.actuator.link[i].mount.yaw);
+      tf::quaternionTFToMsg (quat, quatMsg);
+
+      linkPose.header.frame_id = currentJointTf.header.frame_id;
+      linkPose.header.stamp = currentTime;
+      linkPose.pose.position.x = sw->data.actuator.link[i].mount.x;
+      linkPose.pose.position.y = sw->data.actuator.link[i].mount.y;
+      linkPose.pose.position.z = sw->data.actuator.link[i].mount.z;
+      linkPose.pose.orientation = quatMsg;
+      basePose = linkPose;
+      /*
+      ROS_ERROR( "Frame: %s position: %f %f %f orientation: %f %f %f %f",
+		 basePose.header.frame_id.c_str(), 
+		 basePose.pose.position.x,
+		 basePose.pose.position.y,
+		 basePose.pose.position.z,
+		 basePose.pose.orientation.x,
+		 basePose.pose.orientation.y,
+		 basePose.pose.orientation.z,
+		 basePose.pose.orientation.w );
+      */
+		 
+      currentJointTf.transform.translation = UsarsimConverter::PointToVector(basePose.pose.position);
+      currentJointTf.transform.rotation = basePose.pose.orientation;
+      rosTfBroadcaster.sendTransform (currentJointTf);
+      //      return 0;
+
       act->jointTf.push_back(currentJointTf);
+
       // now create actuator message
       tempSS.str("");
-      tempSS << i;
+      tempSS << i+1;
       act->jstate.name.push_back((std::string("Link_") + tempSS.str ()));
       act->jstate.position.push_back(sw->data.actuator.link[i].position);
     }	    
-
-  // now set the message
-
-      /*
-  sen->scan.header.stamp = currentTime;
-  sen->scan.header.frame_id = sen->name;
-  sen->scan.angle_min =  -sw->data.rangescanner.fov / 2.;
-  sen->scan.angle_max =  sw->data.rangescanner.fov / 2.;
-  sen->scan.angle_increment = sw->data.rangescanner.resolution;
-  sen->scan.time_increment = 0;	// (1 / laser_frequency) / (num_readings);
-  sen->scan.range_min = sw->data.rangescanner.minrange;
-  sen->scan.range_max = sw->data.rangescanner.maxrange;
-
-  sen->scan.ranges.clear();
-  sen->scan.intensities.clear();
-  if( flipScanner )
-    {
-      for (int i = sw->data.rangescanner.number-1; i>= 0; i--)
-	{
-	  sen->scan.ranges.push_back (sw->data.rangescanner.range[i]);
-	}
-    }
-  else
-    {
-      for (int i = 0; i < sw->data.rangescanner.number; i++)
-	{
-	  sen->scan.ranges.push_back (sw->data.rangescanner.range[i]);
-	}
-    }
-      */
+  //  ROS_ERROR( "CopyAct success!!" );
   return 1;
 }
 

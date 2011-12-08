@@ -33,6 +33,7 @@
 //#include <vector>
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/LaserScan.h>
 #include "genericInf.hh"
@@ -58,6 +59,10 @@ public:
 
     ServoInf ();
    ~ServoInf ();
+  const UsarsimActuator *getActuator(unsigned int num);
+  unsigned int getNumActuators();
+  const std::string getPlatformName();
+  const geometry_msgs::Vector3 getPlatformSize();
   int init (GenericInf * siblingIn);
   int msgOut ();
   int msgIn ();
@@ -71,7 +76,7 @@ private:
   UsarsimGrdVeh grdVehSettings;
   UsarsimSensor sensorSettings;
   //! We will always need a transform
-    tf::TransformBroadcaster rosTfBroadcaster;
+  tf::TransformBroadcaster rosTfBroadcaster;
   //! Actuators
   std::vector < UsarsimActuator > actuators;
   //! Odometry sensors 

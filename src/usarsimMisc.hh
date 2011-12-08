@@ -194,7 +194,7 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////
-// Acgtuators
+// Actuators
 ////////////////////////////////////////////////////////////////////////
 class UsarsimActuator:public UsarsimSensor
 {
@@ -203,6 +203,16 @@ public:
   sensor_msgs::JointState joints;
   std::vector <geometry_msgs::TransformStamped> jointTf; // transforms for links
   sensor_msgs::JointState jstate;
+};
+
+////////////////////////////////////////////////////////////////////////
+// UsarsimConverter
+////////////////////////////////////////////////////////////////////////
+class UsarsimConverter
+{
+public:
+  static geometry_msgs::Vector3 PointToVector(geometry_msgs::Point pointIn);
+  static geometry_msgs::Point VectorToPoint(geometry_msgs::Vector3 pointIn);
 };
 
 #endif
