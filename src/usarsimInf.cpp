@@ -219,6 +219,7 @@ UsarsimInf::msgout (sw_struct * sw, sensorInfo info)
   else
     {
       sw->time = info.time;
+      //      ROS_ERROR( "time: %f swtime: %f", info.time, sw->time );
       sw->op = info.op;
       sibling->peerMsg (sw);
     }

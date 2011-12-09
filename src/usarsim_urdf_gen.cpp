@@ -170,10 +170,14 @@ main (int argc, char **argv)
 	  fprintf( fp, "\t\t\t<material name=\"blue\"/>\n");
 	  tf::quaternionMsgToTF(actPt->jointTf[j].transform.rotation, bt_q);
 	  btMatrix3x3(bt_q).getRPY( roll, pitch, yaw );
+	  /*
 	  fprintf( fp, "\t\t<origin xyz=\"%.2f %.2f %.2f\" rpy=\"%.2f %.2f %.2f\" />\n",
-		   actPt->jointTf[j].transform.translation.x,
-		   actPt->jointTf[j].transform.translation.y,
-		   actPt->jointTf[j].transform.translation.z,
+		   actPt->jointTf[j].transform.translation.x - actPt->tf.transform.translation.x,
+		   actPt->jointTf[j].transform.translation.y - actPt->tf.transform.translation.y,
+		   actPt->jointTf[j].transform.translation.z - actPt->tf.transform.translation.z,
+		   roll, pitch, yaw );
+	  */
+	  fprintf( fp, "\t\t<origin xyz=\"0 0 0\" rpy=\"%.2f %.2f %.2f\" />\n",
 		   roll, pitch, yaw );
 	  fprintf( fp, "\t\t</visual>\n");
 	  fprintf( fp, "\t</link>\n");

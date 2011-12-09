@@ -113,7 +113,14 @@ int
 ServoInf::peerMsg (sw_struct * sw)
 {
   int num;
+  static double previousTime = 0;
 
+  if( sw->time <= 0. )
+    {
+      sw->time = previousTime;
+      ROS_WARN ("Sensor msg class %s with operand %d with out time",
+		swTypeToString (sw->type), sw->op);
+    }
   switch (sw->type)
     {
     case SW_ACT:
@@ -441,6 +448,7 @@ ServoInf::peerMsg (sw_struct * sw)
       break;
     }
 
+  previousTime = sw->time;
   return 1;
 }
 
@@ -483,7 +491,7 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
   geometry_msgs::TransformStamped currentJointTf;
   std::stringstream tempSS;
   tf::TransformListener tfListener(ros::Duration(10));
-  geometry_msgs::PoseStamped linkPose, basePose;
+  geometry_msgs::PoseStamped linkPose, basePose, zeroPose;
   int invertZ = 0;
   double mountRoll, mountZ;
 
@@ -527,7 +535,7 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
   act->tf.child_frame_id = act->name;
 
   rosTfBroadcaster.sendTransform (act->tf);
-  ROS_INFO( "sent transform from \"%s\" to \"%s\"", act->tf.header.frame_id.c_str(), act->tf.child_frame_id.c_str() );
+  //  ROS_ERROR( "sent transform from \"%s\" to \"%s\"", act->tf.header.frame_id.c_str(), act->tf.child_frame_id.c_str() );
 
   act->jstate.header.stamp = currentTime;
   act->jstate.position.clear();
@@ -550,29 +558,63 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
 					  sw->data.actuator.link[i].mount.yaw);
       tf::quaternionTFToMsg (quat, quatMsg);
 
-      linkPose.header.frame_id = currentJointTf.header.frame_id;
-      linkPose.header.stamp = currentTime;
-      linkPose.pose.position.x = sw->data.actuator.link[i].mount.x;
-      linkPose.pose.position.y = sw->data.actuator.link[i].mount.y;
-      linkPose.pose.position.z = sw->data.actuator.link[i].mount.z;
-      linkPose.pose.orientation = quatMsg;
-      basePose = linkPose;
-      /*
+      basePose.header.frame_id = act->tf.child_frame_id;
+      basePose.header.stamp = currentTime;
+      basePose.pose.position.x = sw->data.actuator.link[i].mount.x;
+      basePose.pose.position.y = sw->data.actuator.link[i].mount.y;
+      basePose.pose.position.z = sw->data.actuator.link[i].mount.z;
+      basePose.pose.orientation = quatMsg;
+
+      zeroPose.header.frame_id = currentJointTf.header.frame_id;
+      zeroPose.header.stamp = currentTime;
+      zeroPose.pose.position.x = 0;
+      zeroPose.pose.position.y = 0;
+      zeroPose.pose.position.z = 0;
+      quat = tf::createQuaternionFromRPY (0,0,0);
+      tf::quaternionTFToMsg (quat, quatMsg);
+      zeroPose.pose.orientation = quatMsg;
+      try
+	{
+	  tfListener.waitForTransform(zeroPose.header.frame_id, basePose.header.frame_id, currentTime, ros::Duration(3.0)); 
+	  tfListener.transformPose(basePose.header.frame_id, zeroPose, linkPose);
+	}
+      catch (tf::TransformException &ex)
+	{
+	  ROS_ERROR ("Failure converting zero pose: %s", ex.what());
+	  return -1;
+	}
+      basePose.pose.position.x += linkPose.pose.position.x;
+      basePose.pose.position.y += linkPose.pose.position.y;
+      basePose.pose.position.z += linkPose.pose.position.z;
+
+
+      //      ROS_ERROR( "Trying to convert frame %s to %s",
+      //		 basePose.header.frame_id.c_str(), linkPose.header.frame_id.c_str() );
+      try
+	{
+	  tfListener.waitForTransform(basePose.header.frame_id, currentJointTf.header.frame_id, currentTime, ros::Duration(3.0)); 
+	  tfListener.transformPose(currentJointTf.header.frame_id, basePose, linkPose);
+	}
+      catch (tf::TransformException &ex)
+	{
+	  ROS_ERROR ("Failure %s", ex.what());
+	  return -1;
+	}
+
+      currentJointTf.transform.translation = UsarsimConverter::PointToVector(linkPose.pose.position);
+      currentJointTf.transform.rotation = linkPose.pose.orientation;
+
       ROS_ERROR( "Frame: %s position: %f %f %f orientation: %f %f %f %f",
-		 basePose.header.frame_id.c_str(), 
-		 basePose.pose.position.x,
-		 basePose.pose.position.y,
-		 basePose.pose.position.z,
-		 basePose.pose.orientation.x,
-		 basePose.pose.orientation.y,
-		 basePose.pose.orientation.z,
-		 basePose.pose.orientation.w );
-      */
+		 currentJointTf.header.frame_id.c_str(), 
+		 currentJointTf.transform.translation.x,
+		 currentJointTf.transform.translation.y,
+		 currentJointTf.transform.translation.z,
+		 currentJointTf.transform.rotation.x,
+		 currentJointTf.transform.rotation.y,
+		 currentJointTf.transform.rotation.z,
+		 currentJointTf.transform.rotation.w );
 		 
-      currentJointTf.transform.translation = UsarsimConverter::PointToVector(basePose.pose.position);
-      currentJointTf.transform.rotation = basePose.pose.orientation;
       rosTfBroadcaster.sendTransform (currentJointTf);
-      //      return 0;
 
       act->jointTf.push_back(currentJointTf);
 
@@ -702,6 +744,19 @@ ServoInf::copyIns (UsarsimOdomSensor * sen, const sw_struct * sw)
     (currentAngular.y - sen->lastPosition.angular.y) / dt;
   sen->odom.twist.twist.angular.z =
     (currentAngular.z - sen->lastPosition.angular.z) / dt;
+  /*
+  ROS_ERROR( "Time: %f (%f %f) Linear: %f %f %f Angular: %f %f %f Current: %f %f %f",
+	     dt, sw->time, sen->time,
+	     sen->odom.twist.twist.linear.x,
+	     sen->odom.twist.twist.linear.y,
+	     sen->odom.twist.twist.linear.z,
+	     sen->odom.twist.twist.angular.x,
+	     sen->odom.twist.twist.angular.y,
+	     sen->odom.twist.twist.angular.z,
+	     currentAngular.x,
+	     currentAngular.y,
+	     currentAngular.z);
+  */
 
   // set last position and time
 
