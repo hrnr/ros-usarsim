@@ -1,21 +1,17 @@
 \section*{BACKGROUND}
-An effective interface to multiple robot programs is an important aspect to consider for a multi-robot applications simulation. The effort describes in this paper uses USARSim as a server allowing robot control programs (ROS)
-to act as clients.
+In order to experiment with robotic systems, a researcher requires a controlable robotic platform, a control system that interfaces to the robotic system and provides behaviors for the robot to carry out, and an environment to operate in.  This paper examines an opensource (the game engine is free, but license restrictions do apply), freely available framework capible of fulfilling all of these requirements. This framework is composed of the USARSim framwork that provides the robotic platform and environment, and the ROS framework that provides the control system.
 
 \subsection*{The USARSim Framework}
-
-
-USARSim~\cite{CARPIN.LNAI.2006,WANG.WSC.2003} is a high-fidelity physics-based simulation system based on the industrial game engine Unreal Engine\footnote{http://www.unrealengine.com/}. USARSim was developed under a National Science Foundation grant to study Robot, Agent, Person Teams in Urban Search and Rescue~\cite{LEWIS.ICHC.2003}. Since Unreal Engine has been deployed for the development of networked multi-player 3D games, it solves many of the issues related to modeling, animation and rendering
-of the virtual environment.
+USARSim~\cite{CARPIN.LNAI.2006,WANG.WSC.2003} is a high-fidelity physics-based simulation system based on the Unreal Developers Kit (UDK)\cite{UDKWeb} from Epic Games. USARSim was originally developed under a National Science Foundation grant to study Robot, Agent, Person Teams in Urban Search and Rescue~\cite{LEWIS.ICHC.2003}. Since that time, it has been turned into a community supported open source project that provides validated models of robots, sensors, and environments.  
 
 %Altogether, the Karma Physics engine~\cite{KarmEngine} and high-quality 3D rendering facilities of the Unreal game engine allow the creation of realistic simulation environments that provide the embodiment of a robotic system. Furthermore, USARSim comes with tools to develop objects and environments (Unreal Editor) and it is possible to control actors in the game through a TCP/IP socket API.
 
-USARSim utilizes the Karma Physics engine~\cite{KarmEngine} and high-quality 3D rendering facilities of the Unreal game engine to create a realistic simulation environment that provides the embodiment of a robotic
+Through its usage of UDK, USARSim utilizes the physX phsyics engine~\cite{physXWeb} and high-quality 3D rendering facilities to create a realistic simulation environment that provides the embodiment of, and environment for a robotic
 system. The current release of USARSim consists of various environmental models, models of commercial and experimental robots, and sensor models. High fidelity at low cost is made possible by building the simulation on top of a game engine. By loading the most
-difficult aspects of simulation to a high volume commercial platform which provides superior visual rendering and physical modeling, full effort can be devoted to the robotics-specific tasks of modeling platforms, control systems, sensors, interface tools and environments. These tasks are in turn, accelerated by the advanced editing and development tools integrated with the game engine leading to a virtuous spiral in which a wide range of platforms can be modeled with greater fidelity in short time.
+difficult aspects of simulation to a high volume commercial platform (available for free to most users) which provides superior visual rendering and physical modeling, full effort can be devoted to the robotics-specific tasks of modeling platforms, control systems, sensors, interface tools and environments. These tasks are in turn, accelerated by the advanced editing and development tools integrated with the game engine leading to a virtuous spiral in which a wide range of platforms can be modeled with greater fidelity in a short time period.
 
 USARSim was originally based upon simulated environments in the USAR domain.
-Since then, USARSim has been used worldwide and more environments have been developed for different purposes. In addition to USAR, the simulator has been applied to the DARPA Urban Challenge (see Figure~\ref{3D_World-a}). Other environments such as the NIST campus (see Figure~\ref{3D_World-b}) and factories (see Figure~\ref{3D_World-c}) have been used to test the performance of algorithms in different efforts~\cite{WANG.HFES.2005,BALAGUER.IROS.2008,KOOTBALLY.ITEA.2010}.
+Since then, USARSim has been used worldwide and more environments have been developed for different purposes. In addition to USAR, the simulator has been applied to the DARPA Urban Challenge (see Figure~\ref{3D_World-a}). Other environments such as the NIST campus (see Figure~\ref{3D_World-b}) and factories (see Figure~\ref{3D_World-c}) have been used to test the performance of algorithms in different efforts~\cite{WANG.HFES.2005,BALAGUER.IROS.2008,KOOTBALLY.ITEA.2010}. The simulation is also widely used for the RoboCup Virtual Robot Rescue Competition \cite{RoboCupWeb} and the IEEE Virtual Manufacturing and Automation Challenge \cite{VMACWeb}.
 
 \begin{figure}[t!]
 \centering
@@ -26,12 +22,10 @@ campus.]{\label{3D_World-b}\psfig{file=Figures/Worlds/nist1.eps,width=4cm}}\qqua
 \caption{Sample of 3D environments in USARSim.} \label{3D_World}
 \end{figure}
 
-USARSim was initially developed with a focus on wheeled robots, in
-particular differential drive systems. Interest and wide community
-support offer multiple robots, including underwater vehicles, legged
-platforms, and humanoids. In USARSim, robots are based on the real
-robots and are implemented by specific classes, thus making it
-easier to develop new platforms that model custom designs. Three
+USARSim was initially developed with a focus on differential drive wheeled robots. However, USARSim's open source framework has encouraged wide community interest and support that now allows USARSim to offer multiple robots, including robotic arms, underwater vehicles, legged
+platforms, aireal platfomrs, and humanoids. In USARSim, robots are based on physical computer aided design (CAD) models of the real
+robots and are implemented by specialization of specific existing classes. This sturcture allows for
+easier development of new platforms that model custom designs. Three
 base classes model different kinds of wheeled locomotion, namely
 differential drives (Figure~\ref{Differential}), omnidirectional
 vehicles (Figure~\ref{Omnidirectional}) and Ackerman steered
