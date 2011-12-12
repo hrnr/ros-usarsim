@@ -878,6 +878,7 @@ ServoInf::odomSensorIndex (std::vector < UsarsimOdomSensor > &sensors,
 {
   unsigned int t;
   UsarsimOdomSensor newSensor;
+  std::string pubName;
 
   for (t = 0; t < sensors.size (); t++)
     {
@@ -890,14 +891,18 @@ ServoInf::odomSensorIndex (std::vector < UsarsimOdomSensor > &sensors,
     odomName = name;
 
   //unable to find the sensor, so must create it.
-  if( name == odomName )
-    newSensor.name = "odom";
-  else
-    newSensor.name = name;
+  newSensor.name = name;
+
   newSensor.time = 0;
-  newSensor.pub = nh->advertise < nav_msgs::Odometry > (newSensor.name.c_str (), 2);
+
+  if( name == odomName )
+    pubName = "odom";
+  else
+    pubName = newSensor.name;
+
+  newSensor.pub = nh->advertise < nav_msgs::Odometry > (pubName.c_str (), 2);
   newSensor.tf.header.frame_id = "base_link";
-  newSensor.tf.child_frame_id = name.c_str ();
+  newSensor.tf.child_frame_id = newSensor.name.c_str ();
 
 
   sensors.push_back (newSensor);
