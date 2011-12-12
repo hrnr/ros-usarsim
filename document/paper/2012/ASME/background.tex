@@ -15,7 +15,7 @@ Since then, USARSim has been used worldwide and more environments have been deve
 
 \begin{figure}[t!]
 \centering
-\subfigure[Test Room,]{\label{TestRoom}\includegraphics[width=4cm]{Figures/Worlds/testRoom.jpg}}\qquad
+\subfigure[Test Room,]{\label{TestRoom}\includegraphics[width=4cm]{Figures/Worlds/testRoom.eps}}\qquad
 \subfigure[NIST main
 campus.]{\label{3D_World-b}\psfig{file=Figures/Worlds/nist1.eps,width=4cm}}\qquad
 \subfigure[Factory,]{\label{3D_World-c}\psfig{file=Figures/Worlds/factory.eps,width=4cm}}\qquad%
@@ -34,10 +34,10 @@ data transmission.
 
 \begin{figure}[t!]
 \centering
-\subfigure[ Aldebaran Robotics Nao.]{\label{Fig:Nao}\includegraphics[width=4cm]{Figures/Robots/nao.jpg}}\qquad
-\subfigure[Air Robot AR100B.]{\label{Fig:AirRobot}\includegraphics[width=4cm]{Figures/Robots/airRobot.jpg}}\qquad
-\subfigure[ Kuka KR60,]{\label{Fig:KR60}\includegraphics[width=4cm]{Figures/Robots/kr60.jpg}}\qquad
-\subfigure[Kiva Robot.]{\label{Fig:Kiva}\includegraphics[width=4cm]{Figures/Robots/kiva.jpg}}
+\subfigure[ Aldebaran Robotics Nao.]{\label{Fig:Nao}\includegraphics[width=4cm]{Figures/Robots/nao.eps}}\qquad
+\subfigure[Air Robot AR100B.]{\label{Fig:AirRobot}\includegraphics[width=4cm]{Figures/Robots/airRobot.eps}}\qquad
+\subfigure[ Kuka KR60,]{\label{Fig:KR60}\includegraphics[width=4cm]{Figures/Robots/kr60.eps}}\qquad
+\subfigure[Kiva Robot.]{\label{Fig:Kiva}\includegraphics[width=4cm]{Figures/Robots/kiva.eps}}
 \caption{Sample of vehicles in USARSim.}
 \end{figure}
 
@@ -50,12 +50,9 @@ ROS possesses a large range of tools and services that both users and developers
 
 \subsubsection*{Nomenclature}
 
-The fundamental concepts of the ROS implementation are
-nodes, messages, topics, and services. These terms will be used throughout the rest of the paper and are detailed below~\cite{QUIGLEY.ICRA.2009}.
+ROS uses the concept of stacks, packages, nodes, messages, topics, and services. These terms are used throughout the rest of the paper and are detailed below~\cite{QUIGLEY.ICRA.2009}.
 \begin{itemize}
-\item[-] Node: An executable unit which communicates with other nodes. ROS is
-designed to be modular at a fine-grained scale: a system
-is typically comprised of many nodes. In this context, the
+\item[-] Node: An executable unit which communicates with other nodes. In this context, the
 term ``node" is interchangeable with ``software module". Nodes communicate with each other by passing messages.
 \item[-] Message: A strictly typed data structure. Standard
 primitive types (integer, floating point, boolean, \ldots) are
@@ -68,5 +65,7 @@ node may publish and/or subscribe to multiple topics.
 \item[-] Service: A remote procedure call defined by a string name and a pair
 of strictly typed messages: one for the request and one for
 the response.
+\item[-] Package: A compilation of nodes that can easily be compiled and ported to other computers. Packages are necessary to build a complete ROS-based robot control system.
 \item[-] Stack: Packages in ROS are organized into ROS stacks. Whereas the goal of packages is to create minimal collections of code for easy reuse, the goal of stacks is to simplify the process of code sharing. Stacks are the primary mechanism in ROS for distributing software. Each stack has an associated version and can declare dependencies on other stacks. These dependencies also declare a version number, which provides greater stability in development.
+
 \end{itemize} 
