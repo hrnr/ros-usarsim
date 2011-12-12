@@ -890,9 +890,12 @@ ServoInf::odomSensorIndex (std::vector < UsarsimOdomSensor > &sensors,
     odomName = name;
 
   //unable to find the sensor, so must create it.
-  newSensor.name = name;
+  if( name == odomName )
+    newSensor.name = "odom";
+  else
+    newSensor.name = name;
   newSensor.time = 0;
-  newSensor.pub = nh->advertise < nav_msgs::Odometry > (name.c_str (), 2);
+  newSensor.pub = nh->advertise < nav_msgs::Odometry > (newSensor.name.c_str (), 2);
   newSensor.tf.header.frame_id = "base_link";
   newSensor.tf.child_frame_id = name.c_str ();
 
