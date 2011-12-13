@@ -6,7 +6,7 @@ USARSim~\cite{CARPIN.LNAI.2006,WANG.WSC.2003} is a high-fidelity physics-based s
 
 %Altogether, the Karma Physics engine~\cite{KarmEngine} and high-quality 3D rendering facilities of the Unreal game engine allow the creation of realistic simulation environments that provide the embodiment of a robotic system. Furthermore, USARSim comes with tools to develop objects and environments (Unreal Editor) and it is possible to control actors in the game through a TCP/IP socket API.
 
-Through its usage of UDK, USARSim utilizes the physX phsyics engine~\cite{physXWeb} and high-quality 3D rendering facilities to create a realistic simulation environment that provides the embodiment of, and environment for a robotic
+Through its usage of UDK, USARSim utilizes the physX physics engine~\cite{physXWeb} and high-quality 3D rendering facilities to create a realistic simulation environment that provides the embodiment of, and environment for a robotic
 system. The current release of USARSim consists of various environmental models, models of commercial and experimental robots, and sensor models. High fidelity at low cost is made possible by building the simulation on top of a game engine. By loading the most
 difficult aspects of simulation to a high volume commercial platform (available for free to most users) which provides superior visual rendering and physical modeling, full user effort can be devoted to the robotics-specific tasks of modeling platforms, control systems, sensors, interface tools and environments. These tasks are in turn accelerated by the advanced editing and development tools integrated with the game engine. This leads to a virtuous spiral in which a wide range of platforms can be modeled with greater fidelity in a short period of time.
 
@@ -28,7 +28,7 @@ robots and are implemented by specialization of specific existing classes. This 
 
 All robots in USARSim have a chassis, and may contain multiple wheels, sensors and
 actuators. The robots are configurable (specify types of
-sensors/end effectors for example) through a configuration file that is read at runtime. The properties of the robots can
+sensors/end effectors for example) through a configuration file that is read at run-time. The properties of the robots can
 also be configured, such as the battery life and the frequency of
 data transmission.
 
@@ -44,7 +44,7 @@ data transmission.
 \subsection*{The ROS Framework}
 ROS~\cite{ROSWeb} is an open source framework designed to provide an abstraction layer to complex robotic hardware and software configurations. It provides libraries and tools to help software developers create robot applications and has found wide use in both industry and academia. Examples of ROS applications include
 Willow Garage's Personal Robots Program~\cite{WYOBEK.ICRA.2008} and the Stanford University STAIR project~\cite{QUIGLEY.AAAI.2007}. Developers of ROS code are encouraged to
-contribute their code back to the community and to provide documentation and maintainance of their algorithms.
+contribute their code back to the community and to provide documentation and maintenance of their algorithms.
 
 ROS possesses a large range of tools and services that both users and developers alike can benefit from. The philosophical goals of ROS include an advanced set of criteria and can be summarized as: peer-to-peer, tools-based, multi-lingual, thin, and free and open-source~\cite{QUIGLEY.ICRA.2009}. Furthermore, debugging at all levels of the software is made possible with the full source code of ROS being publicly available. Thus, the main developers of a project can benefit from the community and vice-versa.
 
