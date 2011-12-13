@@ -20,20 +20,40 @@ Although different models of mobile robot are developed in USARSim, the Pioneer 
 \subsubsection*{Low-level Navigation}
 The ROS/USARSim interface allows the startup and the control of the default P3AT base controllers by directly sending velocity commands to the base. This task was performed using the following commands:
 \begin{enumerate}
-\item Bring up an environment in USARSim
-\item \$ \texttt{roscore}
-\item \$ \texttt{roslaunch usarsim usarsim.launch}
-\item \$ \texttt{rosrun teleop\_twist\_keyboard teleop\_twist\_keyboard.py}
+\item\footnotesize{Bring up an environment in USARSim.        }
+\item\footnotesize{\$roscore}
+\item\footnotesize{\$roslaunch usarsim usarsim.launch}
+\item\footnotesize{\$rosrun teleop\_twist\_keyboard teleop\_twist\_keyboard.py}
+\item\footnotesize{\$rosrun gmapping slam\_gmapping scan:=lms200 \_odom\_frame:=odom}
 \end{enumerate}
 
-In the first step, the user starts the environment in USARSim. If an environment is not up and running, passing messages between ROS and USARSim is not possible. The second step starts \texttt{roscore}, a collection of nodes and programs that are a pre-requisites of a ROS-based system. \texttt{roscore} must run in order for ROS nodes to communicate. The third step launches the \texttt{usarsim.launch} file. This launch file contains information necessary to connect ROS to the computer running the server (USARSim), to set up the appropriate robot (the P3AT in this case) at the correct location in the environment, to launch the proper ROS topics and to start the \texttt{RosSim} node. The last step starts the \texttt{teleop\_twist\_keyboard} node which sends velocity commands to the \texttt{RosSim} node through the computer keyboard. At this point, the P3AT can be controlled by keyboard teleop in the USARSim environment.
+In step 1. an environment is started on server side (USARSim). If an environment is not up and running, passing messages between ROS and USARSim will fail. Step 2. starts \texttt{roscore}, a collection of nodes and programs that are a pre-requisites of a ROS-based system for ROS nodes to communicate. Step 3. launches the \texttt{usarsim.launch} file. This launch file contains information necessary to connect ROS to the computer running USARSim, to set up the appropriate robot (the P3AT in this case) at the correct location in the environment, to launch the proper ROS topics and to start the \texttt{RosSim} node. Step 4. starts the \texttt{teleop\_twist\_keyboard} node which sends velocity commands to the \texttt{RosSim} node through the computer keyboard. At this point, the P3AT can be controlled by keyboard teleop in the USARSim environment. Step 5. starts the node \texttt{slam\_gmapping} which transforms each incoming scan from the laser into the odometry tf frame to build a map. Here, the topic \texttt{scan} is used to create the map with the parameter \texttt{\_odom\_frame}, the frame attached to the odometry system.
 
-Figure~\ref{fig:teleop} illustrates the communication between the \texttt{RosSim} and the \texttt{teleop\_twist\_keyboard} nodes (in ovals). The keyboard inputs are converted in velocity commands and then communicated to the \texttt{RosSim} node on the topic \texttt{cmd\_vel}. \texttt{RosSim} publishes two topics for the odometry (\texttt{GndTruth} and \texttt{InsTest}), one topic to keep track of multiple coordinate frames over time \texttt{tf}, and a topic for the laser scanner (\texttt{lms200}).
-\begin{figure}[h!]
+\begin{figure}[t!]
 \centering
-\includegraphics[width=10cm]{Figures/Misc/teleop-rossim-non-quiet.jpg}
-\caption{Mobile robot control at the lower level.}\label{fig:teleop}
+\includegraphics[width=10cm]{Figures/Misc/low-level.jpg}
+\caption{Mobile robot control with teleop.}\label{fig:teleop}
 \end{figure}
+
+Figure~\ref{fig:teleop} illustrates the communication between the nodes \texttt{RosSim}, \texttt{teleop\_twist\_keyboard}, and \texttt{slam\_gmapping}. The keyboard inputs are converted in velocity commands and then communicated to the \texttt{RosSim} node on the topic \texttt{cmd\_vel}. \texttt{slam\_gmapping} uses the topics (\texttt{lms200}) and (\texttt{tf}) as inputs to build the map. To save the generated map, the following command is used:
+
+\begin{itemize}
+\item[]\footnotesize{\$rosrun map\_server map\_saver}
+\end{itemize}
+
+\begin{figure}[t!]
+\centering
+\subfigure[USARSim environment.]{\label{Fig:vmac-usarsim}\includegraphics[width=4cm]{Figures/Misc/vmac-usarsim.jpg}}\qquad
+\subfigure[Map of the environment.]{\label{Fig:vmac-usarsim-map}\includegraphics[width=4cm]{Figures/Misc/vmac-usarsim-map.jpg}}
+\caption{Environment in USARSim and the corresponding map.}
+\end{figure}
+The generated map is stored in pair of files: a YAML file which describes the map metadata and the image file that encodes the occupancy data. Figure~\ref{Fig:vmac-usarsim} is a bird view of the environment used to run the teleop command on the P3AT. Figure~\ref{Fig:vmac-usarsim-map} is the map generated by the \texttt{map\_saver} utility-command.
+
+
+
+%\texttt{RosSim} publishes two topics for the odometry (\texttt{GndTruth} and \texttt{InsTest}), one topic to keep track of multiple coordinate frames over time \texttt{tf}, and a topic for the laser scanner (\texttt{lms200}).
+
+
 
 \subsubsection*{High-level Navigation}
 This section describes how goals are sent using code to the P3AT to move to a particular location. Navigation at hight level is possible with the action specification for \texttt{move\_base}. This package provides an implementation of an action (\texttt{actionlib}) that, given a goal in the world, will attempt to reach it with a mobile base. The \texttt{move\_base} node links together a global and local planner to accomplish its global navigation task.
@@ -60,5 +80,3 @@ Once the \texttt{move\_base.launch} file is setup with the appropriate configura
 \begin{itemize}
  \item [] \item \$ \texttt{roslaunch move\_base.launch}
 \end{itemize}
-
--- Need rxgraph file to finish this section -- 
