@@ -75,10 +75,10 @@ The ROS/USARSim interface also provides high-level navigation through the naviga
 \begin{figure}[t!]
 \centering
 \resizebox{\columnwidth}{!}{\includegraphics{Figures/Misc/Navigation_Stack.jpg}}
-\caption{\label{fig:navigation_stack}Navigation stack setup using \texttt{move\_base}}
+\caption{\label{fig:navigation_stack}Navigation stack setup using {\it move\_base}}
 \end{figure}
 
-Figure~\ref{fig:navigation_stack} depicts a high-level view of the {\it move\_base} node and its interaction with other components of the navigation stack. The white components are required components, the green components are optional components, and the blue components must be created for each robot platform. The white and green components are already implemented. For the navigation stack to work properly for the P3AT, the nodes and topics generated should match the configuration of the {\it move\_base} node with the navigation stack.
+Figure~\ref{fig:navigation_stack} (taken from~\cite{MoveBase}) depicts a high-level view of the {\it move\_base} node and its interaction with other components of the navigation stack. The white components are required components, the green components are optional components, and the blue components must be created for each robot platform. The white and green components are already implemented. For the navigation stack to work properly for the P3AT, the nodes and topics generated should match the configuration of the {\it move\_base} node with the navigation stack.
 
 
 Before running the {\it move\_base} node on the P3AT, localization, mapping and navigation information are filled in the {\it move\_base.launch} file:
@@ -116,7 +116,7 @@ To send commands to the P3AT, the package {\it simple\_navigation\_goals} was cr
 \begin{figure}[t!]
 \centering
 \resizebox{\columnwidth}{!}{\includegraphics{Figures/Misc/move_base.jpg}}
-\caption{\label{fig:movebase}Mobile robot control with move\_base.}
+\caption{\label{fig:movebase}Mobile robot control with {\it move\_base}.}
 \end{figure}
       
 
