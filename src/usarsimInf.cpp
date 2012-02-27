@@ -607,6 +607,7 @@ UsarsimInf::handleMsg (char *msg)
       /* else copy it */
       head[headindex] = *ptr++;
     }
+  //  ROS_DEBUG( "usarsimInf.cpp::handleMsg: socket message received: %s", msg );
   if (!strcmp (head, "SEN"))
     {
       count = handleSen (msg);
@@ -1473,6 +1474,10 @@ UsarsimInf::handleSenIns (char *msg, const char *sensorType)
 	  sw->data.ins.position.roll = getReal (&info);
 	  sw->data.ins.position.pitch = getReal (&info);
 	  sw->data.ins.position.yaw = getReal (&info);
+	}
+      else if (!strcmp (info.token, "Time"))
+	{
+	  getTime (&info);
 	}
       else
 	{
@@ -2738,7 +2743,7 @@ UsarsimInf::handleConfActuator (char *msg)
   setSensorInfo (msg, &info);
   linkindex = 0;
 
-    ROS_ERROR( "HandleConfActuator: %s", msg );
+  ROS_ERROR( "not an error but... usarsimInf.cpp::HandleConfActuator: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -3909,7 +3914,7 @@ UsarsimInf::handleGeoActuator (char *msg)
   setSensorInfo( msg, &info );
   linkindex = 0;
 
-  ROS_ERROR( "HandleGeoActuator: %s", msg );
+  ROS_ERROR( "not an error, but... usarsimInf.cpp::HandleGeoActuator: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);

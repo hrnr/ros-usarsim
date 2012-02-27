@@ -177,8 +177,8 @@ main (int argc, char **argv)
 		   actPt->jointTf[j].transform.translation.z - actPt->tf.transform.translation.z,
 		   roll, pitch, yaw );
 	  */
-	  fprintf( fp, "\t\t<origin xyz=\"0 0 0\" rpy=\"%.2f %.2f %.2f\" />\n",
-		   roll, pitch, yaw );
+	  fprintf( fp, "\t\t<origin xyz=\"0 0 %f\" rpy=\"%.2f %.2f %.2f\" />\n",
+		   -length/2., roll, pitch, yaw );
 	  fprintf( fp, "\t\t</visual>\n");
 	  fprintf( fp, "\t</link>\n");
 	}
@@ -186,7 +186,7 @@ main (int argc, char **argv)
 
       for( unsigned int j=0; j<actPt->jointTf.size(); j++ )
 	{
-	  fprintf( fp, "\t<joint name=\"joint%d\" type=\"continuous\">\n", j+1);
+	  fprintf( fp, "\t<joint name=\"joint%d\" type=\"revolute\">\n", j+1);
 	  fprintf( fp, "\t\t<parent link=\"%s\"/>\n", actPt->jointTf[j].header.frame_id.c_str () );
 	  fprintf( fp, "\t\t<child link=\"%s\"/>\n", actPt->jointTf[j].child_frame_id.c_str () );
 	  tf::quaternionMsgToTF(actPt->jointTf[j].transform.rotation, bt_q);
@@ -197,6 +197,7 @@ main (int argc, char **argv)
 		   actPt->jointTf[j].transform.translation.z - actPt->tf.transform.translation.z,
 		   roll, pitch, yaw );
 	  fprintf( fp, "\t\t<axis xyz=\"0.0 0.0 1\" />\n" );
+	  fprintf( fp, "\t\t<limit effort=\"1000.0\" lower=\"0.0\" upper=\"1.57\" velocity=\"0.5\" />\n" );
 	  fprintf( fp, "\t</joint>\n\n");
 	}
       fprintf( fp, "</robot>\n" );

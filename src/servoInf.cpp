@@ -118,7 +118,7 @@ ServoInf::peerMsg (sw_struct * sw)
   if( sw->time <= 0. )
     {
       sw->time = previousTime;
-      ROS_WARN ("Sensor msg class %s with operand %d with out time",
+      ROS_WARN ("Sensor msg class %s with operand %d without time",
 		swTypeToString (sw->type), sw->op);
     }
   switch (sw->type)
@@ -604,16 +604,18 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
       currentJointTf.transform.translation = UsarsimConverter::PointToVector(linkPose.pose.position);
       currentJointTf.transform.rotation = linkPose.pose.orientation;
 
-      ROS_ERROR( "Frame: %s position: %f %f %f orientation: %f %f %f %f",
+      /*
+      btQuaternion q;
+      double roll, pitch, yaw;
+      tf::quaternionMsgToTF(currentJointTf.transform.rotation, q);
+      btMatrix3x3(q).getRPY(roll, pitch, yaw);
+      ROS_ERROR( "Frame: %s position: %f %f %f orientation: %f %f %f",
 		 currentJointTf.header.frame_id.c_str(), 
 		 currentJointTf.transform.translation.x,
 		 currentJointTf.transform.translation.y,
 		 currentJointTf.transform.translation.z,
-		 currentJointTf.transform.rotation.x,
-		 currentJointTf.transform.rotation.y,
-		 currentJointTf.transform.rotation.z,
-		 currentJointTf.transform.rotation.w );
-		 
+		 roll, pitch, yaw );
+      */	 
       rosTfBroadcaster.sendTransform (currentJointTf);
 
       act->jointTf.push_back(currentJointTf);
@@ -692,6 +694,8 @@ ServoInf::copyIns (UsarsimOdomSensor * sen, const sw_struct * sw)
       //      basePlatform->tf.header.frame_id = sen->name.c_str ();
       basePlatform->tf.header.frame_id = "base_footprint";
       basePlatform->tf.header.stamp = currentTime;
+      ROS_DEBUG( "servoInf.cpp:: rosTime: %f sensorTime: %f",
+		 currentTime.toSec(), sw->time );
       basePlatform->tf.child_frame_id = "base_link";
       //  basePlatform->tf.child_frame_id = basePlatform->platformName.c_str ();
       sen_child_id = std::string("base_footprint");
