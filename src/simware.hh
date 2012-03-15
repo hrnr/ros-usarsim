@@ -91,7 +91,8 @@ typedef struct
 // ros command types
 enum
 {
-  SW_ROS_CMD_VEL = 1
+  SW_ROS_CMD_VEL = 1,
+  SW_ROS_CMD_TRAJ
 };
 
 enum
@@ -421,6 +422,12 @@ typedef struct
 
 typedef struct
 {
+  double goal[SW_ACT_LINK_MAX];
+  int number;
+} sw_ros_cmd_traj_struct;
+
+typedef struct
+{
   double time;
   sw_type type;			/*!< Which resource is selected. */
   sw_op op;			/*!< What operation to do on the resource.  */
@@ -429,6 +436,7 @@ typedef struct
   {
     /* ros */
     sw_ros_cmd_vel_struct roscmdvel;
+    sw_ros_cmd_traj_struct roscmdtraj;
     /* robots */
     sw_robot_groundvehicle_struct groundvehicle;
     sw_robot_airbot_struct airbot;

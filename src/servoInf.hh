@@ -36,6 +36,8 @@
 #include <tf/transform_listener.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/LaserScan.h>
+#include <control_msgs/FollowJointTrajectoryActionGoal.h>
+#include <control_msgs/FollowJointTrajectoryActionResult.h>
 #include "genericInf.hh"
 #include "simware.hh"
 #include "usarsimInf.hh"
@@ -43,6 +45,18 @@
 ////////////////////////////////////////////////////////////////
 // structures
 ////////////////////////////////////////////////////////////////
+struct TrajectoryControl
+{
+  bool trajectoryActive;
+  int numLinks;
+  double jointGoals[SW_ACT_LINK_MAX];
+  double tolerances[SW_ACT_LINK_MAX];
+  ros::Duration duration;
+  ros::Duration goal_time_tolerance;
+  ros::Time start;
+  actionlib_msgs::GoalID goalID;
+  std::string frame_id;
+};
 
 ////////////////////////////////////////////////////////////////
 // class
@@ -83,6 +97,8 @@ private:
   std::vector < UsarsimOdomSensor > odometers;
   //! Range scanner sensors
   std::vector < UsarsimRngScnSensor > rangeScanners;
+  //arm trajectory goal
+  TrajectoryControl trajectoryStatus;
 
   int actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
 		     std::string name);
@@ -96,6 +112,9 @@ private:
   int copyRangeScanner (UsarsimRngScnSensor * sen, const sw_struct * sw);
   int copyStaticVehSettings (UsarsimPlatform * settings, const sw_struct * sw);
   void VelCmdCallback (const geometry_msgs::TwistConstPtr & msg);
+  void TrajCmdCallback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr &msg);
+  int updateActuatorTF(UsarsimActuator *act, const sw_struct *sw);
+  bool checkTrajectoryDone(UsarsimActuator *act, const sw_struct *sw);
 };
 
 #endif

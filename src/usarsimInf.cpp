@@ -234,7 +234,8 @@ UsarsimInf::peerMsg (sw_struct * swIn)
   double turnRadius;
   double leftVel, rightVel;
   double scale;
-
+  std::string armCmd;
+  std::stringstream tempSS;
   /*
      char cmp[MAX_MSG_LEN];
      int t;
@@ -339,6 +340,23 @@ UsarsimInf::peerMsg (sw_struct * swIn)
          break;
        */
       break;
+    case SW_ROS_CMD_TRAJ:
+	armCmd = "ACT {Name " + swIn->name + "}";
+	for(int i = 0;i<swIn->data.roscmdtraj.number;i++)
+	{
+	  tempSS.str("");
+	  tempSS<<i;
+	  armCmd += " {Link " + tempSS.str() + "}";
+	  tempSS.str("");
+	  tempSS << swIn->data.roscmdtraj.goal[i];
+	  armCmd += " {Value "+tempSS.str() + "}";
+	}
+        ulapi_snprintf(str, sizeof(str), "%s\r\n",armCmd.c_str());
+        NULLTERM (str);
+        ulapi_mutex_take (socket_mutex);
+	usarsim_socket_write (socket_fd, str, strlen (str));
+	ulapi_mutex_give (socket_mutex);
+        break;
     default:
       ROS_ERROR ("usarsimInf::peerMsg: not handling type %s",
 		 swTypeToString (swIn->type));
