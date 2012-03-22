@@ -34,7 +34,26 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/JointState.h>
+#include <control_msgs/FollowJointTrajectoryActionGoal.h>
+#include <control_msgs/FollowJointTrajectoryActionResult.h>
 #include "simware.hh"
+#include "genericInf.hh"
+
+////////////////////////////////////////////////////////////////////////
+//TrajectoryControl
+////////////////////////////////////////////////////////////////////////
+struct TrajectoryControl
+{
+  bool trajectoryActive;
+  int numLinks;
+  double jointGoals[SW_ACT_LINK_MAX];
+  double tolerances[SW_ACT_LINK_MAX];
+  ros::Duration duration;
+  ros::Duration goal_time_tolerance;
+  ros::Time start;
+  actionlib_msgs::GoalID goalID;
+  std::string frame_id;
+};
 
 ////////////////////////////////////////////////////////////////////////
 // UsarsimList
@@ -199,12 +218,15 @@ public:
 class UsarsimActuator:public UsarsimSensor
 {
 public:
-  UsarsimActuator ();
+  UsarsimActuator (GenericInf *parentInf);
   sensor_msgs::JointState joints;
   std::vector <geometry_msgs::TransformStamped> jointTf; // transforms for links
   sensor_msgs::JointState jstate;
   ros::Subscriber trajectorySub; // subscriber for actuator controls 
   ros::Publisher resultPub; // publisher for actuator control result
+  GenericInf *infHandle;
+  TrajectoryControl trajectoryStatus;
+  void commandCallback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr &msg);
   int numJoints;
 };
 

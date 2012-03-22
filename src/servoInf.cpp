@@ -50,8 +50,9 @@ ServoInf::VelCmdCallback (const geometry_msgs::TwistConstPtr & msg)
   sibling->peerMsg (&sw);
   return;
 }
-void ServoInf::TrajCmdCallback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr &msg)
+/*void ServoInf::TrajCmdCallback(const ros::MessageEvent<control_msgs::FollowJointTrajectoryActionGoal const> &msgEvent)
 {
+  const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg = msgEvent.getMessage();
   if(trajectoryStatus.trajectoryActive)
   {
     //do nothing, trajectory is already active
@@ -60,6 +61,7 @@ void ServoInf::TrajCmdCallback(const control_msgs::FollowJointTrajectoryActionGo
   {
     sw_struct sw;
     sw.type = SW_ROS_CMD_TRAJ;
+    ROS_ERROR("Pub name: %s",msgEvent.getPublisherName().c_str());
     sw.name = "TwoLinkArm";
     sw.data.roscmdtraj.number = msg->goal.trajectory.joint_names.size();
     trajectoryStatus.trajectoryActive = true;
@@ -82,7 +84,7 @@ void ServoInf::TrajCmdCallback(const control_msgs::FollowJointTrajectoryActionGo
     }
     sibling->peerMsg(&sw);
   }
-}
+}*/
 ServoInf::ServoInf ():GenericInf ()
 {
   botType = SW_ROBOT_UNKNOWN;
@@ -132,7 +134,6 @@ ServoInf::init (GenericInf * usarsimIn)
 
   sibling = usarsimIn;
   servoSetMutex = ulapi_mutex_new (SERVO_SET_KEY);
-  trajectoryStatus.trajectoryActive = false;
   if (servoSetMutex == NULL)
     {
       ROS_ERROR ("Unable to create servoSetMutex");
@@ -167,11 +168,11 @@ ServoInf::peerMsg (sw_struct * sw)
 	    actuators[num].pub.publish (actuators[num].jstate);
 	    if(checkTrajectoryDone(&actuators[num], sw))
 	    {
-	      trajectoryStatus.trajectoryActive = false;
+	      actuators[num].trajectoryStatus.trajectoryActive = false;
 	      control_msgs::FollowJointTrajectoryActionResult trajResult;
 	      trajResult.header.stamp = currentTime;
-	      trajResult.header.frame_id = trajectoryStatus.frame_id;
-	      trajResult.status.goal_id = trajectoryStatus.goalID;
+	      trajResult.header.frame_id = actuators[num].trajectoryStatus.frame_id;
+	      trajResult.status.goal_id = actuators[num].trajectoryStatus.goalID;
 	      trajResult.status.status = trajResult.status.SUCCEEDED;
 	      actuators[num].resultPub.publish(trajResult);
 	    }
@@ -569,7 +570,7 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
       // now create actuator message
       tempSS.str("");
       tempSS << i+1;
-      act->jstate.name.push_back((std::string("Link_") + tempSS.str ()));
+      act->jstate.name.push_back((std::string("Joint_") + tempSS.str ()));
       act->jstate.position.push_back(sw->data.actuator.link[i].position);
     }	    
   //  ROS_ERROR( "CopyAct success!!" );
@@ -620,7 +621,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
   act->tf.transform.translation.z = mountZ;
   act->tf.transform.rotation = quatMsg;
   act->tf.header.stamp = currentTime;
-  act->tf.child_frame_id = act->name;
+  act->tf.child_frame_id = act->name + "_link1";
 
   rosTfBroadcaster.sendTransform (act->tf);
   //  ROS_ERROR( "sent transform from \"%s\" to \"%s\"", act->tf.header.frame_id.c_str(), act->tf.child_frame_id.c_str() );
@@ -628,15 +629,15 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
   for(int i = 0;i<act->numJoints;i++)
   {
       tempSS.str("");
-      tempSS << i+1; // link is array index + 1;
-      currentJointTf.child_frame_id = std::string("Link_") + tempSS.str ();
+      tempSS << i+2; // link is array index + 2 (starts at joint 1);
+      currentJointTf.child_frame_id = act->name + std::string("_link") + tempSS.str ();
       if( sw->data.actuator.link[i].parent == 0 )
 	currentJointTf.header.frame_id = act->tf.child_frame_id;
       else
 	{
 	  tempSS.str("");
 	  tempSS << sw->data.actuator.link[i].parent;
-	  currentJointTf.header.frame_id = std::string("Link_") + tempSS.str ();
+	  currentJointTf.header.frame_id = act->name + std::string("_link") + tempSS.str ();
 	}
       quat = tf::createQuaternionFromRPY (sw->data.actuator.link[i].mount.roll,
 					  sw->data.actuator.link[i].mount.pitch,
@@ -929,7 +930,8 @@ ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
 			   std::string name)
 {
   unsigned int t;
-  UsarsimActuator newActuator;
+  UsarsimActuator newActuator(this);
+  UsarsimActuator *actPtr;
   std::string pubName;
 
   for (t = 0; t < actuatorsIn.size (); t++)
@@ -937,24 +939,25 @@ ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
       if (name == actuatorsIn[t].name)
 	return t;		// found it
     }
-
+  
   ROS_INFO ("Adding actuator: %s", name.c_str ());
-
-  //unable to find the actuator, so must create it.
-  newActuator.name = name;
-  newActuator.time = 0;
-  //pubName = name + "_status"; this must be joint_state in order for the arm navigation to read the arm position
-  pubName = "joint_states";
-  newActuator.pub = nh->advertise < sensor_msgs::JointState > (pubName.c_str (), 2);
-  newActuator.tf.header.frame_id = "base_link";
-  newActuator.tf.child_frame_id = name.c_str ();
-  newActuator.jstate.header.frame_id = "base_link";
-
-  newActuator.trajectorySub = nh->subscribe((name + "/follow_joint_trajectory/goal").c_str(), 10, &ServoInf::TrajCmdCallback, this);
-  ROS_ERROR("Subscribing to topic %s", (name + "/follow_joint_trajectory/goal").c_str());
-  newActuator.resultPub = nh->advertise<control_msgs::FollowJointTrajectoryActionResult>((name + "/follow_joint_trajectory/result").c_str(), 2);
   
   actuatorsIn.push_back (newActuator);
+  actPtr = &actuatorsIn.back();
+  //unable to find the actuator, so must create it.
+  actPtr->name = name;
+  actPtr->time = 0;
+  //pubName = name + "_status"; this must be joint_state in order for the arm navigation to read the arm position
+  pubName = "joint_states";
+  actPtr->pub = nh->advertise < sensor_msgs::JointState > (pubName.c_str (), 2);
+  actPtr->tf.header.frame_id = "base_link";
+  actPtr->tf.child_frame_id = name.c_str ();
+  actPtr->jstate.header.frame_id = "base_link";
+
+  actPtr->trajectorySub = nh->subscribe((name + "/follow_joint_trajectory/goal").c_str(), 10, &UsarsimActuator::commandCallback, actPtr);
+  ROS_ERROR("Subscribing to topic %s", (name + "/follow_joint_trajectory/goal").c_str());
+  actPtr->resultPub = nh->advertise<control_msgs::FollowJointTrajectoryActionResult>((name + "/follow_joint_trajectory/result").c_str(), 2);
+
   return actuatorsIn.size () - 1;
 }
 
@@ -1023,11 +1026,11 @@ ServoInf::rangeSensorIndex (std::vector < UsarsimRngScnSensor > &sensors,
 bool ServoInf::checkTrajectoryDone(UsarsimActuator *act, const sw_struct *sw)
 {
   ros::Time currentTime = ros::Time::now();
-  if(trajectoryStatus.trajectoryActive && currentTime > trajectoryStatus.start + trajectoryStatus.duration + trajectoryStatus.goal_time_tolerance)
+  if(act->trajectoryStatus.trajectoryActive && currentTime > act->trajectoryStatus.start + act->trajectoryStatus.duration + act->trajectoryStatus.goal_time_tolerance)
   {
     for(int i = 0;i<sw->data.actuator.number;i++)
     {
-      if(abs(sw->data.actuator.link[i].position - trajectoryStatus.jointGoals[i]) > trajectoryStatus.tolerances[i])
+      if(abs(sw->data.actuator.link[i].position - act->trajectoryStatus.jointGoals[i]) > act->trajectoryStatus.tolerances[i])
 	return false;
     }
     return true;

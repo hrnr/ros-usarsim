@@ -154,10 +154,11 @@ UsarsimRngScnSensor::UsarsimRngScnSensor ():UsarsimSensor ()
 ////////////////////////////////////////////////////////////////////////
 // Actuator
 ////////////////////////////////////////////////////////////////////////
-UsarsimActuator::UsarsimActuator ():UsarsimSensor ()
+UsarsimActuator::UsarsimActuator (GenericInf *parentInf):UsarsimSensor ()
 {
+  infHandle = parentInf;
+  trajectoryStatus.trajectoryActive = false;
 }
-
 ////////////////////////////////////////////////////////////////////////
 // UsarsimConverter
 ////////////////////////////////////////////////////////////////////////
@@ -181,4 +182,36 @@ UsarsimConverter::VectorToPoint(geometry_msgs::Vector3 pointIn)
   retValue.y = pointIn.y;
   retValue.z = pointIn.z;
   return retValue;
+}
+void UsarsimActuator::commandCallback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr &msg)
+{
+  if(trajectoryStatus.trajectoryActive)
+  {
+    
+  }else
+  {
+    sw_struct sw;
+    sw.type = SW_ROS_CMD_TRAJ;
+    sw.name = name;
+    sw.data.roscmdtraj.number = msg->goal.trajectory.joint_names.size();
+    trajectoryStatus.trajectoryActive = true;
+    trajectoryStatus.numLinks = msg->goal.trajectory.joint_names.size();
+    for(unsigned int i = 0;i < msg->goal.trajectory.joint_names.size();i++)
+    {
+      //use last point in trajectory for position goal
+      sw.data.roscmdtraj.goal[i] = msg->goal.trajectory.points.back().positions[i];
+      trajectoryStatus.jointGoals[i] = msg->goal.trajectory.points.back().positions[i];
+      //ignore path tolerance for now, only use goal
+      if(!msg->goal.goal_tolerance.empty())
+      	trajectoryStatus.tolerances[i] = msg->goal.goal_tolerance[i].position;
+      else
+	trajectoryStatus.tolerances[i] = 0.1; //default should be set through parameter
+      trajectoryStatus.duration = msg->goal.trajectory.points.back().time_from_start;
+      trajectoryStatus.goalID = msg->goal_id;
+      trajectoryStatus.frame_id = msg->header.frame_id;
+      trajectoryStatus.start = ros::Time::now();
+      trajectoryStatus.goal_time_tolerance - msg->goal.goal_time_tolerance;
+    }
+    infHandle->sibling->peerMsg(&sw);
+  }
 }
