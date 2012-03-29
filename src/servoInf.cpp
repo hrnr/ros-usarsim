@@ -621,7 +621,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
   act->tf.transform.translation.z = mountZ;
   act->tf.transform.rotation = quatMsg;
   act->tf.header.stamp = currentTime;
-  act->tf.child_frame_id = act->name + "_link1";
+  act->tf.child_frame_id = act->name + "_link0";
 
   rosTfBroadcaster.sendTransform (act->tf);
   //  ROS_ERROR( "sent transform from \"%s\" to \"%s\"", act->tf.header.frame_id.c_str(), act->tf.child_frame_id.c_str() );
@@ -629,7 +629,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
   for(int i = 0;i<act->numJoints;i++)
   {
       tempSS.str("");
-      tempSS << i+2; // link is array index + 2 (starts at joint 1);
+      tempSS << i+1; // link is array index + 2 (starts at joint 1);
       currentJointTf.child_frame_id = act->name + std::string("_link") + tempSS.str ();
       if( sw->data.actuator.link[i].parent == 0 )
 	currentJointTf.header.frame_id = act->tf.child_frame_id;
@@ -954,9 +954,9 @@ ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
   actPtr->tf.child_frame_id = name.c_str ();
   actPtr->jstate.header.frame_id = "base_link";
 
-  actPtr->trajectorySub = nh->subscribe((name + "/follow_joint_trajectory/goal").c_str(), 10, &UsarsimActuator::commandCallback, actPtr);
-  ROS_ERROR("Subscribing to topic %s", (name + "/follow_joint_trajectory/goal").c_str());
-  actPtr->resultPub = nh->advertise<control_msgs::FollowJointTrajectoryActionResult>((name + "/follow_joint_trajectory/result").c_str(), 2);
+  actPtr->trajectorySub = nh->subscribe((name + "_controller/follow_joint_trajectory/goal").c_str(), 10, &UsarsimActuator::commandCallback, actPtr);
+  ROS_ERROR("Subscribing to topic %s", (name + "_controller/follow_joint_trajectory/goal").c_str());
+  actPtr->resultPub = nh->advertise<control_msgs::FollowJointTrajectoryActionResult>((name + "_controller/follow_joint_trajectory/result").c_str(), 2);
 
   return actuatorsIn.size () - 1;
 }
