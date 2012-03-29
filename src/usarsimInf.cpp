@@ -233,6 +233,7 @@ UsarsimInf::peerMsg (sw_struct * swIn)
   sw_struct *sw;
   double turnRadius;
   double leftVel, rightVel;
+  double steerAngle, vehVel;
   double scale;
   std::string armCmd;
   std::stringstream tempSS;
@@ -313,9 +314,46 @@ UsarsimInf::peerMsg (sw_struct * swIn)
 	      usarsim_socket_write (socket_fd, str, strlen (str));
 	      ulapi_mutex_give (socket_mutex);
 	    }
+	  else if (sw->data.groundvehicle.steertype == SW_STEER_ACKERMAN)
+	    {
+	      if (swIn->data.roscmdvel.lineary != 0
+		  || swIn->data.roscmdvel.linearz != 0
+		  || swIn->data.roscmdvel.angularx != 0
+		  || swIn->data.roscmdvel.angulary != 0)
+		{
+		  ROS_WARN ("Invalid skid steering message <%f %f %f> <%f %f %f>",
+			    swIn->data.roscmdvel.linearx,
+			    swIn->data.roscmdvel.lineary,
+			    swIn->data.roscmdvel.linearz,
+			    swIn->data.roscmdvel.angularx,
+			    swIn->data.roscmdvel.angulary,
+			    swIn->data.roscmdvel.angularz);
+		}
+	      if( swIn->data.roscmdvel.linearx == 0 )
+		{
+		  steerAngle = swIn->data.roscmdvel.angularz;
+		  vehVel = 0.;
+		}
+	      else
+		{
+		  steerAngle = atan2(swIn->data.roscmdvel.angularz *
+				     sw->data.groundvehicle.wheel_base,
+				     swIn->data.roscmdvel.linearx);
+		  vehVel = swIn->data.roscmdvel.linearx/cos(steerAngle);
+		}
+	      // fixeme! How do I know if it is front or rear steer?
+	      ulapi_snprintf (str, sizeof (str),
+			      "Drive {Speed %f} {FrontSteer %f} {RearSteer %f}\r\n", 
+			      vehVel, steerAngle, steerAngle );
+	      NULLTERM (str);
+	      ulapi_mutex_take (socket_mutex);
+	      usarsim_socket_write (socket_fd, str, strlen (str));
+	      ulapi_mutex_give (socket_mutex);
+	      ROS_ERROR ("Wrote %s", str );
+	    }
 	  else
 	    {
-	      ROS_ERROR ("Currently only support skid steered robots");
+	      ROS_ERROR ("Currently only support skid steered and Ackerman steeredrobots");
 	      break;
 	    }
 	}
