@@ -210,7 +210,7 @@ void UsarsimActuator::commandCallback(const control_msgs::FollowJointTrajectoryA
       trajectoryStatus.goalID = msg->goal_id;
       trajectoryStatus.frame_id = msg->header.frame_id;
       trajectoryStatus.start = ros::Time::now();
-      trajectoryStatus.goal_time_tolerance - msg->goal.goal_time_tolerance;
+      trajectoryStatus.goal_time_tolerance = msg->goal.goal_time_tolerance;
     }
     infHandle->sibling->peerMsg(&sw);
   }
