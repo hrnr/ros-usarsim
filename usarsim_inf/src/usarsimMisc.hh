@@ -29,6 +29,7 @@
 */
 #ifndef __usarsimMisc__
 #define __usarsimMisc__
+#include <deque>
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
@@ -38,6 +39,8 @@
 #include <control_msgs/FollowJointTrajectoryActionResult.h>
 #include "simware.hh"
 #include "genericInf.hh"
+
+//using namespace std;
 
 ////////////////////////////////////////////////////////////////////////
 //TrajectoryControl
@@ -53,6 +56,16 @@ struct TrajectoryControl
   ros::Time start;
   actionlib_msgs::GoalID goalID;
   std::string frame_id;
+};
+
+////////////////////////////////////////////////////////////////////////
+//Cycle timer
+////////////////////////////////////////////////////////////////////////
+struct CycleTimer
+{
+  ros::Time lastTime;
+  double cycleTime;
+  std::deque <double> cycleDeque;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -226,6 +239,7 @@ public:
   ros::Publisher resultPub; // publisher for actuator control result
   GenericInf *infHandle;
   TrajectoryControl trajectoryStatus;
+  CycleTimer cycleTimer;
   void commandCallback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr &msg);
   int numJoints;
 };

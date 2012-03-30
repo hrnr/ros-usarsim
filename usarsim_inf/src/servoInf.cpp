@@ -1026,7 +1026,19 @@ ServoInf::rangeSensorIndex (std::vector < UsarsimRngScnSensor > &sensors,
 bool ServoInf::checkTrajectoryDone(UsarsimActuator *act, const sw_struct *sw)
 {
   ros::Time currentTime = ros::Time::now();
-  if(act->trajectoryStatus.trajectoryActive && currentTime > act->trajectoryStatus.start + act->trajectoryStatus.duration + act->trajectoryStatus.goal_time_tolerance)
+  double currentCycle;
+  int dequeLength = act->cycleTimer.cycleDeque.size();
+
+  // update cycle time with ctNow = ctOld - p0/n + pn/n
+  currentCycle = ros::Duration(currentTime - act->cycleTimer.lastTime).toSec();
+  act->cycleTimer.cycleTime = act->cycleTimer.cycleTime - act->cycleTimer.cycleDeque.front()/dequeLength + currentCycle/dequeLength;
+  act->cycleTimer.cycleDeque.push_back(currentCycle);
+  act->cycleTimer.cycleDeque.pop_front();
+  act->cycleTimer.lastTime = currentTime;
+  //  ROS_ERROR( "Cycle time: %f w %d elements\n", act->cycleTimer.cycleTime, dequeLength );
+
+  if(act->trajectoryStatus.trajectoryActive && currentTime > 
+     act->trajectoryStatus.start + act->trajectoryStatus.duration + act->trajectoryStatus.goal_time_tolerance)
   {
     for(int i = 0;i<sw->data.actuator.number;i++)
     {

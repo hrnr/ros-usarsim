@@ -158,7 +158,14 @@ UsarsimActuator::UsarsimActuator (GenericInf *parentInf):UsarsimSensor ()
 {
   infHandle = parentInf;
   trajectoryStatus.trajectoryActive = false;
+  // initialize cycle timer to contain 5 values
+  cycleTimer.cycleDeque.clear();
+  for( int count=0; count<5; count++)
+    cycleTimer.cycleDeque.push_back(0.);
+  cycleTimer.lastTime = ros::Time::now();
+  cycleTimer.cycleTime = 0;
 }
+
 ////////////////////////////////////////////////////////////////////////
 // UsarsimConverter
 ////////////////////////////////////////////////////////////////////////
