@@ -183,6 +183,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	case SW_ACT_SET:
 	  num = actuatorIndex (actuators, sw->name);
 	  copyActuator( &actuators[num], sw );
+	  actuators[num].pub.publish (actuators[num].jstate);
 	  updateActuatorTF(&actuators[num], sw);
 	  //	  rosTfBroadcaster.sendTransform (actuators[num].tf);
 	  //	  ROS_INFO ( "Act setting %d joints", actuators[num].jointTf.size() );
@@ -592,17 +593,17 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
   act->jointTf.clear();
   currentJointTf.header.stamp = currentTime;
 
-  if (!ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom, "HARD") ||
+   if (!ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom, "HARD") ||
       !ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom,
-			 basePlatform->platformName.c_str ()))
+   			 basePlatform->platformName.c_str ()))
     {
 	act->tf.header.frame_id = "base_link";
 	invertZ = 1;
-    }
-  else
+   }
+   else
     {
 	act->tf.header.frame_id = sw->data.actuator.mount.offsetFrom;
-    }
+   }
   
   // compute transform for entire package
   mountRoll = sw->data.actuator.mount.roll;
@@ -643,7 +644,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
 					  sw->data.actuator.link[i].mount.pitch,
 					  sw->data.actuator.link[i].mount.yaw);
       tf::quaternionTFToMsg (quat, quatMsg);
-
+      
       basePose.header.frame_id = act->tf.child_frame_id;
       basePose.header.stamp = currentTime;
       basePose.pose.position.x = sw->data.actuator.link[i].mount.x;
@@ -672,7 +673,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
       basePose.pose.position.x += linkPose.pose.position.x;
       basePose.pose.position.y += linkPose.pose.position.y;
       basePose.pose.position.z += linkPose.pose.position.z;
-
+      
 
       //      ROS_ERROR( "Trying to convert frame %s to %s",
       //	 basePose.header.frame_id.c_str(), linkPose.header.frame_id.c_str() );
@@ -688,7 +689,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
 	}
 
       currentJointTf.transform.translation = UsarsimConverter::PointToVector(linkPose.pose.position);
-      currentJointTf.transform.rotation = linkPose.pose.orientation;
+      currentJointTf.transform.rotation = basePose.pose.orientation;
 
       /*
       btQuaternion q;
