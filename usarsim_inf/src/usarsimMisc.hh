@@ -43,30 +43,55 @@
 //using namespace std;
 
 ////////////////////////////////////////////////////////////////////////
-//TrajectoryControl
+//TrajectoryPoint
 ////////////////////////////////////////////////////////////////////////
-struct TrajectoryControl
+class TrajectoryPoint
 {
-  bool trajectoryActive;
-  int numLinks;
+public:
+  TrajectoryPoint();
+  unsigned int numJoints;
   double jointGoals[SW_ACT_LINK_MAX];
   double tolerances[SW_ACT_LINK_MAX];
-  ros::Duration duration;
-  ros::Duration goal_time_tolerance;
-  ros::Time start;
+  ros::Time time;
+};
+
+////////////////////////////////////////////////////////////////////////
+//TrajectoryControl
+////////////////////////////////////////////////////////////////////////
+class TrajectoryControl
+{
+public:
+  TrajectoryControl();
+  std::deque<TrajectoryPoint> goals;
+  TrajectoryPoint finalGoal;
   actionlib_msgs::GoalID goalID;
   std::string frame_id;
+  bool isActive()
+  { 
+    return trajectoryActive; 
+  }
+  void setActive()
+  {
+    trajectoryActive = true;
+  }
+  void clearActive()
+  {
+    trajectoryActive = false;
+  }
+
+private:
+  bool trajectoryActive;
 };
 
 ////////////////////////////////////////////////////////////////////////
 //Cycle timer
 ////////////////////////////////////////////////////////////////////////
-struct CycleTimer
+typedef struct CycleTimer
 {
   ros::Time lastTime;
   double cycleTime;
   std::deque <double> cycleDeque;
-};
+}CycleTimer;
 
 ////////////////////////////////////////////////////////////////////////
 // UsarsimList
