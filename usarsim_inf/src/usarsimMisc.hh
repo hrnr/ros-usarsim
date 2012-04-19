@@ -29,6 +29,7 @@
 */
 #ifndef __usarsimMisc__
 #define __usarsimMisc__
+#include <deque>
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
@@ -39,21 +40,58 @@
 #include "simware.hh"
 #include "genericInf.hh"
 
+//using namespace std;
+
+////////////////////////////////////////////////////////////////////////
+//TrajectoryPoint
+////////////////////////////////////////////////////////////////////////
+class TrajectoryPoint
+{
+public:
+  TrajectoryPoint();
+  unsigned int numJoints;
+  double jointGoals[SW_ACT_LINK_MAX];
+  double tolerances[SW_ACT_LINK_MAX];
+  ros::Time time;
+};
+
 ////////////////////////////////////////////////////////////////////////
 //TrajectoryControl
 ////////////////////////////////////////////////////////////////////////
-struct TrajectoryControl
+class TrajectoryControl
 {
-  bool trajectoryActive;
-  int numLinks;
-  double jointGoals[SW_ACT_LINK_MAX];
-  double tolerances[SW_ACT_LINK_MAX];
-  ros::Duration duration;
-  ros::Duration goal_time_tolerance;
-  ros::Time start;
+public:
+  TrajectoryControl();
+  std::deque<TrajectoryPoint> goals;
+  TrajectoryPoint finalGoal;
   actionlib_msgs::GoalID goalID;
   std::string frame_id;
+  bool isActive()
+  { 
+    return trajectoryActive; 
+  }
+  void setActive()
+  {
+    trajectoryActive = true;
+  }
+  void clearActive()
+  {
+    trajectoryActive = false;
+  }
+
+private:
+  bool trajectoryActive;
 };
+
+////////////////////////////////////////////////////////////////////////
+//Cycle timer
+////////////////////////////////////////////////////////////////////////
+typedef struct CycleTimer
+{
+  ros::Time lastTime;
+  double cycleTime;
+  std::deque <double> cycleDeque;
+}CycleTimer;
 
 ////////////////////////////////////////////////////////////////////////
 // UsarsimList
@@ -226,6 +264,7 @@ public:
   ros::Publisher resultPub; // publisher for actuator control result
   GenericInf *infHandle;
   TrajectoryControl trajectoryStatus;
+  CycleTimer cycleTimer;
   void commandCallback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr &msg);
   int numJoints;
 };

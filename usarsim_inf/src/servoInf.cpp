@@ -168,7 +168,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	    actuators[num].pub.publish (actuators[num].jstate);
 	    if(checkTrajectoryDone(&actuators[num], sw))
 	    {
-	      actuators[num].trajectoryStatus.trajectoryActive = false;
+	      actuators[num].trajectoryStatus.clearActive();
 	      control_msgs::FollowJointTrajectoryActionResult trajResult;
 	      trajResult.header.stamp = currentTime;
 	      trajResult.header.frame_id = actuators[num].trajectoryStatus.frame_id;
@@ -1024,19 +1024,64 @@ ServoInf::rangeSensorIndex (std::vector < UsarsimRngScnSensor > &sensors,
   sensors.push_back (newSensor);
   return sensors.size () - 1;
 }
+
 bool ServoInf::checkTrajectoryDone(UsarsimActuator *act, const sw_struct *sw)
 {
+  TrajectoryPoint currentPoint;
   ros::Time currentTime = ros::Time::now();
-  if(act->trajectoryStatus.trajectoryActive && currentTime > act->trajectoryStatus.start + act->trajectoryStatus.duration + act->trajectoryStatus.goal_time_tolerance)
-  {
-    for(int i = 0;i<sw->data.actuator.number;i++)
+  double currentCycle;
+  int dequeLength = act->cycleTimer.cycleDeque.size();
+  
+  // update cycle time with ctNow = ctOld - p0/n + pn/n
+  currentCycle = ros::Duration(currentTime - act->cycleTimer.lastTime).toSec();
+  act->cycleTimer.cycleTime = act->cycleTimer.cycleTime - act->cycleTimer.cycleDeque.front()/dequeLength + currentCycle/dequeLength;
+  act->cycleTimer.cycleDeque.push_back(currentCycle);
+  act->cycleTimer.cycleDeque.pop_front();
+  act->cycleTimer.lastTime = currentTime;
+
+  // now see what command we need to send
+  if(!act->trajectoryStatus.isActive()) 
+    return true; // nothing to do
+
+  if( act->trajectoryStatus.goals.size() == 0 ) // check if done
     {
-      if(abs(sw->data.actuator.link[i].position - act->trajectoryStatus.jointGoals[i]) > act->trajectoryStatus.tolerances[i])
-	return false;
+      for(int i = 0;i<sw->data.actuator.number;i++)
+	{
+	  if(abs(sw->data.actuator.link[i].position - act->trajectoryStatus.finalGoal.jointGoals[i]) > 
+	     act->trajectoryStatus.finalGoal.tolerances[i])
+	    return false;
+	}
+      return true;
     }
-    return true;
-  }
-  return false;
+
+  currentPoint = act->trajectoryStatus.goals.front();
+  // find next point to execute by looking at where we are likely to be the next time that this routine is called
+  currentTime += ros::Duration(act->cycleTimer.cycleTime);
+  while( currentPoint.time < currentTime )
+    {
+      act->trajectoryStatus.goals.pop_front();
+      if( act->trajectoryStatus.goals.size() == 0 )
+	{
+	  act->trajectoryStatus.clearActive();
+	  break;
+	}
+      currentPoint = act->trajectoryStatus.goals.front();
+    }
+
+    sw_struct newSw;
+    newSw.type = SW_ROS_CMD_TRAJ;
+    newSw.name = sw->name;
+    newSw.data.roscmdtraj.number = currentPoint.numJoints;
+    for(unsigned int i = 0; i<currentPoint.numJoints; i++)
+      {
+	// send next goal point to the robotic arm
+	newSw.data.roscmdtraj.goal[i] = currentPoint.jointGoals[i];
+      }
+
+    sibling->peerMsg(&newSw);
+  
+    return false;
 }
+
 void *
   ServoInf::servoSetMutex = NULL;

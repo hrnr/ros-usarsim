@@ -29,6 +29,21 @@
 #include "usarsimMisc.hh"
 
 ////////////////////////////////////////////////////////////////////////
+// TrajectoryPoint
+////////////////////////////////////////////////////////////////////////
+TrajectoryPoint::TrajectoryPoint()
+{
+}
+
+////////////////////////////////////////////////////////////////////////
+// TrajectoryControl
+////////////////////////////////////////////////////////////////////////
+TrajectoryControl::TrajectoryControl()
+{
+  trajectoryActive = false;
+}
+
+////////////////////////////////////////////////////////////////////////
 // UsarsimList
 ////////////////////////////////////////////////////////////////////////
 UsarsimList::UsarsimList (int typeIn)
@@ -157,8 +172,15 @@ UsarsimRngScnSensor::UsarsimRngScnSensor ():UsarsimSensor ()
 UsarsimActuator::UsarsimActuator (GenericInf *parentInf):UsarsimSensor ()
 {
   infHandle = parentInf;
-  trajectoryStatus.trajectoryActive = false;
+
+  // initialize cycle timer to contain 5 values
+  cycleTimer.cycleDeque.clear();
+  for( int count=0; count<5; count++)
+    cycleTimer.cycleDeque.push_back(0.);
+  cycleTimer.lastTime = ros::Time::now();
+  cycleTimer.cycleTime = 0;
 }
+
 ////////////////////////////////////////////////////////////////////////
 // UsarsimConverter
 ////////////////////////////////////////////////////////////////////////
@@ -185,33 +207,57 @@ UsarsimConverter::VectorToPoint(geometry_msgs::Vector3 pointIn)
 }
 void UsarsimActuator::commandCallback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr &msg)
 {
-  if(trajectoryStatus.trajectoryActive)
-  {
-    
-  }else
-  {
+  ros::Time currentTime = ros::Time::now();
+  TrajectoryPoint goal;
+
+  if(trajectoryStatus.isActive())
+    {
+      ROS_ERROR( "new trajectory sent to actuator before completion of last trajectory" );
+    }
+  else
+    {
+    trajectoryStatus.setActive();
+    trajectoryStatus.goalID = msg->goal_id;
+    trajectoryStatus.frame_id = msg->header.frame_id;
+
+    for(unsigned int pointCount=0; pointCount<msg->goal.trajectory.points.size(); pointCount++)
+      {
+	goal.numJoints = msg->goal.trajectory.joint_names.size();
+	for(unsigned int jointCount=0; jointCount<goal.numJoints; jointCount++)
+	  {
+	    goal.jointGoals[jointCount] = msg->goal.trajectory.points[pointCount].positions[jointCount];
+	    if(msg->goal.goal_tolerance.size() > jointCount)
+	      goal.tolerances[jointCount] = msg->goal.goal_tolerance[jointCount].position;
+	    else
+	      goal.tolerances[jointCount] = 0.1; //default should be set through parameter
+	  }
+	goal.time = currentTime + msg->goal.trajectory.points[pointCount].time_from_start;
+	trajectoryStatus.goals.push_back(goal);
+      }
+    for(unsigned int jointCount=0; jointCount<goal.numJoints; jointCount++)
+      {
+	trajectoryStatus.finalGoal.jointGoals[jointCount] = goal.jointGoals[jointCount]; 
+	trajectoryStatus.finalGoal.tolerances[jointCount] = goal.tolerances[jointCount];
+      }
+
+    for(unsigned int ii=0; ii<msg->goal.trajectory.points.size(); ii++ )
+      ROS_ERROR( "Point %d position %f time %f tolerance %f", ii, 
+		 trajectoryStatus.goals[ii].jointGoals[0],
+		 trajectoryStatus.goals[ii].time.toSec(),
+		 trajectoryStatus.goals[ii].tolerances[0]);
+
+    goal = trajectoryStatus.goals.front();
+    trajectoryStatus.goals.pop_front();
+
     sw_struct sw;
     sw.type = SW_ROS_CMD_TRAJ;
     sw.name = name;
-    sw.data.roscmdtraj.number = msg->goal.trajectory.joint_names.size();
-    trajectoryStatus.trajectoryActive = true;
-    trajectoryStatus.numLinks = msg->goal.trajectory.joint_names.size();
-    for(unsigned int i = 0;i < msg->goal.trajectory.joint_names.size();i++)
-    {
-      //use last point in trajectory for position goal
-      sw.data.roscmdtraj.goal[i] = msg->goal.trajectory.points.back().positions[i];
-      trajectoryStatus.jointGoals[i] = msg->goal.trajectory.points.back().positions[i];
-      //ignore path tolerance for now, only use goal
-      if(!msg->goal.goal_tolerance.empty())
-      	trajectoryStatus.tolerances[i] = msg->goal.goal_tolerance[i].position;
-      else
-	trajectoryStatus.tolerances[i] = 0.1; //default should be set through parameter
-      trajectoryStatus.duration = msg->goal.trajectory.points.back().time_from_start;
-      trajectoryStatus.goalID = msg->goal_id;
-      trajectoryStatus.frame_id = msg->header.frame_id;
-      trajectoryStatus.start = ros::Time::now();
-      trajectoryStatus.goal_time_tolerance - msg->goal.goal_time_tolerance;
-    }
+    sw.data.roscmdtraj.number = goal.numJoints;
+    for(unsigned int i = 0; i<goal.numJoints; i++)
+      {
+	// send first goal point to the robotic arm
+	sw.data.roscmdtraj.goal[i] = goal.jointGoals[i];
+      }
     infHandle->sibling->peerMsg(&sw);
-  }
+    }
 }
