@@ -1,0 +1,3 @@
+<launch>
+    <include file="$(find KR60_arm_navigation)/launch/move_KR60Arm.launch" />
+</launch>

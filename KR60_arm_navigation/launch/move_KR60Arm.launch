@@ -1,0 +1,7 @@
+<launch>
+    <node pkg="move_arm" type="move_arm_simple_action" name="KR60_move_KR60Arm">
+        <param name="group" type="string" value="KR60Arm" />
+        <remap from="arm_ik" to="KR60_KR60Arm_kinematics/get_constraint_aware_ik" />
+        <param name="controller_action_name" type="string" value="KR60Arm_controller/follow_joint_trajectory" />
+    </node>
+</launch>
