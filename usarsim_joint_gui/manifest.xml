@@ -1,0 +1,14 @@
+<package>
+  <description brief="usarsim_joint_gui">
+
+     usarsim_joint_gui
+
+  </description>
+  <author>Stephen Balakirsky</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/usarsim_joint_gui</url>
+
+</package>
+
+
