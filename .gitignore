@@ -1,0 +1,10 @@
+*~
+/.metadata/*
+/goalset/build/*
+/goalset/bin/*
+/usarsim_inf/bin/*
+/usarsim_inf/build/*
+/usarsim_twolink_arm_nav/build/*
+/KR60_arm_navigation/build/*
+/usarsim_joint_gui/build/*
+/usarsim_twolink_arm_nav/build/*
