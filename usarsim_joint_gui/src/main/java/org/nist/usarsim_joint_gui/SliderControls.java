@@ -23,22 +23,20 @@ import org.apache.commons.logging.Log;
 import org.ros.namespace.GraphName;
 import org.ros.node.Node;
 import org.ros.node.NodeMain;
-import org.ros.node.topic.Subscriber;
 //import org.ros.ParameterTree;
 
 public class SliderControls implements NodeMain{
-    private InputPanel panel;
+    private InputPanelRos panel;
     private SliderPanel slidePanel;
     private JFrame frame;
     private String configFile="src/main/java/org/nist/usarsim_joint_gui/SliderController.ini";
 
     //Declaration of Config Variables
-    private int port;
-    private String host;
     private int precision;
 
     private Log log;
-    
+    private Node myNode;
+
     @Override
 	public GraphName getDefaultNodeName() {
 	return new GraphName("usarsim_joint_gui/SliderControls");
@@ -47,15 +45,14 @@ public class SliderControls implements NodeMain{
     @Override
 	public void onStart(Node node){
 	//	ParameterTree params = node.newParameterTree();
-	log = node.getLog();
-        boolean changeConfig = false;
-        String file= "";//params.getString("/usarsim_joint_gui/iniFile");
+	//	log = node.getLog();
 
 	//	node.getLog.error("Filename: ");
+	myNode = node;
         frame = new JFrame("Slider Controls");
         frame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         frame.addWindowListener(new ClosingOperation());
-        panel = new InputPanel();
+        panel = new InputPanelRos();
         frame.getContentPane().add(panel);
         panel.getButton().addActionListener(new SendPressed());
         frame.pack();
@@ -95,7 +92,7 @@ public class SliderControls implements NodeMain{
         public void actionPerformed(ActionEvent e){
             // Set the variables from the configuration file
             configure();
-            slidePanel = new ActuatorSliderPanel(panel.getClassName(),panel.getLocX(),panel.getLocY(),panel.getLocZ(),panel.getRotR(),panel.getRotP(),panel.getRotW(),precision,host,port);
+            slidePanel = new ActuatorSliderPanel(panel.getConfStr(),precision, myNode);
             frame.getContentPane().removeAll();
             frame.getContentPane().add(slidePanel);
             frame.pack();
@@ -108,7 +105,7 @@ public class SliderControls implements NodeMain{
         try{
             Scanner config = new Scanner(new File(configFile));
 
-            while(config.hasNextLine()){
+            while(config.hasNext()){
                 setVariable(config.next(),config);
             }
         }
@@ -133,10 +130,7 @@ public class SliderControls implements NodeMain{
 
         if(var.equals("Precision")){
             precision=config.nextInt();
-        }else if(var.equals("Host")){
-            host = config.next();
-        }else if(var.equals("Port")){
-            port = config.nextInt();
+	    System.out.println("Set slider precision to " + precision);
         }else{
             System.out.println("Unknown variable = " + var);
             config.nextLine();
