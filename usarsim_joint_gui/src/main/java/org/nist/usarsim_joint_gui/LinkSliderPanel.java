@@ -13,10 +13,12 @@ package org.nist.usarsim_joint_gui;
 
 /**
  *
- * @author nunnally
+ * @author Stephen Balakirsky (added ROS to nunnally code)
  */
 import java.awt.*;
 import javax.swing.*;
+import org.ros.node.Node;
+import org.ros.node.topic.Publisher;
 
 public class LinkSliderPanel extends javax.swing.JPanel {
 
@@ -25,7 +27,8 @@ public class LinkSliderPanel extends javax.swing.JPanel {
 
     /** Creates new form BoneSliderPanel */
     //Set from MisPkgSliderPanel and holds an array of the AxisSliderPanels for control
-    public LinkSliderPanel(String control, char axis, double min, double max, int percision, int controlNum, int linkNum) {
+    public LinkSliderPanel(String control, char axis, double min, double max, int percision, int controlNum, int linkNum,
+			   Publisher<control_msgs.FollowJointTrajectoryActionGoal> publisher) {
         boneName = new JLabel();
         boneName.setFont(new Font("Tahoma", Font.BOLD|Font.ITALIC, 18));
         boneName.setText(control);
@@ -35,7 +38,7 @@ public class LinkSliderPanel extends javax.swing.JPanel {
         this.setLayout(new GridLayout(1,1));
         this.add(boneName);
 
-        axes = new AxisSliderPanel(axis, min, max, control, percision, controlNum, linkNum);
+        axes = new AxisSliderPanel(axis, min, max, control, percision, controlNum, linkNum, publisher);
         this.add(axes);
     }
 

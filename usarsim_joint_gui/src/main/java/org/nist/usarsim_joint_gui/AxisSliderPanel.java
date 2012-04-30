@@ -13,11 +13,13 @@ package org.nist.usarsim_joint_gui;
 
 /**
  *
- * @author nunnally
+ * @author Stephen Balakirsky (added ROS to nunnally code)
  */
 import java.awt.*;
 import javax.swing.*;
 import javax.swing.event.*;
+import org.ros.node.Node;
+import org.ros.node.topic.Publisher;
 
 public class AxisSliderPanel extends javax.swing.JPanel {
     private DOFSlider val;
@@ -26,13 +28,14 @@ public class AxisSliderPanel extends javax.swing.JPanel {
 
     /** Creates new form AxisSliderPanel */
     //Held in Bone/LinkSliderPanel, works with individual sliders, and val/axis labels
-    public AxisSliderPanel(char dof, double min, double max, String boneName, int percision, int controlNum, int linkNum) {
+    public AxisSliderPanel(char dof, double min, double max, String boneName, int percision, int controlNum, int linkNum,
+			   Publisher<control_msgs.FollowJointTrajectoryActionGoal> publisher) {
         multiplier = (int) Math.pow(10, percision);
 
         axis = new JLabel();
         axis.setFont(new Font("Tahoma", 1, 12));
         axis.setText(""+dof);
-        val = new ArmDOFSlider(controlNum, linkNum);
+        val = new ArmDOFSlider(controlNum, linkNum, publisher);
         
         val.setMinimum((int)Math.ceil(min*multiplier));
         val.setMaximum((int)Math.ceil(max*multiplier));
