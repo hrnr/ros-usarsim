@@ -50,41 +50,7 @@ ServoInf::VelCmdCallback (const geometry_msgs::TwistConstPtr & msg)
   sibling->peerMsg (&sw);
   return;
 }
-/*void ServoInf::TrajCmdCallback(const ros::MessageEvent<control_msgs::FollowJointTrajectoryActionGoal const> &msgEvent)
-{
-  const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr& msg = msgEvent.getMessage();
-  if(trajectoryStatus.trajectoryActive)
-  {
-    //do nothing, trajectory is already active
-  }
-  else
-  {
-    sw_struct sw;
-    sw.type = SW_ROS_CMD_TRAJ;
-    ROS_ERROR("Pub name: %s",msgEvent.getPublisherName().c_str());
-    sw.name = "TwoLinkArm";
-    sw.data.roscmdtraj.number = msg->goal.trajectory.joint_names.size();
-    trajectoryStatus.trajectoryActive = true;
-    trajectoryStatus.numLinks = msg->goal.trajectory.joint_names.size();
-    for(unsigned int i = 0;i < msg->goal.trajectory.joint_names.size();i++)
-    {
-      //use last point in trajectory for position goal
-      sw.data.roscmdtraj.goal[i] = msg->goal.trajectory.points.back().positions[i];
-      trajectoryStatus.jointGoals[i] = msg->goal.trajectory.points.back().positions[i];
-      //ignore path tolerance for now, only use goal
-      if(!msg->goal.goal_tolerance.empty())
-      	trajectoryStatus.tolerances[i] = msg->goal.goal_tolerance[i].position;
-      else
-	trajectoryStatus.tolerances[i] = 0.1; //default should be set through parameter
-      trajectoryStatus.duration = msg->goal.trajectory.points.back().time_from_start;
-      trajectoryStatus.goalID = msg->goal_id;
-      trajectoryStatus.frame_id = msg->header.frame_id;
-      trajectoryStatus.start = ros::Time::now();
-      trajectoryStatus.goal_time_tolerance - msg->goal.goal_time_tolerance;
-    }
-    sibling->peerMsg(&sw);
-  }
-}*/
+
 ServoInf::ServoInf ():GenericInf ()
 {
   botType = SW_ROBOT_UNKNOWN;
@@ -131,7 +97,7 @@ ServoInf::init (GenericInf * usarsimIn)
     }
   else
     ROS_DEBUG ("Parameter /usarsim/odomSensor: %s", odomName.c_str ());
-
+  
   sibling = usarsimIn;
   servoSetMutex = ulapi_mutex_new (SERVO_SET_KEY);
   if (servoSetMutex == NULL)
@@ -166,15 +132,21 @@ ServoInf::peerMsg (sw_struct * sw)
 	  if( copyActuator( &actuators[num], sw ) )
 	  {
 	    actuators[num].pub.publish (actuators[num].jstate);
-	    if(checkTrajectoryDone(&actuators[num], sw))
+	    updateActuatorCycle(&actuators[num]);
+	    if(actuators[num].isTrajectoryActive() && updateTrajectory(&actuators[num], sw))
 	    {
-	      actuators[num].trajectoryStatus.clearActive();
-	      control_msgs::FollowJointTrajectoryActionResult trajResult;
-	      trajResult.header.stamp = currentTime;
-	      trajResult.header.frame_id = actuators[num].trajectoryStatus.frame_id;
-	      trajResult.status.goal_id = actuators[num].trajectoryStatus.goalID;
-	      trajResult.status.status = trajResult.status.SUCCEEDED;
-	      actuators[num].resultPub.publish(trajResult);
+	    	control_msgs::FollowJointTrajectoryResult result;
+	    	if(checkTrajectoryGoal(&actuators[num], sw))
+	    	{
+	    		ROS_ERROR("Trajectory succeeded");
+	    		result.error_code = result.SUCCESSFUL;
+	    	}
+	    	else
+	    	{
+	    		ROS_ERROR("Trajectory aborted: arm position not at goal");
+	    		result.error_code = result.GOAL_TOLERANCE_VIOLATED;
+	    	}
+	    	actuators[num].setTrajectoryResult(result);
 	    }
 	  }
 	  
@@ -510,8 +482,12 @@ ServoInf::msgIn ()
 
   // manage subscriptions
   static ros::Subscriber sub =
-    n.subscribe ("cmd_vel", 10, &ServoInf::VelCmdCallback, this);
+    n.subscribe ("cmd_vel", 10, &ServoInf::VelCmdCallback, this); //vehicle velocity subscriber
+  //static ros::Subscriber opSub = 
+  //  n.subscribe ("cmd_op", 10, &ServoInf::OpCmdCallback, this); //opcode subscriber
+  
   ROS_INFO ("servoInf going to spin");
+  
   ros::spin ();
   return 1;
 }
@@ -781,8 +757,10 @@ ServoInf::copyIns (UsarsimOdomSensor * sen, const sw_struct * sw)
     }
   else
     {
-      sen_child_id = std::string("base_") + sen->name;
-      sen_frame_id = sen->name;
+      //sen_child_id = std::string("base_") + sen->name;
+      //sen_frame_id = sen->name;
+      sen_frame_id = std::string("odom");
+      sen_child_id = sen->name;
     }
   // now set up the sensor
   sen->tf.transform.translation.x = sw->data.ins.position.x;
@@ -931,10 +909,10 @@ ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
 			   std::string name)
 {
   unsigned int t;
+  std::string pubName;
   UsarsimActuator newActuator(this);
   UsarsimActuator *actPtr;
-  std::string pubName;
-
+  
   for (t = 0; t < actuatorsIn.size (); t++)
     {
       if (name == actuatorsIn[t].name)
@@ -942,7 +920,7 @@ ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
     }
   
   ROS_INFO ("Adding actuator: %s", name.c_str ());
-  
+   
   actuatorsIn.push_back (newActuator);
   actPtr = &actuatorsIn.back();
   //unable to find the actuator, so must create it.
@@ -955,10 +933,8 @@ ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
   actPtr->tf.child_frame_id = name.c_str ();
   actPtr->jstate.header.frame_id = "base_link";
 
-  actPtr->trajectorySub = nh->subscribe((name + "_controller/follow_joint_trajectory/goal").c_str(), 10, &UsarsimActuator::commandCallback, actPtr);
-  ROS_ERROR("Subscribing to topic %s", (name + "_controller/follow_joint_trajectory/goal").c_str());
-  actPtr->resultPub = nh->advertise<control_msgs::FollowJointTrajectoryActionResult>((name + "_controller/follow_joint_trajectory/result").c_str(), 2);
-
+  actPtr->setUpTrajectory();
+  
   return actuatorsIn.size () - 1;
 }
 
@@ -1024,63 +1000,69 @@ ServoInf::rangeSensorIndex (std::vector < UsarsimRngScnSensor > &sensors,
   sensors.push_back (newSensor);
   return sensors.size () - 1;
 }
-
-bool ServoInf::checkTrajectoryDone(UsarsimActuator *act, const sw_struct *sw)
+void ServoInf::updateActuatorCycle(UsarsimActuator *act)
 {
-  TrajectoryPoint currentPoint;
   ros::Time currentTime = ros::Time::now();
   double currentCycle;
   int dequeLength = act->cycleTimer.cycleDeque.size();
   
-  // update cycle time with ctNow = ctOld - p0/n + pn/n
+	// update cycle time with ctNow = ctOld - p0/n + pn/n
   currentCycle = ros::Duration(currentTime - act->cycleTimer.lastTime).toSec();
   act->cycleTimer.cycleTime = act->cycleTimer.cycleTime - act->cycleTimer.cycleDeque.front()/dequeLength + currentCycle/dequeLength;
   act->cycleTimer.cycleDeque.push_back(currentCycle);
   act->cycleTimer.cycleDeque.pop_front();
   act->cycleTimer.lastTime = currentTime;
-
-  // now see what command we need to send
-  if(!act->trajectoryStatus.isActive()) 
-    return true; // nothing to do
-
-  if( act->trajectoryStatus.goals.size() == 0 ) // check if done
-    {
-      for(int i = 0;i<sw->data.actuator.number;i++)
-	{
-	  if(abs(sw->data.actuator.link[i].position - act->trajectoryStatus.finalGoal.jointGoals[i]) > 
-	     act->trajectoryStatus.finalGoal.tolerances[i])
-	    return false;
-	}
+}
+/*
+returns true if the trajectory has been completed, false 
+if it is still in progress
+*/
+bool ServoInf::updateTrajectory(UsarsimActuator *act, const sw_struct *sw)
+{
+	TrajectoryPoint currentPoint;
+  ros::Time currentTime = ros::Time::now();
+  
+  if( act->currentTrajectory.goals.size() == 0 ) // check if done
       return true;
-    }
-
-  currentPoint = act->trajectoryStatus.goals.front();
+  currentPoint = act->currentTrajectory.goals.front();
   // find next point to execute by looking at where we are likely to be the next time that this routine is called
   currentTime += ros::Duration(act->cycleTimer.cycleTime);
   while( currentPoint.time < currentTime )
     {
-      act->trajectoryStatus.goals.pop_front();
-      if( act->trajectoryStatus.goals.size() == 0 )
-	{
-	  act->trajectoryStatus.clearActive();
-	  break;
-	}
-      currentPoint = act->trajectoryStatus.goals.front();
+      act->currentTrajectory.goals.pop_front();
+      if( act->currentTrajectory.goals.size() == 0 )
+	  	break;
+      currentPoint = act->currentTrajectory.goals.front();
     }
-
+    
     sw_struct newSw;
     newSw.type = SW_ROS_CMD_TRAJ;
     newSw.name = sw->name;
     newSw.data.roscmdtraj.number = currentPoint.numJoints;
     for(unsigned int i = 0; i<currentPoint.numJoints; i++)
-      {
-	// send next goal point to the robotic arm
-	newSw.data.roscmdtraj.goal[i] = currentPoint.jointGoals[i];
-      }
-
+    {
+	  // send next goal point to the robotic arm
+	  newSw.data.roscmdtraj.goal[i] = currentPoint.jointGoals[i];
+    }
     sibling->peerMsg(&newSw);
-  
+    
     return false;
+  
+}
+/*
+returns true if the actuator is within the bounds of its goal
+*/
+bool ServoInf::checkTrajectoryGoal(UsarsimActuator *act, const sw_struct *sw)
+{
+	for(int i = 0;i<sw->data.actuator.number;i++)
+	  {
+	  if(abs(sw->data.actuator.link[i].position - act->currentTrajectory.finalGoal.jointGoals[i]) > 
+	     act->currentTrajectory.finalGoal.tolerances[i])
+	     {
+	    	return false;
+	     }
+	  }
+	  return true;
 }
 
 void *

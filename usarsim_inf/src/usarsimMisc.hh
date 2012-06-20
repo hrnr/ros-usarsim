@@ -35,8 +35,8 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/JointState.h>
-#include <control_msgs/FollowJointTrajectoryActionGoal.h>
-#include <control_msgs/FollowJointTrajectoryActionResult.h>
+#include <actionlib/server/simple_action_server.h>
+#include <control_msgs/FollowJointTrajectoryAction.h>
 #include "simware.hh"
 #include "genericInf.hh"
 
@@ -56,31 +56,13 @@ public:
 };
 
 ////////////////////////////////////////////////////////////////////////
-//TrajectoryControl
+//Trajectory
 ////////////////////////////////////////////////////////////////////////
-class TrajectoryControl
+class Trajectory
 {
 public:
-  TrajectoryControl();
   std::deque<TrajectoryPoint> goals;
   TrajectoryPoint finalGoal;
-  actionlib_msgs::GoalID goalID;
-  std::string frame_id;
-  bool isActive()
-  { 
-    return trajectoryActive; 
-  }
-  void setActive()
-  {
-    trajectoryActive = true;
-  }
-  void clearActive()
-  {
-    trajectoryActive = false;
-  }
-
-private:
-  bool trajectoryActive;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -257,16 +239,21 @@ class UsarsimActuator:public UsarsimSensor
 {
 public:
   UsarsimActuator (GenericInf *parentInf);
+  ~UsarsimActuator();
   sensor_msgs::JointState joints;
   std::vector <geometry_msgs::TransformStamped> jointTf; // transforms for links
   sensor_msgs::JointState jstate;
-  ros::Subscriber trajectorySub; // subscriber for actuator controls 
-  ros::Publisher resultPub; // publisher for actuator control result
   GenericInf *infHandle;
-  TrajectoryControl trajectoryStatus;
   CycleTimer cycleTimer;
-  void commandCallback(const control_msgs::FollowJointTrajectoryActionGoal::ConstPtr &msg);
+  Trajectory currentTrajectory;
   int numJoints;
+  
+  void setUpTrajectory();
+  void trajectoryCallback();
+  bool isTrajectoryActive();
+  void setTrajectoryResult(control_msgs::FollowJointTrajectoryResult result);
+private:
+  actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> *trajectoryServer;
 };
 
 ////////////////////////////////////////////////////////////////////////

@@ -17,6 +17,7 @@ USARSimROS provides for auto-discovery of the simulated robots and sensors and c
   <depend package="tf"/>
   <depend package="geometry_msgs"/>
   <depend package="nav_msgs"/>
+  <depend package="actionlib"/>
   <depend package="sensor_msgs"/>
   <depend package="control_msgs"/>
 

@@ -36,11 +36,10 @@
 #include <tf/transform_listener.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/LaserScan.h>
-#include <control_msgs/FollowJointTrajectoryActionGoal.h>
-#include <control_msgs/FollowJointTrajectoryActionResult.h>
 #include "genericInf.hh"
 #include "simware.hh"
 #include "usarsimInf.hh"
+
 
 ////////////////////////////////////////////////////////////////
 // structures
@@ -70,6 +69,7 @@ public:
   int msgOut ();
   int msgIn ();
   int peerMsg (sw_struct * sw);
+  
 private:
   std::string odomName;
   static void *servoSetMutex;
@@ -78,6 +78,8 @@ private:
   UsarsimPlatform *basePlatform;
   UsarsimGrdVeh grdVehSettings;
   UsarsimSensor sensorSettings;
+ 
+  
   //! We will always need a transform
   tf::TransformBroadcaster rosTfBroadcaster;
   //! Actuators
@@ -99,9 +101,11 @@ private:
   int copyRangeScanner (UsarsimRngScnSensor * sen, const sw_struct * sw);
   int copyStaticVehSettings (UsarsimPlatform * settings, const sw_struct * sw);
   void VelCmdCallback (const geometry_msgs::TwistConstPtr & msg);
-  //void TrajCmdCallback(const ros::MessageEvent<control_msgs::FollowJointTrajectoryActionGoal const> &msgEvent);
   int updateActuatorTF(UsarsimActuator *act, const sw_struct *sw);
-  bool checkTrajectoryDone(UsarsimActuator *act, const sw_struct *sw);
+  void updateActuatorCycle(UsarsimActuator *act);
+  bool updateTrajectory(UsarsimActuator *act, const sw_struct *sw);
+  bool checkTrajectoryGoal(UsarsimActuator *act, const sw_struct *sw);
+  
 };
 
 #endif
