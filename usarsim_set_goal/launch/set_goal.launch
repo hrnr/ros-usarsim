@@ -1,0 +1,12 @@
+<launch>
+	<arg name = "orientation_frame" default = "local" />
+	<arg name = "position_frame" default = "global" />
+	<arg name = "control_offset" default = "true" />
+	
+	<param name="goalset/orientationFrame" value="$(arg orientation_frame)" />
+	<param name="goalset/positionFrame" value="$(arg position_frame)" />
+	<param name="goalset/controlOffset" value="$(arg control_offset)" />
+	<param name="goalset/actuatorName" value="KR60Arm" />
+	
+	<node name = "set_goal" pkg = "goalset" type = "set_goal" />
+</launch>
