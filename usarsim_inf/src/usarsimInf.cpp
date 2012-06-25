@@ -187,6 +187,8 @@ UsarsimInf::init (GenericInf * siblingIn)
   victims = new UsarsimList (SW_SEN_VICTIM);
   tachometers = new UsarsimList (SW_SEN_TACHOMETER);
   acoustics = new UsarsimList (SW_SEN_ACOUSTIC);
+  objectsensors = new UsarsimList (SW_SEN_OBJECTSENSOR);
+  
 
   misstas = new UsarsimList (SW_ACT);
 
@@ -722,6 +724,7 @@ UsarsimInf::handleMsg (char *msg)
   doSenConfs (victims, (char *) "VictSensor");
   doSenConfs (tachometers, (char *) "Tachometer");
   doSenConfs (acoustics, (char *) "Acoustic");
+  doSenConfs (objectsensors, (char *) "ObjectSensor");
   //  doSenConfs (misstas, (char *) "MisPkg");
   doSenConfs (misstas, (char *) "Actuator");
   doEffConfs (grippers, (char *) "Gripper");
@@ -1993,7 +1996,7 @@ UsarsimInf::handleSenSonar (char *msg)
 int
 UsarsimInf::handleSenRangescanner (char *msg)
 {
-  sensorInfo info;;
+  sensorInfo info;
   sw_struct *sw = rangescanners->getSW ();
   double d;
 
@@ -2075,6 +2078,82 @@ UsarsimInf::handleSenRangescanner (char *msg)
   return info.count;
 }
 
+int UsarsimInf::handleSenObjectSensor(char *msg)
+{
+    sensorInfo info;
+    sw_struct *sw = objectsensors->getSW();
+    int objectIndex = -1;
+    
+    setSensorInfo(msg, &info);
+    
+	while(1)
+	{
+		info.nextptr = getKey(info.ptr, info.token);
+		if(info.nextptr == info.ptr)
+			break;
+		info.ptr = info.nextptr;
+		if(!strcmp(info.token, "Type"))
+		{
+			expect(&info, "ObjectSensor");
+		}else if(!strcmp(info.token, "Name"))
+		{
+			getName (objectsensors, &info, SW_SEN_OBJECTSENSOR_STAT);
+			sw = info.where->getSW();
+			objectIndex = -1;
+		}
+		else if (!strcmp (info.token, "Time"))
+		{
+			getTime (&info);
+		}else if(!strcmp(info.token, "Object"))
+		{
+			objectIndex++;
+			if(objectIndex >= SW_SEN_RANGESCANNER_MAX)
+			{
+			}
+			else
+			{
+				info.nextptr = getValue (info.ptr, info.token);
+		  		if (info.nextptr == info.ptr)
+					return -1;
+				strcpy(sw->data.objectsensor.objects[objectIndex].tag, info.token);
+	    	}
+		}
+		else if (!strcmp(info.token, "Location"))
+		{
+			if(objectIndex < 0)
+				return -1;
+			sw->data.objectsensor.objects[objectIndex].position.x = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].position.y = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].position.z = getReal (&info);
+		}
+		else if (!strcmp(info.token, "Orientation"))
+		{
+			if(objectIndex < 0)
+				return -1;
+			sw->data.objectsensor.objects[objectIndex].position.roll = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].position.pitch = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].position.yaw = getReal (&info);
+		}
+		else if (!strcmp(info.token, "Material"))
+		{
+			info.nextptr = getValue (info.ptr, info.token);
+			if (info.nextptr == info.ptr)
+				return -1;
+			strcpy(sw->data.objectsensor.objects[objectIndex].material_name, info.token);
+		}
+		else
+		{
+			
+			info.nextptr = getValue (info.ptr, info.token);
+		}
+	}
+	sw->data.objectsensor.number = objectIndex + 1;
+	info.op = SW_SEN_OBJECTSENSOR_STAT;
+	
+	msgout(sw, info);
+	return 0;
+}
+
 int
 UsarsimInf::handleSen (char *msg)
 {
@@ -2147,6 +2226,10 @@ UsarsimInf::handleSen (char *msg)
 	  else if (!strcmp (token, "Acoustic"))
 	    {
 	      return handleSenAcoustic (msg);
+	    }
+	  else if (!strcmp(token, "ObjectSensor"))
+	    {
+	      return handleSenObjectSensor (msg);
 	    }
 	  else if (!strcmp (token, "Camera"))
 	    {
@@ -2794,7 +2877,7 @@ UsarsimInf::handleConfActuator (char *msg)
   sensorInfo info;
   int i;
   int linkindex;
-  sw_struct *sw = misstas->getSW ();;
+  sw_struct *sw = misstas->getSW ();
 
   setSensorInfo (msg, &info);
   linkindex = 0;
@@ -3104,6 +3187,58 @@ UsarsimInf::handleConfStaticplatform (char *msg)
   return info.count;
 }
 
+int UsarsimInf::handleConfObjectsensor(char *msg)
+{
+	sensorInfo info;
+  sw_struct *sw = objectsensors->getSW ();
+
+  setSensorInfo (msg, &info);
+
+  while (1)
+    {
+      info.nextptr = getKey (info.ptr, info.token);
+      if (info.nextptr == info.ptr)
+	break;
+      info.ptr = info.nextptr;
+
+      if (!strcmp (info.token, "Type"))
+	{
+	  expect (&info, "ObjectSensor");
+	}
+      else if (!strcmp (info.token, "Name"))
+	{
+	  getName (objectsensors, &info, SW_SEN_OBJECTSENSOR_SET);
+	  sw = info.where->getSW ();
+	  info.where->setDidConf (1);
+	}
+      else if (!strcmp (info.token, "MaxRange"))
+	{
+	  sw->data.objectsensor.maxrange = getReal (&info);
+	}
+      else if (!strcmp (info.token, "MinRange"))
+	{
+	  sw->data.objectsensor.minrange = getReal (&info);
+	}
+      else if (!strcmp (info.token, "Resolution"))
+	{
+	  sw->data.objectsensor.resolution = getReal (&info);
+	}
+      else if (!strcmp (info.token, "Fov"))
+	{
+	  sw->data.objectsensor.fov = getReal (&info);
+	}
+      else
+	{
+	  /* skip unknown entry  */
+	  info.nextptr = getValue (info.ptr, info.token);
+	}
+    }
+
+  info.where->setDidConf (1);
+  info.op = SW_SEN_OBJECTSENSOR_SET;
+  msgout (sw, info);
+  return info.count;
+}
 
 int
 UsarsimInf::handleConf (char *msg)
@@ -3199,6 +3334,10 @@ UsarsimInf::handleConf (char *msg)
 	  else if (!strcmp (token, "StaticPlatform"))
 	    {
 	      return handleConfStaticplatform (msg);
+	    }
+	  else if (!strcmp(token, "ObjectSensor"))
+	    {
+	      return handleConfObjectsensor(msg);
 	    }
 	  else
 	    {
@@ -3895,6 +4034,56 @@ UsarsimInf::handleGeoVictim (char *msg)
   return info.count;
 }
 
+int
+UsarsimInf::handleGeoObjectsensor (char *msg)
+{
+  sensorInfo info;
+  sw_struct *sw = objectsensors->getSW ();
+
+  setSensorInfo (msg, &info);
+
+  while (1)
+    {
+      info.nextptr = getKey (info.ptr, info.token);
+      if (info.nextptr == info.ptr)
+	break;
+      info.ptr = info.nextptr;
+
+      if (!strcmp (info.token, "Type"))
+	{
+	  expect (&info, "ObjectSensor");
+	}
+      else if (!strcmp (info.token, "Name"))
+	{
+	  getName (objectsensors, &info, SW_SEN_OBJECTSENSOR_SET);
+	  sw = info.where->getSW ();
+	  info.where->setDidConf (1);
+	  expect (&info, "Location");
+	  sw->data.objectsensor.mount.x = getReal (&info);
+	  sw->data.objectsensor.mount.y = getReal (&info);
+	  sw->data.objectsensor.mount.z = getReal (&info);
+
+	  expect (&info, "Orientation");
+	  sw->data.objectsensor.mount.roll = getReal (&info);
+	  sw->data.objectsensor.mount.pitch = getReal (&info);
+	  sw->data.objectsensor.mount.yaw = getReal (&info);
+	  expect (&info, "Mount");
+	  info.nextptr = getValue (info.ptr, info.token);
+	  ulapi_strncpy (sw->data.objectsensor.mount.offsetFrom, info.token,
+			 SW_NAME_MAX);
+	}
+      else
+	{
+	  /* skip unknown entry  */
+	  info.nextptr = getValue (info.ptr, info.token);
+	}
+    }
+  info.where->setDidGeo (1);
+  info.op = SW_SEN_OBJECTSENSOR_SET;
+  msgout (sw, info);
+  return info.count;
+}
+
 /*
   GEO {Type Gripper} {Name Gripper Location 0.0600,0.0000,-0.0087 Orientation 0.0000,0.0000,0.0000}
 */
@@ -4314,6 +4503,10 @@ UsarsimInf::handleGeo (char *msg)
 	  else if (!strcmp (token, "StaticPlatform"))
 	    {
 	      return handleGeoStaticplatform (msg);
+	    }
+	  else if(!strcmp(token, "ObjectSensor"))
+	    {
+	      return handleGeoObjectsensor(msg);
 	    }
 	  else
 	    {

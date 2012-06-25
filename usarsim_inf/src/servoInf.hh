@@ -30,7 +30,6 @@
 #ifndef __servoInf__
 #define __servoInf__
 
-//#include <vector>
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>
@@ -88,6 +87,8 @@ private:
   std::vector < UsarsimOdomSensor > odometers;
   //! Range scanner sensors
   std::vector < UsarsimRngScnSensor > rangeScanners;
+  //! Object sensors
+  std::vector < UsarsimObjectSensor > objectSensors;
 
   int actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
 		     std::string name);
@@ -95,7 +96,10 @@ private:
 		       std::string name);
   int rangeSensorIndex (std::vector < UsarsimRngScnSensor > &sensors,
 			std::string name);
+  int objectSensorIndex (std::vector < UsarsimObjectSensor > &sensors, 
+  	std::string name);
   int copyActuator (UsarsimActuator * sen, const sw_struct * sw);
+  int copyObjectSensor(UsarsimObjectSensor * sen, const sw_struct *sw);
   int copyIns (UsarsimOdomSensor * sen, const sw_struct * sw);
   int copyGrdVehSettings (UsarsimGrdVeh * settings, const sw_struct * sw);
   int copyRangeScanner (UsarsimRngScnSensor * sen, const sw_struct * sw);

@@ -82,6 +82,8 @@ swTypeToString (sw_type type)
     return "SW_DEVICE_CONVEYOR";
   if (type == SW_OBJECT_CARGO)
     return "SW_OBJECT_CARGO";
+  if(type == SW_SEN_OBJECTSENSOR)
+  	return "SW_SEN_OBJECTSENSOR";
 
   sprintf (retstr, "%d", (int) type);
 

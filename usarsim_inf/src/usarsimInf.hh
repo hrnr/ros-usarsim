@@ -104,6 +104,7 @@ private:
   UsarsimList *victims;
   UsarsimList *tachometers;
   UsarsimList *acoustics;
+  UsarsimList *objectsensors;
 
   UsarsimList *misstas;
 
@@ -137,6 +138,7 @@ private:
   int handleConfGroundvehicle (char *msg);
   int handleConfBasemachine (char *msg);
   int handleConfStaticplatform (char *msg);
+  int handleConfObjectsensor (char *msg);
 
   int handleGeo (char *msg);
   int handleGeoEncoder (char *msg);
@@ -157,6 +159,7 @@ private:
   int handleGeoGroundvehicle (char *msg);
   int handleGeoBasemachine (char *msg);
   int handleGeoStaticplatform (char *msg);
+  int handleGeoObjectsensor(char *msg);
 
   int handleAsta (char *msg);
   int handleMsg (char *msg);
@@ -179,7 +182,7 @@ private:
   int handleSenGroundvehicle (char *msg);
   int handleSenBasemachine (char *msg);
   int handleSenStaticplatform (char *msg);
-
+  int handleSenObjectSensor(char *msg);
 
   int handleSta (char *msg);
   int handleStaGroundvehicle (char *msg);

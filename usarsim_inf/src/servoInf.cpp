@@ -459,7 +459,34 @@ ServoInf::peerMsg (sw_struct * sw)
 	  break;
 	}
       break;
-
+	case SW_SEN_OBJECTSENSOR:
+	switch(sw->op)
+	{
+		case SW_SEN_OBJECTSENSOR_STAT:
+			num = objectSensorIndex(objectSensors, sw->name);
+			if(copyObjectSensor(&objectSensors[num], sw) == 1)
+			{
+				rosTfBroadcaster.sendTransform (objectSensors[num].tf);
+				objectSensors[num].pub.publish(objectSensors[num].objSense);
+			}
+			else
+				ROS_ERROR("Object sensor error for %s: can't copy it.",
+				sw->name.c_str());
+			break;
+		case SW_SEN_OBJECTSENSOR_SET:
+			num = objectSensorIndex(objectSensors, sw->name);
+			if(copyObjectSensor(&objectSensors[num], sw) == 1)
+				rosTfBroadcaster.sendTransform (objectSensors[num].tf);
+			else
+				ROS_ERROR("Object sensor error for %s: can't copy it.",
+				sw->name.c_str());
+			break;
+		default:
+			ROS_ERROR("invalid operation: %d\n", sw->op);
+			return -1;
+		break;
+	}
+	break;
 
 
 
@@ -568,7 +595,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
   currentTime = ros::Time::now ();
   act->jointTf.clear();
   currentJointTf.header.stamp = currentTime;
-
+  ROS_ERROR("actuator offset from %s", sw->data.actuator.mount.offsetFrom);
    if (!ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom, "HARD") ||
       !ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom,
    			 basePlatform->platformName.c_str ()))
@@ -746,26 +773,26 @@ ServoInf::copyIns (UsarsimOdomSensor * sen, const sw_struct * sw)
       basePlatform->tf.transform.translation.z = sw->data.ins.mount.z;
       basePlatform->tf.transform.rotation = quatMsg;
       //      basePlatform->tf.header.frame_id = sen->name.c_str ();
-      basePlatform->tf.header.frame_id = "base_footprint";
+      basePlatform->tf.header.frame_id = "odom";
       basePlatform->tf.header.stamp = currentTime;
       ROS_DEBUG( "servoInf.cpp:: rosTime: %f sensorTime: %f",
 		 currentTime.toSec(), sw->time );
       basePlatform->tf.child_frame_id = "base_link";
       //  basePlatform->tf.child_frame_id = basePlatform->platformName.c_str ();
-      sen_child_id = std::string("base_footprint");
-      sen_frame_id = std::string("odom");
+      sen_child_id = std::string("odom");
+      sen_frame_id = std::string("base_footprint");
     }
   else
     {
       //sen_child_id = std::string("base_") + sen->name;
       //sen_frame_id = sen->name;
-      sen_frame_id = std::string("odom");
+      sen_frame_id = std::string("base_footprint");
       sen_child_id = sen->name;
     }
   // now set up the sensor
   sen->tf.transform.translation.x = sw->data.ins.position.x;
   sen->tf.transform.translation.y = sw->data.ins.position.y;
-  sen->tf.transform.translation.z = sw->data.ins.position.y;
+  sen->tf.transform.translation.z = sw->data.ins.position.z;
   quat = tf::createQuaternionFromRPY (sw->data.ins.position.roll,
 				      sw->data.ins.position.pitch,
 				      sw->data.ins.position.yaw);
@@ -896,7 +923,52 @@ ServoInf::copyRangeScanner (UsarsimRngScnSensor * sen, const sw_struct * sw)
     }
   return 1;
 }
+int ServoInf::copyObjectSensor (UsarsimObjectSensor *sen, const sw_struct *sw)
+{
+  ros::Time currentTime;
+  tf::Quaternion quat;
+  geometry_msgs::Quaternion quatMsg;
+  quat = tf::createQuaternionFromRPY (sw->data.objectsensor.mount.roll,
+				      sw->data.objectsensor.mount.pitch,
+				      sw->data.objectsensor.mount.yaw);
+  tf::quaternionTFToMsg (quat, quatMsg);
 
+  currentTime = ros::Time::now ();
+
+  sen->tf.transform.translation.x = sw->data.objectsensor.mount.x;
+  sen->tf.transform.translation.y = sw->data.objectsensor.mount.y;
+  sen->tf.transform.translation.z = sw->data.objectsensor.mount.z;
+  sen->tf.transform.rotation = quatMsg;
+  sen->tf.header.stamp = currentTime;
+  //  sen->tf.header.frame_id = "Rangescanner";
+  sen->tf.child_frame_id = sen->name;
+  sen->tf.header.frame_id = "base_link";
+  
+  sen->objSense.header.stamp = currentTime;
+  sen->objSense.header.frame_id = sen->name;
+  sen->objSense.object_names.clear();
+  sen->objSense.material_names.clear();
+  sen->objSense.object_poses.clear();
+  for(int i = 0;i<sw->data.objectsensor.number;i++)
+  {
+  	sen->objSense.object_names.push_back(std::string(sw->data.objectsensor.objects[i].tag));
+  	sen->objSense.material_names.push_back(std::string(sw->data.objectsensor.objects[i].material_name));
+  	geometry_msgs::Pose pose;
+  	pose.position.x = sw->data.objectsensor.objects[i].position.x;
+  	pose.position.y = sw->data.objectsensor.objects[i].position.y;
+  	pose.position.z = sw->data.objectsensor.objects[i].position.z;
+  	
+  	quat = tf::createQuaternionFromRPY(sw->data.objectsensor.objects[i].position.roll,
+  						sw->data.objectsensor.objects[i].position.pitch,
+  						sw->data.objectsensor.objects[i].position.yaw);
+  	tf::quaternionTFToMsg(quat, quatMsg);
+  	pose.orientation = quatMsg;
+  	sen->objSense.object_poses.push_back(pose);
+  	
+  }
+  
+  return 1;
+}
 
 /*
   Each general data array sensor (tachometer, odometer, etc.) uses one
@@ -1012,6 +1084,28 @@ void ServoInf::updateActuatorCycle(UsarsimActuator *act)
   act->cycleTimer.cycleDeque.push_back(currentCycle);
   act->cycleTimer.cycleDeque.pop_front();
   act->cycleTimer.lastTime = currentTime;
+}
+int ServoInf::objectSensorIndex (std::vector < UsarsimObjectSensor > &sensors, 
+  	std::string name)
+{
+	unsigned int t;
+	UsarsimObjectSensor newSensor;
+	for (t = 0; t < sensors.size (); t++)
+    {
+      if (name == sensors[t].name)
+	return t;		// found it
+    }
+    ROS_INFO ("Adding sensor: %s", name.c_str ());
+
+  //unable to find the sensor, so must create it.
+  newSensor.name = name;
+  newSensor.time = 0;
+  newSensor.pub = nh->advertise < usarsim_inf::SenseObject > (name.c_str (), 2);
+  newSensor.tf.header.frame_id = "base_link";
+  newSensor.tf.child_frame_id = name.c_str ();
+
+  sensors.push_back (newSensor);
+  return sensors.size () - 1;
 }
 /*
 returns true if the trajectory has been completed, false 

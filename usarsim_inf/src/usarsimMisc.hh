@@ -37,6 +37,7 @@
 #include <sensor_msgs/JointState.h>
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
+#include <usarsim_inf/SenseObject.h>
 #include "simware.hh"
 #include "genericInf.hh"
 
@@ -230,6 +231,16 @@ class UsarsimRngScnSensor:public UsarsimSensor
 public:
   UsarsimRngScnSensor ();
   sensor_msgs::LaserScan scan;
+};
+
+////////////////////////////////////////////////////////////////////////
+// Object sensor
+////////////////////////////////////////////////////////////////////////
+class UsarsimObjectSensor:public UsarsimSensor
+{
+public:
+  UsarsimObjectSensor ();
+  usarsim_inf::SenseObject objSense;
 };
 
 ////////////////////////////////////////////////////////////////////////

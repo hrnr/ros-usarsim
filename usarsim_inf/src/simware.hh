@@ -53,6 +53,7 @@ enum
   SW_SEN_VICTIM,
   SW_SEN_TACHOMETER,
   SW_SEN_ACOUSTIC,
+  SW_SEN_OBJECTSENSOR,
   SW_EFF_GRIPPER,
   SW_ACT,
   SW_ROBOT_FIXED,
@@ -366,6 +367,28 @@ typedef struct
   double duration;		/*!< how long the sound was */
 } sw_sen_acoustic_struct;
 
+typedef struct
+{
+  char tag[SW_NAME_MAX];
+  char material_name[SW_NAME_MAX];
+  sw_pose position;
+} sw_sen_object_struct;
+enum
+{
+	SW_SEN_OBJECTSENSOR_STAT = 1,
+	SW_SEN_OBJECTSENSOR_SET
+};
+typedef struct
+{
+  sw_sen_object_struct objects[SW_SEN_RANGESCANNER_MAX];
+  sw_pose mount;
+  double minrange;
+  double maxrange;
+  double resolution;
+  double fov;
+  int number; //the number of objects detected by the sensor
+} sw_sen_objectsensor_struct;
+
 enum
 {
   SW_EFF_GRIPPER_OPEN = 1,
@@ -460,6 +483,7 @@ typedef struct
     sw_sen_victim_struct victim;
     sw_sen_tachometer_struct tachometer;
     sw_sen_acoustic_struct acoustic;
+    sw_sen_objectsensor_struct objectsensor;
     /* actuators */
     sw_actuator_struct actuator;
   } data;
