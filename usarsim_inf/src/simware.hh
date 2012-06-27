@@ -55,6 +55,7 @@ enum
   SW_SEN_ACOUSTIC,
   SW_SEN_OBJECTSENSOR,
   SW_EFF_GRIPPER,
+  SW_EFF_TOOLCHANGER,
   SW_ACT,
   SW_ROBOT_FIXED,
   SW_ROBOT_GROUNDVEHICLE,
@@ -93,7 +94,9 @@ typedef struct
 enum
 {
   SW_ROS_CMD_VEL = 1,
-  SW_ROS_CMD_TRAJ
+  SW_ROS_CMD_TRAJ,
+  SW_ROS_CMD_GRIP,
+  SW_ROS_CMD_TOOLCHANGE
 };
 
 enum
@@ -121,7 +124,6 @@ typedef struct
   double angulary;
   double angularz;
 } sw_ros_cmd_vel_struct;
-
 typedef struct
 {
   sw_pose mount;
@@ -388,20 +390,38 @@ typedef struct
   double fov;
   int number; //the number of objects detected by the sensor
 } sw_sen_objectsensor_struct;
-
 enum
 {
-  SW_EFF_GRIPPER_OPEN = 1,
-  SW_EFF_GRIPPER_CLOSE,
-  SW_EFF_GRIPPER_STAT,
+  SW_EFF_OPEN = 1,
+  SW_EFF_CLOSE
+};
+typedef int effector_status;
+enum
+{
+  SW_EFF_GRIPPER_STAT=1,
   SW_EFF_GRIPPER_SET
 };
 typedef struct
 {
   sw_pose mount;
-  char open;			/*!< non-zero means the gripper is open  */
+  effector_status status;
 } sw_eff_gripper_struct;
-
+enum
+{
+  SW_EFF_TOOLCHANGER_STAT=1,
+  SW_EFF_TOOLCHANGER_SET,
+  SW_EFF_TOOLCHANGER_UNKNOWN_TYPE,
+  SW_EFF_TOOLCHANGER_GRIPPER,
+  SW_EFF_TOOLCHANGER_VACUUM,
+  SW_EFF_TOOLCHANGER_TOOLCHANGER
+};
+typedef int toolchanger_tool_type;
+typedef struct
+{
+  sw_pose mount;
+  toolchanger_tool_type tooltype;
+  effector_status status;
+} sw_eff_toolchanger_struct;
 #define SW_ACT_LINK_MAX 16	/*!< how many links a mission package can have */
 
 enum
@@ -448,7 +468,10 @@ typedef struct
   double goal[SW_ACT_LINK_MAX];
   int number;
 } sw_ros_cmd_traj_struct;
-
+typedef struct
+{
+  effector_status goal;
+} sw_ros_cmd_effector_struct;
 typedef struct
 {
   double time;
@@ -460,6 +483,7 @@ typedef struct
     /* ros */
     sw_ros_cmd_vel_struct roscmdvel;
     sw_ros_cmd_traj_struct roscmdtraj;
+    sw_ros_cmd_effector_struct roscmdeff;
     /* robots */
     sw_robot_groundvehicle_struct groundvehicle;
     sw_robot_airbot_struct airbot;
@@ -470,6 +494,7 @@ typedef struct
     sw_cargo_struct cargo;
     /* effectors */
     sw_eff_gripper_struct gripper;
+    sw_eff_toolchanger_struct toolchanger;
     /* sensors */
     sw_sen_encoder_struct encoder;
     sw_sen_sonar_struct sonar;

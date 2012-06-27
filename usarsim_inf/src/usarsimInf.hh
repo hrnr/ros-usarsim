@@ -57,7 +57,7 @@ typedef struct
   int op;
   UsarsimList def;
   UsarsimList *where;
-} sensorInfo;
+} componentInfo;
 
 //////////////////////////////////////////////
 // class
@@ -67,17 +67,17 @@ class UsarsimInf:public GenericInf
 public:
   UsarsimInf ();
   int init (GenericInf * siblingIn);
-  int tell (sw_struct * sw, sensorInfo info);
+  int tell (sw_struct * sw, componentInfo info);
   int ask ();
   char *getKey (char *msg, char *key);
   char *getValue (char *msg, char *value);
-  int expect (sensorInfo * info, const char *token);
-  int getName (UsarsimList * list, sensorInfo * info, int op);
-  int getInteger (sensorInfo * info);
-  double getReal (sensorInfo * info);
-  void getTime (sensorInfo * info);
+  int expect (componentInfo * info, const char *token);
+  int getName (UsarsimList * list, componentInfo * info, int op);
+  int getInteger (componentInfo * info);
+  double getReal (componentInfo * info);
+  void getTime (componentInfo * info);
   int msgIn ();
-  int msgout (sw_struct * sw, sensorInfo info);
+  int msgout (sw_struct * sw, componentInfo info);
   int peerMsg (sw_struct * sw);
 
 private:
@@ -109,10 +109,11 @@ private:
   UsarsimList *misstas;
 
   UsarsimList *grippers;
+  UsarsimList *toolchangers;
 
   UsarsimList *robot;
 
-  void setSensorInfo (char *msg, sensorInfo * info);
+  void setComponentInfo (char *msg, componentInfo * info);
   ulapi_integer usarsim_socket_write (ulapi_integer id, char *buf,
 				      ulapi_integer len);
   int doSenConfs (UsarsimList * where, char *type);
@@ -134,6 +135,7 @@ private:
   int handleConfAcoustic (char *msg);
   int handleConfVictim (char *msg);
   int handleConfGripper (char *msg);
+  int handleConfToolchanger (char *msg);
   int handleConfActuator (char *msg);
   int handleConfGroundvehicle (char *msg);
   int handleConfBasemachine (char *msg);
@@ -155,6 +157,7 @@ private:
   int handleGeoAcoustic (char *msg);
   int handleGeoVictim (char *msg);
   int handleGeoGripper (char *msg);
+  int handleGeoToolchanger (char *msg);
   int handleGeoActuator (char *msg);
   int handleGeoGroundvehicle (char *msg);
   int handleGeoBasemachine (char *msg);
@@ -163,6 +166,7 @@ private:
 
   int handleAsta (char *msg);
   int handleMsg (char *msg);
+  
   int handleSen (char *msg);
   int handleSenEncoder (char *msg);
   int handleSenSonar (char *msg);
@@ -183,6 +187,10 @@ private:
   int handleSenBasemachine (char *msg);
   int handleSenStaticplatform (char *msg);
   int handleSenObjectSensor(char *msg);
+  
+  int handleEff (char *msg);
+  int handleEffGripper(char *msg);
+  int handleEffToolchanger(char *msg);
 
   int handleSta (char *msg);
   int handleStaGroundvehicle (char *msg);

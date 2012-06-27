@@ -38,6 +38,9 @@
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <usarsim_inf/SenseObject.h>
+#include <usarsim_inf/EffectorStatus.h>
+#include <usarsim_inf/EffectorCommand.h>
+#include <usarsim_inf/ToolchangerStatus.h>
 #include "simware.hh"
 #include "genericInf.hh"
 
@@ -243,6 +246,40 @@ public:
   usarsim_inf::SenseObject objSense;
 };
 
+////////////////////////////////////////////////////////////////////////
+// Gripper
+////////////////////////////////////////////////////////////////////////
+class UsarsimGripperEffector:public UsarsimSensor
+{
+public:
+  UsarsimGripperEffector (GenericInf *parentInf);
+  GenericInf *infHandle;
+  
+  //status and commands could all be done with an action server.
+  //it can be changed later if I have time.
+  void commandCallback(const usarsim_inf::EffectorCommandConstPtr &msg);
+  ros::Subscriber command;
+  usarsim_inf::EffectorCommand goal;
+  usarsim_inf::EffectorStatus status;
+  bool isActive(){return commandActive;}
+  void clearActive(){commandActive = false;}
+  bool isDone();
+private:
+  bool commandActive;
+};
+////////////////////////////////////////////////////////////////////////
+// Toolchanger
+////////////////////////////////////////////////////////////////////////
+class UsarsimToolchanger:public UsarsimSensor
+{
+public:
+  void commandCallback(const usarsim_inf::EffectorCommandConstPtr &msg);
+  ros::Subscriber command;
+  UsarsimToolchanger (GenericInf *parentInf);
+  GenericInf *infHandle;
+  usarsim_inf::ToolchangerStatus status;
+  usarsim_inf::EffectorCommand goal;
+};
 ////////////////////////////////////////////////////////////////////////
 // Actuators
 ////////////////////////////////////////////////////////////////////////

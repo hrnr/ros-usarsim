@@ -17,6 +17,8 @@ public:
 	NavigationGoal(std::string actuatorName, int linkCount);
 	void movePosition(float xGoal, float yGoal, float zGoal);
 	void moveOffset(float xGoal, float yGoal, float zGoal);
+	void moveOrientation(float roll, float pitch, float yaw);
+	void moveOrientation(float x, float y, float z, float w);
 	void setPositionFrameType(const std::string& frame);
 	void setOrientationFrameType(const std::string& frame);
 	void resetOrientation();

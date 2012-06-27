@@ -77,7 +77,8 @@ private:
   UsarsimPlatform *basePlatform;
   UsarsimGrdVeh grdVehSettings;
   UsarsimSensor sensorSettings;
- 
+  
+  void setTransform(UsarsimSensor *sen, const sw_pose &pose);
   
   //! We will always need a transform
   tf::TransformBroadcaster rosTfBroadcaster;
@@ -89,7 +90,11 @@ private:
   std::vector < UsarsimRngScnSensor > rangeScanners;
   //! Object sensors
   std::vector < UsarsimObjectSensor > objectSensors;
-
+  //! Grippers
+  std::vector < UsarsimGripperEffector > grippers;
+  //! Toolchangers
+  std::vector < UsarsimToolchanger > toolchangers;
+  
   int actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
 		     std::string name);
   int odomSensorIndex (std::vector < UsarsimOdomSensor > &sensors,
@@ -98,12 +103,18 @@ private:
 			std::string name);
   int objectSensorIndex (std::vector < UsarsimObjectSensor > &sensors, 
   	std::string name);
+  int gripperEffectorIndex (std::vector <UsarsimGripperEffector > &effectors, 
+  std::string name);
+  int toolchangerIndex (std::vector <UsarsimToolchanger > &effectors, 
+  std::string name);
   int copyActuator (UsarsimActuator * sen, const sw_struct * sw);
   int copyObjectSensor(UsarsimObjectSensor * sen, const sw_struct *sw);
   int copyIns (UsarsimOdomSensor * sen, const sw_struct * sw);
   int copyGrdVehSettings (UsarsimGrdVeh * settings, const sw_struct * sw);
   int copyRangeScanner (UsarsimRngScnSensor * sen, const sw_struct * sw);
   int copyStaticVehSettings (UsarsimPlatform * settings, const sw_struct * sw);
+  int copyGripperEffector(UsarsimGripperEffector *effector, const sw_struct *sw);
+  int copyToolchanger(UsarsimToolchanger *effector, const sw_struct *sw);
   void VelCmdCallback (const geometry_msgs::TwistConstPtr & msg);
   int updateActuatorTF(UsarsimActuator *act, const sw_struct *sw);
   void updateActuatorCycle(UsarsimActuator *act);

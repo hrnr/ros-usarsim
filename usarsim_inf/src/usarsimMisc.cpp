@@ -165,8 +165,57 @@ UsarsimRngScnSensor::UsarsimRngScnSensor ():UsarsimSensor ()
 UsarsimObjectSensor::UsarsimObjectSensor ():UsarsimSensor ()
 {
 }
-
-
+////////////////////////////////////////////////////////////////////////
+// Gripper
+////////////////////////////////////////////////////////////////////////
+UsarsimGripperEffector::UsarsimGripperEffector (GenericInf *parentInf):UsarsimSensor ()
+{
+	infHandle = parentInf;
+	commandActive = false;
+}
+void UsarsimGripperEffector::commandCallback(const usarsim_inf::EffectorCommandConstPtr &msg)
+{
+	if(!commandActive)
+	{
+		commandActive = true;
+		goal.state = msg->state;
+		ROS_ERROR("Received gripper command, opcode %d", msg->state);
+		sw_struct newSw;
+		newSw.type = SW_ROS_CMD_GRIP;
+		newSw.name = name;
+		if(msg->state == usarsim_inf::EffectorCommand::OPEN)
+			newSw.data.roscmdeff.goal = SW_EFF_OPEN;
+		else
+			newSw.data.roscmdeff.goal = SW_EFF_CLOSE;
+		infHandle->sibling->peerMsg(&newSw);
+    }
+}
+bool UsarsimGripperEffector::isDone()
+{
+	if(status.state == goal.state)
+		return true;
+	return false;
+}
+////////////////////////////////////////////////////////////////////////
+// Toolchanger
+////////////////////////////////////////////////////////////////////////
+UsarsimToolchanger::UsarsimToolchanger (GenericInf *parentInf):UsarsimSensor ()
+{
+	infHandle = parentInf;
+}
+void UsarsimToolchanger::commandCallback(const usarsim_inf::EffectorCommandConstPtr &msg)
+{
+	goal.state = msg->state;
+	ROS_ERROR("Received toolchanger command, opcode %d", msg->state);
+	sw_struct newSw;
+	newSw.type = SW_ROS_CMD_TOOLCHANGE;
+	newSw.name = name;
+	if(msg->state == usarsim_inf::EffectorCommand::OPEN)
+		newSw.data.roscmdeff.goal = SW_EFF_OPEN;
+	else
+		newSw.data.roscmdeff.goal = SW_EFF_CLOSE;
+	infHandle->sibling->peerMsg(&newSw);
+}
 ////////////////////////////////////////////////////////////////////////
 // UsarsimConverter
 ////////////////////////////////////////////////////////////////////////

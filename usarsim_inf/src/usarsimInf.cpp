@@ -113,12 +113,12 @@ UsarsimInf::init (GenericInf * siblingIn)
   /*
      Note:
 
-     Some of the USARsim resources don't announce themselves.  Sensors
+     [Some of the USARsim resources don't announce themselves.  Sensors
      do, but effectors don't. For the ones that don't, like effectors,
      we need to force a request for geo and conf information. It may
-     come back empty.
+     come back empty.] <--  THIS IS NO LONGER TRUE!
    */
-  ulapi_snprintf (str, sizeof (str), "GETCONF {Type Actuator}\r\n");
+  /*ulapi_snprintf (str, sizeof (str), "GETCONF {Type Actuator}\r\n");
   NULLTERM (str);
   ulapi_mutex_take (socket_mutex);
   usarsim_socket_write (socket_fd, str, strlen (str));
@@ -128,7 +128,7 @@ UsarsimInf::init (GenericInf * siblingIn)
   NULLTERM (str);
   ulapi_mutex_take (socket_mutex);
   usarsim_socket_write (socket_fd, str, strlen (str));
-  ulapi_mutex_give (socket_mutex);
+  ulapi_mutex_give (socket_mutex);*/
 
   /*
   ulapi_snprintf (str, sizeof (str), "GETCONF {Type MisPkg}\r\n");
@@ -145,7 +145,7 @@ UsarsimInf::init (GenericInf * siblingIn)
   */
 
   //  printf( "usarsiminf: Getting gripper(2) conf\n");
-  ulapi_snprintf (str, sizeof (str), "GETCONF {Type Gripper}\r\n");
+  /*ulapi_snprintf (str, sizeof (str), "GETCONF {Type Gripper}\r\n");
   NULLTERM (str);
   ulapi_mutex_take (socket_mutex);
   usarsim_socket_write (socket_fd, str, strlen (str));
@@ -155,7 +155,7 @@ UsarsimInf::init (GenericInf * siblingIn)
   NULLTERM (str);
   ulapi_mutex_take (socket_mutex);
   usarsim_socket_write (socket_fd, str, strlen (str));
-  ulapi_mutex_give (socket_mutex);
+  ulapi_mutex_give (socket_mutex);*/
 
   //  printf( "usarsiminf: Getting rfid conf\n");
   ulapi_snprintf (str, sizeof (str), "GETCONF {Type RFID}\r\n");
@@ -193,6 +193,7 @@ UsarsimInf::init (GenericInf * siblingIn)
   misstas = new UsarsimList (SW_ACT);
 
   grippers = new UsarsimList (SW_EFF_GRIPPER);
+  toolchangers = new UsarsimList(SW_EFF_TOOLCHANGER);
 
   /*
      Note: the name of a robot appears to be ignored, and USARSim will
@@ -211,7 +212,7 @@ UsarsimInf::init (GenericInf * siblingIn)
 }
 
 int
-UsarsimInf::msgout (sw_struct * sw, sensorInfo info)
+UsarsimInf::msgout (sw_struct * sw, componentInfo info)
 {
   if (sw->name == "")
     {
@@ -237,7 +238,7 @@ UsarsimInf::peerMsg (sw_struct * swIn)
   double leftVel, rightVel;
   double steerAngle, vehVel;
   double scale;
-  std::string armCmd;
+  std::string command;
   std::stringstream tempSS;
   /*
      char cmp[MAX_MSG_LEN];
@@ -381,26 +382,49 @@ UsarsimInf::peerMsg (sw_struct * swIn)
        */
       break;
     case SW_ROS_CMD_TRAJ:
-	armCmd = "ACT {Name " + swIn->name + "}";
+	command = "ACT {Name " + swIn->name + "}";
 	for(int i = 0;i<swIn->data.roscmdtraj.number;i++)
 	{
 	  tempSS.str("");
 	  tempSS<<i;
-	  armCmd += " {Link " + tempSS.str() + "}";
+	  command += " {Link " + tempSS.str() + "}";
 	  tempSS.str("");
 	  tempSS << swIn->data.roscmdtraj.goal[i];
-	  armCmd += " {Value "+tempSS.str() + "}";
+	  command += " {Value "+tempSS.str() + "}";
 	}
-        ulapi_snprintf(str, sizeof(str), "%s\r\n",armCmd.c_str());
+        ulapi_snprintf(str, sizeof(str), "%s\r\n",command.c_str());
         NULLTERM (str);
         ulapi_mutex_take (socket_mutex);
 	usarsim_socket_write (socket_fd, str, strlen (str));
 	ulapi_mutex_give (socket_mutex);
         break;
+      case SW_ROS_CMD_GRIP:
+        if(swIn->data.roscmdeff.goal == SW_EFF_OPEN)
+        	command = "OPEN";
+        else
+        	command = "CLOSE";
+      	ulapi_snprintf(str, sizeof(str), "SET {Type Gripper} {Name %s} {Opcode %s}\r\n", 
+      	swIn->name.c_str(), command.c_str());
+      	NULLTERM(str);
+      	usarsim_socket_write (socket_fd, str, strlen (str));
+		ulapi_mutex_give (socket_mutex);
+      break;
+      case SW_ROS_CMD_TOOLCHANGE:
+        if(swIn->data.roscmdeff.goal == SW_EFF_OPEN)
+        	command = "OPEN";
+        else
+        	command = "CLOSE";
+      	ulapi_snprintf(str, sizeof(str), "SET {Type ToolChanger} {Name %s} {Opcode %s}\r\n", 
+      	swIn->name.c_str(), command.c_str());
+      	NULLTERM(str);
+      	usarsim_socket_write (socket_fd, str, strlen (str));
+		ulapi_mutex_give (socket_mutex);
+      break; 
     default:
       ROS_ERROR ("usarsimInf::peerMsg: not handling type %s",
 		 swTypeToString (swIn->type));
       break;
+      
 
     }
 
@@ -468,7 +492,7 @@ UsarsimInf::getValue (char *msg, char *token)
 }
 
 int
-UsarsimInf::expect (sensorInfo * info, const char *token)
+UsarsimInf::expect (componentInfo * info, const char *token)
 {
   info->nextptr = getValue (info->ptr, info->token);
   if (info->nextptr == info->ptr)
@@ -490,7 +514,7 @@ UsarsimInf::expect (sensorInfo * info, const char *token)
 }
 
 int
-UsarsimInf::getInteger (sensorInfo * info)
+UsarsimInf::getInteger (componentInfo * info)
 {
   int i;
 
@@ -511,7 +535,7 @@ UsarsimInf::getInteger (sensorInfo * info)
 }
 
 double
-UsarsimInf::getReal (sensorInfo * info)
+UsarsimInf::getReal (componentInfo * info)
 {
   double d;
 
@@ -532,7 +556,7 @@ UsarsimInf::getReal (sensorInfo * info)
 }
 
 void
-UsarsimInf::getTime (sensorInfo * info)
+UsarsimInf::getTime (componentInfo * info)
 {
   info->nextptr = getValue (info->ptr, info->token);
   if (info->nextptr == info->ptr)
@@ -549,7 +573,7 @@ UsarsimInf::getTime (sensorInfo * info)
 }
 
 int
-UsarsimInf::getName (UsarsimList * list, sensorInfo * info, int op)
+UsarsimInf::getName (UsarsimList * list, componentInfo * info, int op)
 {
   /* why?
   if (info->sawname)
@@ -674,12 +698,12 @@ UsarsimInf::handleMsg (char *msg)
     {
       count = handleNfo (msg);
     }
-  /*
+  
      else if (!strcmp (head, "EFF"))
      {
      count = handleEff (msg);
      }
-   */
+   
   else if (!strcmp (head, "STA") )
     {
       count = handleSta (msg);
@@ -728,6 +752,7 @@ UsarsimInf::handleMsg (char *msg)
   //  doSenConfs (misstas, (char *) "MisPkg");
   doSenConfs (misstas, (char *) "Actuator");
   doEffConfs (grippers, (char *) "Gripper");
+  doEffConfs (toolchangers, (char *) "ToolChanger");
 
   doRobotConfs (robot);
 
@@ -777,7 +802,6 @@ UsarsimInf::doEffConfs (UsarsimList * where, char *type)
 
   if (NULL == where)
     return -1;
-
   sw = where->getSW ();
   while (sw->name != "")
     {
@@ -805,6 +829,7 @@ UsarsimInf::doEffConfs (UsarsimList * where, char *type)
 	  waitingForGeo = 1;
 	}
       where = where->getNext ();
+      sw = where->getSW();
     }
 
   return 0;
@@ -886,7 +911,7 @@ UsarsimInf::doSenConfs (UsarsimList * where, char *type)
 }
 
 void
-UsarsimInf::setSensorInfo (char *msg, sensorInfo * info)
+UsarsimInf::setComponentInfo (char *msg, componentInfo * info)
 {
   info->ptr = msg;
   info->sawname = 0;
@@ -908,9 +933,9 @@ UsarsimInf::setSensorInfo (char *msg, sensorInfo * info)
 int
 UsarsimInf::handleStaGroundvehicle (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw;
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
   static int didError = 0;
 
   /* since we only have one robot, we just set it explicitly here
@@ -965,9 +990,9 @@ UsarsimInf::handleStaGroundvehicle (char *msg)
 int
 UsarsimInf::handleStaBasemachine (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw;
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   info.where = robot;
   sw = info.where->getSW ();
@@ -1017,9 +1042,9 @@ UsarsimInf::handleStaBasemachine (char *msg)
 int
 UsarsimInf::handleStaStaticplatform (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = robot->getSW ();
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   info.where = robot;
   sw->type = SW_ROBOT_FIXED;
@@ -1118,12 +1143,12 @@ UsarsimInf::handleNfo (char *msg)
 int
 UsarsimInf::handleSenRangeimager (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   int number;
   sw_struct *sw = rangeimagers->getSW ();
   double d;
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   number = 0;
   while (1)
@@ -1221,10 +1246,10 @@ UsarsimInf::handleSenRangeimager (char *msg)
 int
 UsarsimInf::handleSenTouch (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   sw_struct *sw = touches->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -1280,10 +1305,10 @@ UsarsimInf::handleSenTouch (char *msg)
 int
 UsarsimInf::handleSenCo2sensor (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   sw_struct *sw = co2sensors->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -1332,10 +1357,10 @@ UsarsimInf::handleSenCo2sensor (char *msg)
 int
 UsarsimInf::handleSenGroundtruth (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   sw_struct *sw = inses->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -1391,7 +1416,7 @@ UsarsimInf::handleSenGroundtruth (char *msg)
 int
 UsarsimInf::handleSenGps (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   double latdeg;
   double latmin;
   double londeg;
@@ -1400,7 +1425,7 @@ UsarsimInf::handleSenGps (char *msg)
   int west = 0;
   sw_struct *sw = gpses->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
   latdeg = londeg = latmin = lonmin = 0;
 
   while (1)
@@ -1489,11 +1514,11 @@ UsarsimInf::handleSenGps (char *msg)
 int
 UsarsimInf::handleSenIns (char *msg, const char *sensorType)
 {
-  sensorInfo info;;
+  componentInfo info;;
   sw_struct *sw;
   UsarsimList *myList;
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   if( !strcmp(sensorType, "INS" ))
     myList = inses;
@@ -1561,10 +1586,10 @@ UsarsimInf::handleSenIns (char *msg, const char *sensorType)
 int
 UsarsimInf::handleSenOdometry (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   sw_struct *sw = odometers->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -1617,10 +1642,10 @@ UsarsimInf::handleSenOdometry (char *msg)
 int
 UsarsimInf::handleSenVictim (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   //  sw_struct *sw = victims->getSW();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   ROS_WARN ("Victim sensor not working");
   return 0;
@@ -1681,13 +1706,13 @@ UsarsimInf::handleSenVictim (char *msg)
 int
 UsarsimInf::handleSenTachometer (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   int vel_number = 0;
   int pos_number = 0;
   sw_struct *sw = tachometers->getSW ();
   double d;
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -1822,11 +1847,11 @@ UsarsimInf::handleSenTachometer (char *msg)
 int
 UsarsimInf::handleSenAcoustic (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   double x, y, z;
   sw_struct *sw = acoustics->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -1887,10 +1912,10 @@ UsarsimInf::handleSenAcoustic (char *msg)
 int
 UsarsimInf::handleSenEncoder (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   sw_struct *sw = encoders->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   /*
      NOTE -- the 'where' pointer doesn't get set until "Name" is seen,
@@ -1947,10 +1972,10 @@ UsarsimInf::handleSenEncoder (char *msg)
 int
 UsarsimInf::handleSenSonar (char *msg)
 {
-  sensorInfo info;;
+  componentInfo info;;
   sw_struct *sw = sonars->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -1996,12 +2021,12 @@ UsarsimInf::handleSenSonar (char *msg)
 int
 UsarsimInf::handleSenRangescanner (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = rangescanners->getSW ();
   double d;
 
   int number = 0;
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2080,11 +2105,11 @@ UsarsimInf::handleSenRangescanner (char *msg)
 
 int UsarsimInf::handleSenObjectSensor(char *msg)
 {
-    sensorInfo info;
+    componentInfo info;
     sw_struct *sw = objectsensors->getSW();
     int objectIndex = -1;
     
-    setSensorInfo(msg, &info);
+    setComponentInfo(msg, &info);
     
 	while(1)
 	{
@@ -2253,10 +2278,10 @@ UsarsimInf::handleSen (char *msg)
 int
 UsarsimInf::handleConfEncoder (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = encoders->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2299,10 +2324,10 @@ UsarsimInf::handleConfEncoder (char *msg)
 int
 UsarsimInf::handleConfSonar (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = sonars->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2352,10 +2377,10 @@ UsarsimInf::handleConfSonar (char *msg)
 int
 UsarsimInf::handleConfRangeimager (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = rangeimagers->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2412,10 +2437,10 @@ UsarsimInf::handleConfRangeimager (char *msg)
 int
 UsarsimInf::handleConfRangescanner (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = rangescanners->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2495,10 +2520,10 @@ UsarsimInf::handleConfCo2sensor (char *msg)
 int
 UsarsimInf::handleConfGroundtruth (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = groundtruths->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2540,10 +2565,10 @@ UsarsimInf::handleConfGroundtruth (char *msg)
 int
 UsarsimInf::handleConfGps (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = gpses->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2585,11 +2610,11 @@ UsarsimInf::handleConfGps (char *msg)
 int
 UsarsimInf::handleConfIns (char *msg, const char *sensorType)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw;
   UsarsimList *myList;
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
   if( !strcmp(sensorType, "INS" ))
     myList = inses;
   else if ( !strcmp(sensorType, "GroundTruth" ) )
@@ -2641,10 +2666,10 @@ UsarsimInf::handleConfIns (char *msg, const char *sensorType)
 int
 UsarsimInf::handleConfOdometry (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = odometers->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2690,10 +2715,10 @@ UsarsimInf::handleConfOdometry (char *msg)
 int
 UsarsimInf::handleConfTachometer (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = tachometers->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2735,10 +2760,10 @@ UsarsimInf::handleConfTachometer (char *msg)
 int
 UsarsimInf::handleConfAcoustic (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = acoustics->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2780,10 +2805,10 @@ UsarsimInf::handleConfAcoustic (char *msg)
 int
 UsarsimInf::handleConfVictim (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = victims->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2828,15 +2853,15 @@ UsarsimInf::handleConfVictim (char *msg)
 }
 
 /*
-  CONF {Type Gripper} {Name Gripper1}
+  CONF {Type Gripper} {Name Gripper1} {Opcode GRIP} {MaxVal 1} {MinVal 0}
 */
 int
 UsarsimInf::handleConfGripper (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = grippers->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -2851,9 +2876,14 @@ UsarsimInf::handleConfGripper (char *msg)
 	}
       else if (!strcmp (info.token, "Name"))
 	{
-	  getName (grippers, &info, SW_SEN_INS_SET);
+	  getName (grippers, &info, SW_EFF_GRIPPER_SET);
 	  sw = info.where->getSW ();
 	  info.where->setDidConf (1);
+	}
+	else if(!strcmp (info.token, "Opcode"))
+	{
+		info.nextptr = getValue (info.ptr, info.token);
+		//add this to the list of available opcodes for this gripper
 	}
       else
 	{
@@ -2868,18 +2898,61 @@ UsarsimInf::handleConfGripper (char *msg)
   return info.count;
 }
 
+int
+UsarsimInf::handleConfToolchanger (char *msg)
+{
+  componentInfo info;
+  sw_struct *sw = toolchangers->getSW ();
+
+  setComponentInfo (msg, &info);
+
+  while (1)
+    {
+      info.nextptr = getKey (info.ptr, info.token);
+      if (info.nextptr == info.ptr)
+	break;
+      info.ptr = info.nextptr;
+
+      if (!strcmp (info.token, "Type"))
+	{
+	  expect (&info, "ToolChanger");
+	}
+      else if (!strcmp (info.token, "Name"))
+	{
+	  getName (toolchangers, &info, SW_EFF_TOOLCHANGER_SET);
+	  sw = info.where->getSW ();
+	  info.where->setDidConf (1);
+	}
+	else if(!strcmp (info.token, "Opcode"))
+	{
+		info.nextptr = getValue (info.ptr, info.token);
+		//add this to the list of available opcodes for this gripper
+	}
+      else
+	{
+	  /* skip unknown entry  */
+	  info.nextptr = getValue (info.ptr, info.token);
+	}
+    }
+
+  info.where->setDidConf (1);
+  info.op = SW_EFF_TOOLCHANGER_SET;
+  msgout (sw, info);
+  return info.count;
+}
+
 /*
   CONF {Type Actuator} {Name TeleMaxArm} {Link 1} {JointType Revolute} {MaxSpeed 0.17} {MaxTorque 300.00} {MinRange 1.00} {MaxRange 0.00} ...
 */
 int
 UsarsimInf::handleConfActuator (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   int i;
   int linkindex;
   sw_struct *sw = misstas->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
   linkindex = 0;
 
   ROS_ERROR( "not an error but... usarsimInf.cpp::HandleConfActuator: %s", msg );
@@ -3013,10 +3086,10 @@ UsarsimInf::handleConfActuator (char *msg)
 int
 UsarsimInf::handleConfGroundvehicle (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = robot->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
   sw->type = SW_ROBOT_GROUNDVEHICLE;
 
   while (1)
@@ -3101,10 +3174,10 @@ UsarsimInf::handleConfGroundvehicle (char *msg)
 int
 UsarsimInf::handleConfBasemachine (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = robot->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
   sw->type = SW_ROBOT_FIXED;
 
   while (1)
@@ -3147,10 +3220,10 @@ UsarsimInf::handleConfBasemachine (char *msg)
 int
 UsarsimInf::handleConfStaticplatform (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = robot->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
   sw->type = SW_ROBOT_FIXED;
 
   while (1)
@@ -3189,10 +3262,10 @@ UsarsimInf::handleConfStaticplatform (char *msg)
 
 int UsarsimInf::handleConfObjectsensor(char *msg)
 {
-	sensorInfo info;
+	componentInfo info;
   sw_struct *sw = objectsensors->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -3319,6 +3392,10 @@ UsarsimInf::handleConf (char *msg)
 	    {
 	      return handleConfGripper (msg);
 	    }
+	  else if (!strcmp (token, "ToolChanger"))
+	  {
+	  	return handleConfToolchanger (msg);
+	  }
 	  else if (!strcmp (token, "Actuator"))
 	    {
 	      return handleConfActuator (msg);
@@ -3356,10 +3433,10 @@ UsarsimInf::handleConf (char *msg)
 int
 UsarsimInf::handleGeoStaticplatform (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = robot->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
   sw->type = SW_ROBOT_FIXED;
   while (1)
     {
@@ -3401,10 +3478,10 @@ UsarsimInf::handleGeoStaticplatform (char *msg)
 int
 UsarsimInf::handleGeoEncoder (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = encoders->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -3458,10 +3535,10 @@ UsarsimInf::handleGeoEncoder (char *msg)
 int
 UsarsimInf::handleGeoSonar (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = sonars->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -3512,10 +3589,10 @@ UsarsimInf::handleGeoSonar (char *msg)
 int
 UsarsimInf::handleGeoRangeimager (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = rangeimagers->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   //  printf( "usarsiminf: in handleGeo for range imager: %s\n", msg );
   while (1)
@@ -3569,10 +3646,10 @@ UsarsimInf::handleGeoRangeimager (char *msg)
 int
 UsarsimInf::handleGeoRangescanner (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = rangescanners->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -3649,10 +3726,10 @@ UsarsimInf::handleGeoCo2sensor (char *msg)
 int
 UsarsimInf::handleGeoGroundtruth (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = groundtruths->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -3702,10 +3779,10 @@ UsarsimInf::handleGeoGroundtruth (char *msg)
 int
 UsarsimInf::handleGeoGps (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = gpses->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -3755,11 +3832,11 @@ UsarsimInf::handleGeoGps (char *msg)
 int
 UsarsimInf::handleGeoIns (char *msg, const char *sensorType)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw;
   UsarsimList *myList;
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
   if( !strcmp(sensorType, "INS" ))
     myList = inses;
   else if ( !strcmp(sensorType, "GroundTruth" ) )
@@ -3820,10 +3897,10 @@ UsarsimInf::handleGeoIns (char *msg, const char *sensorType)
 int
 UsarsimInf::handleGeoOdometry (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = odometers->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -3873,10 +3950,10 @@ UsarsimInf::handleGeoOdometry (char *msg)
 int
 UsarsimInf::handleGeoTachometer (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = tachometers->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -3926,10 +4003,10 @@ UsarsimInf::handleGeoTachometer (char *msg)
 int
 UsarsimInf::handleGeoAcoustic (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = acoustics->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -3979,10 +4056,10 @@ UsarsimInf::handleGeoAcoustic (char *msg)
 int
 UsarsimInf::handleGeoVictim (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = victims->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -4037,10 +4114,10 @@ UsarsimInf::handleGeoVictim (char *msg)
 int
 UsarsimInf::handleGeoObjectsensor (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = objectsensors->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -4090,10 +4167,10 @@ UsarsimInf::handleGeoObjectsensor (char *msg)
 int
 UsarsimInf::handleGeoGripper (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = grippers->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   while (1)
     {
@@ -4139,6 +4216,59 @@ UsarsimInf::handleGeoGripper (char *msg)
   return info.count;
 }
 
+int
+UsarsimInf::handleGeoToolchanger (char *msg)
+{
+  componentInfo info;
+  sw_struct *sw = toolchangers->getSW ();
+
+  setComponentInfo (msg, &info);
+
+  while (1)
+    {
+      info.nextptr = getKey (info.ptr, info.token);
+      if (info.nextptr == info.ptr)
+	break;
+      info.ptr = info.nextptr;
+
+      if (!strcmp (info.token, "Type"))
+	{
+	  expect (&info, "ToolChanger");
+	}
+      else if (!strcmp (info.token, "Name"))
+	{
+	  getName (toolchangers, &info, SW_EFF_TOOLCHANGER_SET);
+	  sw = info.where->getSW ();
+	  info.where->setDidConf (1);
+	  expect (&info, "Location");
+	  sw->data.toolchanger.mount.x = getReal (&info);
+	  sw->data.toolchanger.mount.y = getReal (&info);
+	  sw->data.toolchanger.mount.z = getReal (&info);
+	  expect (&info, "Orientation");
+	  sw->data.toolchanger.mount.roll = getReal (&info);
+	  sw->data.toolchanger.mount.pitch = getReal (&info);
+	  sw->data.toolchanger.mount.yaw = getReal (&info);
+	  expect (&info, "Mount");
+	  info.nextptr = getValue (info.ptr, info.token);
+	  ulapi_strncpy (sw->data.toolchanger.mount.offsetFrom, info.token,
+			 SW_NAME_MAX);
+	  info.count++;
+	  info.ptr = info.nextptr;
+	}
+      else
+	{
+	  /* skip unknown entry  */
+	  info.nextptr = getValue (info.ptr, info.token);
+	}
+    }
+
+  info.where->setDidGeo (1);
+  info.op = SW_EFF_TOOLCHANGER_SET;
+  msgout (sw, info);
+  return info.count;
+}
+
+
 /*
   GEO {Type Actuator} {Name TeleMaxArm} {Link 1} {Parent -1} {Location 0.1789,-0.0014,-0.0905} {Orientation 3.1415,0.0000,0.0000} {Link 2} {ParentLink 1} {Location 0.0258,-0.0720,0.1566} {Orientation 1.5707,0.0000,0.0000} ...
 
@@ -4151,12 +4281,12 @@ UsarsimInf::handleGeoGripper (char *msg)
 int
 UsarsimInf::handleGeoActuator (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   int i;
   int linkindex;
   sw_struct *sw = misstas->getSW();
 
-  setSensorInfo( msg, &info );
+  setComponentInfo( msg, &info );
   linkindex = 0;
 
   ROS_ERROR( "not an error, but... usarsimInf.cpp::HandleGeoActuator: %s", msg );
@@ -4295,10 +4425,10 @@ UsarsimInf::handleGeoActuator (char *msg)
 int
 UsarsimInf::handleGeoGroundvehicle (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = robot->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   sw->type = SW_ROBOT_GROUNDVEHICLE;
 
@@ -4369,10 +4499,10 @@ UsarsimInf::handleGeoGroundvehicle (char *msg)
 int
 UsarsimInf::handleGeoBasemachine (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   sw_struct *sw = robot->getSW ();
 
-  setSensorInfo (msg, &info);
+  setComponentInfo (msg, &info);
 
   sw->type = SW_ROBOT_FIXED;
 
@@ -4488,6 +4618,10 @@ UsarsimInf::handleGeo (char *msg)
 	    {
 	      return handleGeoGripper (msg);
 	    }
+	  else if (!strcmp (token, "ToolChanger"))
+	    {
+	      return handleGeoToolchanger (msg);
+	    }
 	  else if (!strcmp (token, "Actuator"))
 	    {
 	      return handleGeoActuator (msg);
@@ -4528,12 +4662,12 @@ UsarsimInf::handleGeo (char *msg)
 int
 UsarsimInf::handleAsta (char *msg)
 {
-  sensorInfo info;
+  componentInfo info;
   int i;
   int linkindex = 0;
 
   sw_struct *sw = misstas->getSW();
-  setSensorInfo( msg, &info );
+  setComponentInfo( msg, &info );
   //  ROS_ERROR( "%s", msg );
 
   while (1)
@@ -4598,4 +4732,146 @@ UsarsimInf::handleAsta (char *msg)
   info.op = SW_ACT_STAT;
   msgout (sw, info);
   return info.count;
+}
+int UsarsimInf::handleEff(char *msg)
+{
+  char token[MAX_TOKEN_LEN];
+  char *ptr = msg;
+  char *nextptr;
+  while (1)
+    {
+      nextptr = getKey (ptr, token);
+      if (nextptr == ptr)
+		break;
+      ptr = nextptr;
+      /* look for {Type <name>}, and pass the whole msg to the effector */
+		if (!strcmp (token, "Type"))
+		{
+		  nextptr = getValue (ptr, token);
+		  if (nextptr == ptr)
+			return -1;
+		  if (!strcmp (token, "Gripper"))
+			{
+			  return handleEffGripper (msg);
+			}
+		  else if (!strcmp (token, "ToolChanger"))
+		    {
+		      return handleEffToolchanger (msg);
+		    }
+		  else
+			{
+			  ROS_ERROR ("Unknown effector type %s", token);
+			  /* skip it and keep going */
+			}
+		}
+      /* else something else to be handled, probably {Time #} */
+    }
+
+  return 0;
+}
+int UsarsimInf::handleEffGripper(char *msg)
+{
+	componentInfo info;
+	sw_struct *sw = grippers->getSW();
+
+  	setComponentInfo (msg, &info);
+  
+  	while (1)
+    {
+      info.nextptr = getKey (info.ptr, info.token);
+      if (info.nextptr == info.ptr)
+		break;
+      info.ptr = info.nextptr;
+      if (!strcmp (info.token, "Type"))
+	  {
+	  	expect (&info, "Gripper");
+	  }
+      else if (!strcmp (info.token, "Name"))
+	  {
+	  	getName (grippers, &info, SW_EFF_GRIPPER_STAT);
+	  	sw = info.where->getSW ();
+	  }
+      else if (!strcmp (info.token, "Status"))
+	  {
+	  	info.nextptr = getValue (info.ptr, info.token);
+	  	if (info.nextptr == info.ptr)
+	    	return -1;
+	    if(!ulapi_strcasecmp(info.token,"OPEN"))
+	    	sw->data.gripper.status = SW_EFF_OPEN;
+	    else if(!ulapi_strcasecmp(info.token, "CLOSED"))
+	    	sw->data.gripper.status = SW_EFF_CLOSE;
+	    else
+	    {
+	    	ROS_ERROR("Bad gripper status %s",info.token);
+	    }
+	  }
+      else
+	  {
+		  // skip unknown entry  
+		  info.nextptr = getValue (info.ptr, info.token);
+	  }
+    }
+  info.op = SW_EFF_GRIPPER_STAT;
+  msgout (sw, info);
+
+  return 0;
+}
+int UsarsimInf::handleEffToolchanger(char *msg)
+{
+	componentInfo info;
+	sw_struct *sw = toolchangers->getSW();
+  	setComponentInfo (msg, &info);
+  	while (1)
+    {
+      info.nextptr = getKey (info.ptr, info.token);
+      if (info.nextptr == info.ptr)
+		break;
+      info.ptr = info.nextptr;
+      if (!strcmp (info.token, "Type"))
+	  {
+	  	expect (&info, "ToolChanger");
+	  }
+      else if (!strcmp (info.token, "Name"))
+	  {
+	  	getName (toolchangers, &info, SW_EFF_TOOLCHANGER_STAT);
+	  	sw = info.where->getSW ();
+	  }
+      else if (!strcmp (info.token, "Status"))
+	  {
+	  	info.nextptr = getValue (info.ptr, info.token);
+	  	if (info.nextptr == info.ptr)
+	    	return -1;
+	    if(!ulapi_strcasecmp(info.token,"OPEN"))
+	    	sw->data.toolchanger.status = SW_EFF_OPEN;
+	    else if(!ulapi_strcasecmp(info.token, "CLOSED"))
+	    	sw->data.toolchanger.status = SW_EFF_CLOSE;
+	    else
+	    {
+	    	ROS_ERROR("Bad toolchanger status %s",info.token);
+	    }
+	  }
+	  else if (!strcmp(info.token, "Tool"))
+	  {
+	  	info.nextptr = getValue (info.ptr, info.token);
+	  	if (info.nextptr == info.ptr)
+	    	return -1;
+	    if(!strcmp(info.token, "Gripper"))
+	    	sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_GRIPPER;
+	    else if(!strcmp(info.token, "Vacuum"))
+	    	sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_VACUUM;
+	    else if(!strcmp(info.token, "ToolChanger"))
+	    	sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_TOOLCHANGER;
+	    else
+	    	sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_UNKNOWN_TYPE;
+	  }
+      else
+	  {
+		  // skip unknown entry  
+		  info.nextptr = getValue (info.ptr, info.token);
+	  }
+    }
+  info.op = SW_EFF_TOOLCHANGER_STAT;
+  msgout (sw, info);
+
+  return 0;
 }

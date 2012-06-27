@@ -31,6 +31,18 @@ void NavigationGoal::moveOffset(float xGoal, float yGoal, float zGoal)
 		goal.motion_plan_request.goal_constraints.position_constraints[0].position.z = zGoal;
 	}
 }
+void NavigationGoal::moveOrientation(float roll, float pitch, float yaw)
+{
+	tf::Quaternion quat;
+	quat.setRPY(roll, pitch, yaw);
+	tf::quaternionTFToMsg(quat, goal.motion_plan_request.goal_constraints.orientation_constraints[0].orientation);
+}
+void NavigationGoal::moveOrientation(float x, float y, float z, float w)
+{
+	tf::quaternionTFToMsg(tf::Quaternion(x,y,z,w), 
+		goal.motion_plan_request.goal_constraints.orientation_constraints[0].orientation);
+}
+
 NavigationGoal::NavigationGoal(std::string actuatorName, int linkCount)
 {
 	std::stringstream linkSStream;
@@ -75,7 +87,7 @@ void NavigationGoal::setOrientationFrameType(const std::string& frame)
 	if(frame == "global")
 	{
 		useGlobalOrientationFrame = true;
-		goal.motion_plan_request.goal_constraints.orientation_constraints[0].header.frame_id = "/odom";
+		goal.motion_plan_request.goal_constraints.orientation_constraints[0].header.frame_id = "/base_link";
 	}
 	else if(frame == "local")
 	{

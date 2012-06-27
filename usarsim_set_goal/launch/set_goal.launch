@@ -8,5 +8,5 @@
 	<param name="goalset/controlOffset" value="$(arg control_offset)" />
 	<param name="goalset/actuatorName" value="KR60Arm" />
 	
-	<node name = "set_goal" pkg = "goalset" type = "set_goal" />
+	<node name = "set_goal" pkg = "usarsim_set_goal" type = "set_goal" />
 </launch>

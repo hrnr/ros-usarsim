@@ -68,6 +68,8 @@ swTypeToString (sw_type type)
     return "SW_SEN_ACOUSTIC";
   if (type == SW_EFF_GRIPPER)
     return "SW_EFF_GRIPPER";
+  if (type == SW_EFF_TOOLCHANGER)
+  	return "SW_EFF_TOOLCHANGER";
   if (type == SW_ACT)
     return "SW_ACT";
   if (type == SW_ROBOT_FIXED)

@@ -487,12 +487,70 @@ ServoInf::peerMsg (sw_struct * sw)
 		break;
 	}
 	break;
-
-
-
-
+	case SW_EFF_GRIPPER:
+		switch(sw->op)
+		{
+		case SW_EFF_GRIPPER_STAT:
+			num = gripperEffectorIndex(grippers, sw->name);
+			if(copyGripperEffector(&grippers[num], sw) == 1)
+			{
+				rosTfBroadcaster.sendTransform (grippers[num].tf);
+				grippers[num].pub.publish(grippers[num].status);
+				if(grippers[num].isActive() && grippers[num].isDone())
+					grippers[num].clearActive();
+			
+			}else
+			{
+				ROS_ERROR("Gripper effector error for %s: couldn't copy",sw->name.c_str());
+			}
+			break;
+		case SW_EFF_GRIPPER_SET:
+			num = gripperEffectorIndex(grippers, sw->name);
+			if(copyGripperEffector(&grippers[num], sw) == 1)
+			{
+				rosTfBroadcaster.sendTransform (grippers[num].tf);
+			}else
+			{
+				ROS_ERROR("Gripper effector error for %s: couldn't copy",sw->name.c_str());
+			}
+			break;
+		default:
+			ROS_ERROR("invalid operation: %d\n", sw->op);
+			return -1;
+			break;
+		}
+	break;
+	case SW_EFF_TOOLCHANGER:
+		switch(sw->op)
+		{
+			case SW_EFF_TOOLCHANGER_STAT:
+			num = toolchangerIndex(toolchangers, sw->name);
+			if(copyToolchanger(&toolchangers[num], sw) == 1)
+			{
+				rosTfBroadcaster.sendTransform(toolchangers[num].tf);
+				toolchangers[num].pub.publish(toolchangers[num].status);
+			}else
+			{
+				ROS_ERROR("Toolchanger error for %s: couldn't copy",sw->name.c_str());
+			}
+			break;
+			case SW_EFF_TOOLCHANGER_SET:
+			num = toolchangerIndex(toolchangers, sw->name);
+			if(copyToolchanger(&toolchangers[num], sw) == 1)
+			{
+				rosTfBroadcaster.sendTransform(toolchangers[num].tf);
+			}else
+			{
+				ROS_ERROR("Toolchanger error for %s: couldn't copy",sw->name.c_str());
+			}
+			break;
+			default:
+			ROS_ERROR("Invalid operation: %d\n",sw->op);
+			break;
+		}
+		break;
     default:
-      ROS_WARN ("unknown sw class %s with operand %d",
+      	ROS_WARN ("unknown sw class %s with operand %d",
 		swTypeToString (sw->type), sw->op);
       break;
     }
@@ -760,6 +818,8 @@ ServoInf::copyIns (UsarsimOdomSensor * sen, const sw_struct * sw)
   std::string sen_frame_id, sen_child_id;
   currentTime = ros::Time::now ();
 
+
+  setTransform(sen, sw->data.ins.mount);
   quat = tf::createQuaternionFromRPY (sw->data.ins.mount.roll,
 				      sw->data.ins.mount.pitch,
 				      sw->data.ins.mount.yaw);
@@ -861,38 +921,12 @@ ServoInf::copyRangeScanner (UsarsimRngScnSensor * sen, const sw_struct * sw)
   int flipScanner = 1; // if set to 1, flip direction of range scanner pan
   ros::Time currentTime;
   tf::Quaternion quat;
+  
   geometry_msgs::Quaternion quatMsg;
-  quat = tf::createQuaternionFromRPY (sw->data.rangescanner.mount.roll,
-				      sw->data.rangescanner.mount.pitch,
-				      sw->data.rangescanner.mount.yaw);
-  tf::quaternionTFToMsg (quat, quatMsg);
-
   currentTime = ros::Time::now ();
-
-  sen->tf.transform.translation.x = sw->data.rangescanner.mount.x;
-  sen->tf.transform.translation.y = sw->data.rangescanner.mount.y;
-  sen->tf.transform.translation.z = sw->data.rangescanner.mount.z;
-  sen->tf.transform.rotation = quatMsg;
-  sen->tf.header.stamp = currentTime;
-  //  sen->tf.header.frame_id = "Rangescanner";
-  sen->tf.child_frame_id = sen->name;
-  if (!ulapi_strcasecmp (sw->data.rangescanner.mount.offsetFrom, "HARD"))
-    {
-      sen->tf.header.frame_id = "base_link";
-    }
-  else if( !ulapi_strcasecmp (sw->data.rangescanner.mount.offsetFrom,
-			      basePlatform->platformName.c_str ()))
-    {
-      sen->tf.header.frame_id = "base_link";
-    }
-  else
-    {
-      ROS_INFO( "laser base being set to %s since platform is %s",
-		sw->data.rangescanner.mount.offsetFrom,
-		basePlatform->platformName.c_str());
-      sen->tf.header.frame_id = sw->data.rangescanner.mount.offsetFrom;
-    }
-
+  
+  setTransform(sen, sw->data.rangescanner.mount);
+  
   sen->scan.header.stamp = currentTime;
   //  sen->scan.header.frame_id = sen->tf.header.frame_id;
   sen->scan.header.frame_id = sen->name;
@@ -928,21 +962,8 @@ int ServoInf::copyObjectSensor (UsarsimObjectSensor *sen, const sw_struct *sw)
   ros::Time currentTime;
   tf::Quaternion quat;
   geometry_msgs::Quaternion quatMsg;
-  quat = tf::createQuaternionFromRPY (sw->data.objectsensor.mount.roll,
-				      sw->data.objectsensor.mount.pitch,
-				      sw->data.objectsensor.mount.yaw);
-  tf::quaternionTFToMsg (quat, quatMsg);
-
   currentTime = ros::Time::now ();
-
-  sen->tf.transform.translation.x = sw->data.objectsensor.mount.x;
-  sen->tf.transform.translation.y = sw->data.objectsensor.mount.y;
-  sen->tf.transform.translation.z = sw->data.objectsensor.mount.z;
-  sen->tf.transform.rotation = quatMsg;
-  sen->tf.header.stamp = currentTime;
-  //  sen->tf.header.frame_id = "Rangescanner";
-  sen->tf.child_frame_id = sen->name;
-  sen->tf.header.frame_id = "base_link";
+  setTransform(sen, sw->data.objectsensor.mount);
   
   sen->objSense.header.stamp = currentTime;
   sen->objSense.header.frame_id = sen->name;
@@ -968,6 +989,79 @@ int ServoInf::copyObjectSensor (UsarsimObjectSensor *sen, const sw_struct *sw)
   }
   
   return 1;
+}
+int ServoInf::copyGripperEffector(UsarsimGripperEffector * effector, const sw_struct *sw)
+{
+	ros::Time currentTime = ros::Time::now();
+	setTransform(effector, sw->data.gripper.mount);
+	effector->status.header.stamp = currentTime;
+	effector->status.header.frame_id = effector->name;
+	
+	if(sw->data.gripper.status == SW_EFF_OPEN)
+		effector->status.state = usarsim_inf::EffectorStatus::OPEN;
+	else if(sw->data.gripper.status == SW_EFF_CLOSE)
+		effector->status.state = usarsim_inf::EffectorStatus::CLOSE;
+	else
+	{
+		ROS_ERROR("Unrecognized gripper state: %d", sw->data.gripper.status);
+		return -1;
+	}
+	return 1;
+}
+int ServoInf::copyToolchanger(UsarsimToolchanger * effector, const sw_struct *sw)
+{
+	ros::Time currentTime = ros::Time::now();
+	setTransform(effector, sw->data.gripper.mount);
+	effector->status.header.stamp = currentTime;
+	effector->status.header.frame_id = effector->name;
+	switch(sw->data.toolchanger.tooltype)
+	{
+		case SW_EFF_TOOLCHANGER_GRIPPER:
+			effector->status.tool_type.type = usarsim_inf::ToolType::GRIPPER;
+			break;
+		case SW_EFF_TOOLCHANGER_VACUUM:
+			effector->status.tool_type.type = usarsim_inf::ToolType::VACUUM;
+			break;
+		case SW_EFF_TOOLCHANGER_TOOLCHANGER:
+			effector->status.tool_type.type = usarsim_inf::ToolType::TOOLCHANGER;
+			break;
+		case SW_EFF_TOOLCHANGER_UNKNOWN_TYPE:
+		default:
+			effector->status.tool_type.type = usarsim_inf::ToolType::UNKNOWN;
+			break;
+	}
+	if(sw->data.toolchanger.status == SW_EFF_OPEN)
+		effector->status.effector_status.state = usarsim_inf::EffectorStatus::OPEN;
+	else if(sw->data.toolchanger.status == SW_EFF_CLOSE)
+		effector->status.effector_status.state = usarsim_inf::EffectorStatus::CLOSE;
+	else
+	{
+		ROS_ERROR("Unrecognized toolchanger state: %d", sw->data.gripper.status);
+		return -1;
+	}
+	return 1;
+}
+
+void ServoInf::setTransform(UsarsimSensor *sen, const sw_pose &pose)
+{
+  ros::Time currentTime;
+  tf::Quaternion quat;
+  geometry_msgs::Quaternion quatMsg;
+  quat = tf::createQuaternionFromRPY (pose.roll,
+				      pose.pitch,
+				      pose.yaw);
+  tf::quaternionTFToMsg (quat, quatMsg);
+
+  currentTime = ros::Time::now ();
+
+  sen->tf.transform.translation.x = pose.x;
+  sen->tf.transform.translation.y = pose.y;
+  sen->tf.transform.translation.z = pose.z;
+  sen->tf.transform.rotation = quatMsg;
+  sen->tf.header.stamp = currentTime;
+  //  sen->tf.header.frame_id = "Rangescanner";
+  sen->tf.child_frame_id = sen->name;
+  sen->tf.header.frame_id = "base_link";
 }
 
 /*
@@ -1072,19 +1166,6 @@ ServoInf::rangeSensorIndex (std::vector < UsarsimRngScnSensor > &sensors,
   sensors.push_back (newSensor);
   return sensors.size () - 1;
 }
-void ServoInf::updateActuatorCycle(UsarsimActuator *act)
-{
-  ros::Time currentTime = ros::Time::now();
-  double currentCycle;
-  int dequeLength = act->cycleTimer.cycleDeque.size();
-  
-	// update cycle time with ctNow = ctOld - p0/n + pn/n
-  currentCycle = ros::Duration(currentTime - act->cycleTimer.lastTime).toSec();
-  act->cycleTimer.cycleTime = act->cycleTimer.cycleTime - act->cycleTimer.cycleDeque.front()/dequeLength + currentCycle/dequeLength;
-  act->cycleTimer.cycleDeque.push_back(currentCycle);
-  act->cycleTimer.cycleDeque.pop_front();
-  act->cycleTimer.lastTime = currentTime;
-}
 int ServoInf::objectSensorIndex (std::vector < UsarsimObjectSensor > &sensors, 
   	std::string name)
 {
@@ -1107,6 +1188,66 @@ int ServoInf::objectSensorIndex (std::vector < UsarsimObjectSensor > &sensors,
   sensors.push_back (newSensor);
   return sensors.size () - 1;
 }
+int ServoInf::gripperEffectorIndex(std::vector < UsarsimGripperEffector> &effectors, std::string name)
+{
+	unsigned int t;
+	
+	for (t = 0; t < effectors.size (); t++)
+    {
+      if (name == effectors[t].name)
+	return t;		// found it
+    }
+    ROS_INFO ("Adding effector: %s", name.c_str ());
+  UsarsimGripperEffector newEffector(this);
+  effectors.push_back (newEffector);
+  UsarsimGripperEffector *effectPtr = &(effectors.back());
+  //unable to find the effector, so must create it.
+  effectPtr->name = name;
+  effectPtr->time = 0;
+  effectPtr->pub = nh->advertise < usarsim_inf::EffectorStatus > (name + "/status", 2);
+  effectPtr->command = nh->subscribe(name+"/command",10,&UsarsimGripperEffector::commandCallback, effectPtr);
+  effectPtr->tf.header.frame_id = "base_link"; // This should allow for an effector to be mounted on an actuator, but the frame ids are unclear.
+  effectPtr->tf.child_frame_id = name.c_str ();
+
+  return effectors.size () - 1;
+}
+int ServoInf::toolchangerIndex(std::vector < UsarsimToolchanger> &effectors, std::string name)
+{
+	unsigned int t;
+	
+	for (t = 0; t < effectors.size (); t++)
+    {
+      if (name == effectors[t].name)
+	return t;		// found it
+    }
+    ROS_INFO ("Adding effector: %s", name.c_str ());
+  UsarsimToolchanger newEffector(this);
+  effectors.push_back (newEffector);
+  UsarsimToolchanger *effectPtr = &(effectors.back());
+  //unable to find the effector, so must create it.
+  effectPtr->name = name;
+  effectPtr->time = 0;
+  effectPtr->pub = nh->advertise < usarsim_inf::ToolchangerStatus > (name + "/status", 2);
+  effectPtr->command = nh->subscribe(name+"/command",10,&UsarsimToolchanger::commandCallback, effectPtr);
+  effectPtr->tf.header.frame_id = "base_link"; // This should allow for an effector to be mounted on an actuator, but the frame ids are unclear.
+  effectPtr->tf.child_frame_id = name.c_str ();
+
+  return effectors.size () - 1;
+}
+void ServoInf::updateActuatorCycle(UsarsimActuator *act)
+{
+  ros::Time currentTime = ros::Time::now();
+  double currentCycle;
+  int dequeLength = act->cycleTimer.cycleDeque.size();
+  
+	// update cycle time with ctNow = ctOld - p0/n + pn/n
+  currentCycle = ros::Duration(currentTime - act->cycleTimer.lastTime).toSec();
+  act->cycleTimer.cycleTime = act->cycleTimer.cycleTime - act->cycleTimer.cycleDeque.front()/dequeLength + currentCycle/dequeLength;
+  act->cycleTimer.cycleDeque.push_back(currentCycle);
+  act->cycleTimer.cycleDeque.pop_front();
+  act->cycleTimer.lastTime = currentTime;
+}
+
 /*
 returns true if the trajectory has been completed, false 
 if it is still in progress

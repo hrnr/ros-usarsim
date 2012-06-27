@@ -11,6 +11,7 @@ int main(int argc, char** argv)
 	std::string orientationFrame = "local";
 	std::string positionFrame = "global";
 	bool controlOffset = true;
+	bool setOrientation = true;
 	
 	if(!nh.getParam("/goalset/actuatorName", actName))
 	{
@@ -31,17 +32,40 @@ int main(int argc, char** argv)
 		
 		actionlib::SimpleActionClient<arm_navigation_msgs::MoveArmAction> move_arm("move_"+actName, true);
 		move_arm.waitForServer();
-		ROS_INFO("Connected to navigation server");
+		//ROS_INFO("Connected to navigation server");
 			
 		bool finishOnTime = false;
 		
 		float xGoal, yGoal, zGoal;
+		float roll, pitch, yaw;
 		std::cout<<"x goal position: ";
 		std::cin>>xGoal;
 		std::cout<<"y goal position: ";
 		std::cin>>yGoal;
 		std::cout<<"z goal position: ";
 		std::cin>>zGoal;
+		
+		if(setOrientation)
+		{
+			std::cout<<"roll: ";
+			std::cin>>roll;
+			std::cout<<"pitch: ";
+			std::cin>>pitch;
+			std::cout<<"yaw: ";
+			std::cin>>yaw;
+			goal.moveOrientation(roll, pitch, yaw);
+		}
+		
+		/*float x,y,z,w;
+		std::cout<<"x: ";
+		std::cin>>x;
+		std::cout<<"y: ";
+		std::cin>>y;
+		std::cout<<"z: ";
+		std::cin>>z;
+		std::cout<<"w: ";
+		std::cin>>w;
+		goal.moveOrientation(x,y,z,w);*/
 		
 		if(controlOffset)
 			goal.moveOffset(xGoal, yGoal, zGoal);
