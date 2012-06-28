@@ -384,10 +384,6 @@ typedef struct
 {
   sw_sen_object_struct objects[SW_SEN_RANGESCANNER_MAX];
   sw_pose mount;
-  double minrange;
-  double maxrange;
-  double resolution;
-  double fov;
   int number; //the number of objects detected by the sensor
 } sw_sen_objectsensor_struct;
 enum
@@ -439,8 +435,8 @@ typedef struct
   int parent;			/*!< Index of parent, 0 for the base. */
   link_type type;
   sw_pose mount;		/*!< Pose with respect to parent link. */
-  double minrange;
-  double maxrange;
+  double minvalue;
+  double maxvalue;
   double maxspeed;
   double maxtorque;
   double position;		/*!< Linear or angular position. */

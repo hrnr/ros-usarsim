@@ -105,7 +105,7 @@ main (int argc, char **argv)
     }
 
   const UsarsimActuator *actPt;
-  double length;
+  double length = 0;
   geometry_msgs::Vector3 platformSize;
   int numJoints;
   fprintf( fp, "<\?xml version=\"1.0\"\?>\n" );
@@ -213,8 +213,7 @@ main (int argc, char **argv)
 		   actPt->jointTf[j].transform.translation.z - actPt->tf.transform.translation.z,
 		   roll, pitch, yaw );
 	  fprintf( fp, "\t\t<axis xyz=\"0.0 0.0 1\" />\n" );
-	  //use a getConf message to find out what the actual joint limits are
-	  fprintf( fp, "\t\t<limit effort=\"1000.0\" lower=\"-1.57\" upper=\"1.57\" velocity=\"0.5\" />\n" );
+	  fprintf( fp, "\t\t<limit effort=\"%f\" lower=\"%f\" upper=\"%f\" velocity=\"0.5\" />\n", actPt->maxTorques[j], actPt->minValues[j], actPt->maxValues[j]);
 	  fprintf( fp, "\t</joint>\n\n");
 	}
       

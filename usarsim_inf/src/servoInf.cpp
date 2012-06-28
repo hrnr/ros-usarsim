@@ -154,9 +154,11 @@ ServoInf::peerMsg (sw_struct * sw)
 
 	case SW_ACT_SET:
 	  num = actuatorIndex (actuators, sw->name);
-	  copyActuator( &actuators[num], sw );
-	  actuators[num].pub.publish (actuators[num].jstate);
-	  updateActuatorTF(&actuators[num], sw);
+	  if(copyActuator( &actuators[num], sw ))
+	  {
+	  	actuators[num].pub.publish (actuators[num].jstate);
+	  	updateActuatorTF(&actuators[num], sw);
+	  }
 	  //	  rosTfBroadcaster.sendTransform (actuators[num].tf);
 	  //	  ROS_INFO ( "Act setting %d joints", actuators[num].jointTf.size() );
 	  //	  for( unsigned int count=0; count<actuators[num].jointTf.size(); 
@@ -617,10 +619,13 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
       act->jstate.header.frame_id = sw->data.actuator.mount.offsetFrom;
     }
 
+  act->minValues.clear();
+  act->maxValues.clear();
+  act->maxTorques.clear();
+  
   act->jstate.header.stamp = currentTime;
   act->jstate.position.clear();
   act->jstate.name.clear();
-
   //add the world joint to the actuator joint state output
   act->jstate.name.push_back("world_joint");
   act->jstate.position.push_back(0.0);
@@ -634,7 +639,10 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
       tempSS << i+1;
       act->jstate.name.push_back((std::string("Joint_") + tempSS.str ()));
       act->jstate.position.push_back(sw->data.actuator.link[i].position);
-    }	    
+      act->minValues.push_back(sw->data.actuator.link[i].minvalue);
+      act->maxValues.push_back(sw->data.actuator.link[i].maxvalue);
+      act->maxTorques.push_back(sw->data.actuator.link[i].maxtorque);
+    }
   //  ROS_ERROR( "CopyAct success!!" );
   return 1;
 }
@@ -1229,7 +1237,7 @@ int ServoInf::toolchangerIndex(std::vector < UsarsimToolchanger> &effectors, std
   effectPtr->time = 0;
   effectPtr->pub = nh->advertise < usarsim_inf::ToolchangerStatus > (name + "/status", 2);
   effectPtr->command = nh->subscribe(name+"/command",10,&UsarsimToolchanger::commandCallback, effectPtr);
-  effectPtr->tf.header.frame_id = "base_link"; // This should allow for an effector to be mounted on an actuator, but the frame ids are unclear.
+  effectPtr->tf.header.frame_id = "base_link"; // This needs to allow for an effector to be mounted on an actuator, but the frame ids are unclear.
   effectPtr->tf.child_frame_id = name.c_str ();
 
   return effectors.size () - 1;

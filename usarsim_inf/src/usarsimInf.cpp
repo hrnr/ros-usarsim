@@ -118,7 +118,7 @@ UsarsimInf::init (GenericInf * siblingIn)
      we need to force a request for geo and conf information. It may
      come back empty.] <--  THIS IS NO LONGER TRUE!
    */
-  /*ulapi_snprintf (str, sizeof (str), "GETCONF {Type Actuator}\r\n");
+  ulapi_snprintf (str, sizeof (str), "GETCONF {Type Actuator}\r\n");
   NULLTERM (str);
   ulapi_mutex_take (socket_mutex);
   usarsim_socket_write (socket_fd, str, strlen (str));
@@ -128,7 +128,7 @@ UsarsimInf::init (GenericInf * siblingIn)
   NULLTERM (str);
   ulapi_mutex_take (socket_mutex);
   usarsim_socket_write (socket_fd, str, strlen (str));
-  ulapi_mutex_give (socket_mutex);*/
+  ulapi_mutex_give (socket_mutex);
 
   /*
   ulapi_snprintf (str, sizeof (str), "GETCONF {Type MisPkg}\r\n");
@@ -2942,7 +2942,7 @@ UsarsimInf::handleConfToolchanger (char *msg)
 }
 
 /*
-  CONF {Type Actuator} {Name TeleMaxArm} {Link 1} {JointType Revolute} {MaxSpeed 0.17} {MaxTorque 300.00} {MinRange 1.00} {MaxRange 0.00} ...
+  CONF {Type Actuator} {Name TeleMaxArm} {Link 1} {JointType Revolute} {MaxSpeed 0.17} {MaxTorque 300.00} {MinValue 1.00} {MaxValue 0.00} ...
 */
 int
 UsarsimInf::handleConfActuator (char *msg)
@@ -3036,13 +3036,13 @@ UsarsimInf::handleConfActuator (char *msg)
 	{
 	  sw->data.actuator.link[linkindex].maxtorque = getReal (&info);
 	}
-      else if (!strcmp (info.token, "MinRange"))
+      else if (!strcmp (info.token, "MinValue"))
 	{
-	  sw->data.actuator.link[linkindex].minrange = getReal (&info);
+	  sw->data.actuator.link[linkindex].minvalue = getReal (&info);
 	}
-      else if (!strcmp (info.token, "MaxRange"))
+      else if (!strcmp (info.token, "MaxValue"))
 	{
-	  sw->data.actuator.link[linkindex].maxrange = getReal (&info);
+	  sw->data.actuator.link[linkindex].maxvalue = getReal (&info);
 	}
       else
 	{
@@ -3283,22 +3283,6 @@ int UsarsimInf::handleConfObjectsensor(char *msg)
 	  getName (objectsensors, &info, SW_SEN_OBJECTSENSOR_SET);
 	  sw = info.where->getSW ();
 	  info.where->setDidConf (1);
-	}
-      else if (!strcmp (info.token, "MaxRange"))
-	{
-	  sw->data.objectsensor.maxrange = getReal (&info);
-	}
-      else if (!strcmp (info.token, "MinRange"))
-	{
-	  sw->data.objectsensor.minrange = getReal (&info);
-	}
-      else if (!strcmp (info.token, "Resolution"))
-	{
-	  sw->data.objectsensor.resolution = getReal (&info);
-	}
-      else if (!strcmp (info.token, "Fov"))
-	{
-	  sw->data.objectsensor.fov = getReal (&info);
 	}
       else
 	{

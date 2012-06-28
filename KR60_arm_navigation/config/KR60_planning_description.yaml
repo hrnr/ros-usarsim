@@ -30,31 +30,16 @@ default_collision_operations:
     object2: KR60Arm_link6
     operation: disable  # Adjacent in collision
   - object1: KR60Arm_link0
-    object2: KR60Arm_link3
-    operation: disable  # Never in collision
-  - object1: KR60Arm_link0
-    object2: KR60Arm_link4
-    operation: disable  # Never in collision
-  - object1: KR60Arm_link0
     object2: KR60Arm_link5
     operation: disable  # Never in collision
   - object1: KR60Arm_link0
     object2: KR60Arm_link6
     operation: disable  # Never in collision
   - object1: KR60Arm_link1
-    object2: KR60Arm_link3
-    operation: disable  # Never in collision
-  - object1: KR60Arm_link1
-    object2: KR60Arm_link4
-    operation: disable  # Never in collision
-  - object1: KR60Arm_link1
     object2: KR60Arm_link5
     operation: disable  # Never in collision
   - object1: KR60Arm_link1
     object2: KR60Arm_link6
-    operation: disable  # Never in collision
-  - object1: KR60Arm_link2
-    object2: KR60Arm_link4
     operation: disable  # Never in collision
   - object1: KR60Arm_link2
     object2: KR60Arm_link5

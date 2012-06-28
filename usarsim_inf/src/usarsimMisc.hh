@@ -288,7 +288,9 @@ class UsarsimActuator:public UsarsimSensor
 public:
   UsarsimActuator (GenericInf *parentInf);
   ~UsarsimActuator();
-  sensor_msgs::JointState joints;
+  std::vector<float> minValues;
+  std::vector<float> maxValues; 
+  std::vector<float> maxTorques; //config data needed for URDF generation
   std::vector <geometry_msgs::TransformStamped> jointTf; // transforms for links
   sensor_msgs::JointState jstate;
   GenericInf *infHandle;
