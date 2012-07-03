@@ -197,6 +197,27 @@ bool UsarsimGripperEffector::isDone()
 	return false;
 }
 ////////////////////////////////////////////////////////////////////////
+// Range imager
+////////////////////////////////////////////////////////////////////////
+UsarsimRngImgSensor::UsarsimRngImgSensor ():UsarsimSensor ()
+{
+	ready = false;
+	lastFrameReceived = 0;
+}
+bool UsarsimRngImgSensor::isReady()
+{
+	return ready;
+}
+void UsarsimRngImgSensor::sentFrame(int frame)
+{
+	ROS_ERROR("receiving frame %d of %d", frame, totalFrames);
+ 	lastFrameReceived = frame;
+ 	if(lastFrameReceived == totalFrames - 1)
+ 		ready = true;
+ 	else
+ 		ready = false;
+}
+////////////////////////////////////////////////////////////////////////
 // Toolchanger
 ////////////////////////////////////////////////////////////////////////
 UsarsimToolchanger::UsarsimToolchanger (GenericInf *parentInf):UsarsimSensor ()

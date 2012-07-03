@@ -37,9 +37,9 @@ rosbuild_add_executable( usarsim_node src/usarsim.cpp
 				      				  src/simware.cpp )
 				      
 rosbuild_add_executable( usarsim_urdf src/usarsim_urdf_gen.cpp 
-                                     src/ulapi.cpp 
-				      				  src/genericInf.cpp
-                                     src/servoInf.cpp 
-                                     src/usarsimInf.cpp
-				      				  src/usarsimMisc.cpp
-				      				  src/simware.cpp )
+										src/ulapi.cpp
+										src/genericInf.cpp
+										src/servoInf.cpp
+										src/usarsimInf.cpp
+										src/usarsimMisc.cpp
+										src/simware.cpp )

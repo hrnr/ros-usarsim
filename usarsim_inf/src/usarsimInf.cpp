@@ -38,6 +38,7 @@ UsarsimInf::UsarsimInf ():GenericInf ()
   build = NULL;
   waitingForConf = 0;
   waitingForGeo = 0;
+  didScan = 0;
 }
 
 int
@@ -1143,6 +1144,7 @@ UsarsimInf::handleNfo (char *msg)
 int
 UsarsimInf::handleSenRangeimager (char *msg)
 {
+  
   componentInfo info;;
   int number;
   sw_struct *sw = rangeimagers->getSW ();
@@ -1151,6 +1153,16 @@ UsarsimInf::handleSenRangeimager (char *msg)
   setComponentInfo (msg, &info);
 
   number = 0;
+  
+  if(!didScan)
+  {
+      ulapi_snprintf (str, sizeof (str), "SET {Type RangeImager} {Opcode SCAN}\r\n");
+	  NULLTERM (str);
+	  ulapi_mutex_take (socket_mutex);
+	  usarsim_socket_write (socket_fd, str, strlen (str));
+	  ulapi_mutex_give (socket_mutex);
+      didScan = 1; 
+  }
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -1229,7 +1241,6 @@ UsarsimInf::handleSenRangeimager (char *msg)
 	  info.nextptr = getValue (info.ptr, info.token);
 	}
     }
-
   sw->data.rangeimager.numberperframe = number;
   info.op = SW_SEN_RANGEIMAGER_STAT;
   msgout (sw, info);
@@ -2178,7 +2189,6 @@ int UsarsimInf::handleSenObjectSensor(char *msg)
 	msgout(sw, info);
 	return 0;
 }
-
 int
 UsarsimInf::handleSen (char *msg)
 {
@@ -3566,117 +3576,6 @@ UsarsimInf::handleGeoSonar (char *msg)
   return info.count;
 }
 
-/*
-  GEO {Type RangeImager} {Name Scanner1 Location 0.1439,0.0000,-0.0920 Orientation 0.0000,0.0000,0.0000 Mount HARD}
-*/
-
-int
-UsarsimInf::handleGeoRangeimager (char *msg)
-{
-  componentInfo info;
-  sw_struct *sw = rangeimagers->getSW ();
-
-  setComponentInfo (msg, &info);
-
-  //  printf( "usarsiminf: in handleGeo for range imager: %s\n", msg );
-  while (1)
-    {
-      info.nextptr = getKey (info.ptr, info.token);
-      if (info.nextptr == info.ptr)
-	break;
-      info.ptr = info.nextptr;
-
-      if (!strcmp (info.token, "Type"))
-	{
-	  expect (&info, "RangeImager");
-	}
-      else if (!strcmp (info.token, "Name"))
-	{
-	  getName (rangeimagers, &info, SW_SEN_RANGEIMAGER_SET);
-	  sw = info.where->getSW ();
-	  info.where->setDidConf (1);
-	  expect (&info, "Location");
-	  sw->data.rangeimager.mount.x = getReal (&info);
-	  sw->data.rangeimager.mount.y = getReal (&info);
-	  sw->data.rangeimager.mount.z = getReal (&info);
-
-	  expect (&info, "Orientation");
-	  sw->data.rangeimager.mount.roll = getReal (&info);
-	  sw->data.rangeimager.mount.pitch = getReal (&info);
-	  sw->data.rangeimager.mount.yaw = getReal (&info);
-	  expect (&info, "Mount");
-	  info.nextptr = getValue (info.ptr, info.token);
-	  ulapi_strncpy (sw->data.rangeimager.mount.offsetFrom, info.token,
-			 SW_NAME_MAX);
-	}
-      else
-	{
-	  /* skip unknown entry  */
-	  info.nextptr = getValue (info.ptr, info.token);
-	}
-    }
-
-  info.where->setDidGeo (1);
-  info.op = SW_SEN_RANGEIMAGER_SET;
-  msgout (sw, info);
-  return info.count;
-}
-
-
-/*
-  GEO {Type RangeScanner} {Name Scanner1 Location 0.1439,0.0000,-0.0920 Orientation 0.0000,0.0000,0.0000 Mount HARD}
-*/
-
-int
-UsarsimInf::handleGeoRangescanner (char *msg)
-{
-  componentInfo info;
-  sw_struct *sw = rangescanners->getSW ();
-
-  setComponentInfo (msg, &info);
-
-  while (1)
-    {
-      info.nextptr = getKey (info.ptr, info.token);
-      if (info.nextptr == info.ptr)
-	break;
-      info.ptr = info.nextptr;
-
-      if (!strcmp (info.token, "Type"))
-	{
-	  expect (&info, "RangeScanner");
-	}
-      else if (!strcmp (info.token, "Name"))
-	{
-	  getName (rangescanners, &info, SW_SEN_RANGESCANNER_SET);
-	  sw = info.where->getSW ();
-	  info.where->setDidConf (1);
-	  expect (&info, "Location");
-	  sw->data.rangescanner.mount.x = getReal (&info);
-	  sw->data.rangescanner.mount.y = getReal (&info);
-	  sw->data.rangescanner.mount.z = getReal (&info);
-
-	  expect (&info, "Orientation");
-	  sw->data.rangescanner.mount.roll = getReal (&info);
-	  sw->data.rangescanner.mount.pitch = getReal (&info);
-	  sw->data.rangescanner.mount.yaw = getReal (&info);
-	  expect (&info, "Mount");
-	  info.nextptr = getValue (info.ptr, info.token);
-	  ulapi_strncpy (sw->data.rangescanner.mount.offsetFrom, info.token,
-			 SW_NAME_MAX);
-	}
-      else
-	{
-	  /* skip unknown entry  */
-	  info.nextptr = getValue (info.ptr, info.token);
-	}
-    }
-  info.where->setDidGeo (1);
-  info.op = SW_SEN_RANGESCANNER_SET;
-  msgout (sw, info);
-  return info.count;
-}
-
 int
 UsarsimInf::handleGeoTouch (char *msg)
 {
@@ -4095,67 +3994,15 @@ UsarsimInf::handleGeoVictim (char *msg)
   return info.count;
 }
 
-int
-UsarsimInf::handleGeoObjectsensor (char *msg)
-{
-  componentInfo info;
-  sw_struct *sw = objectsensors->getSW ();
-
-  setComponentInfo (msg, &info);
-
-  while (1)
-    {
-      info.nextptr = getKey (info.ptr, info.token);
-      if (info.nextptr == info.ptr)
-	break;
-      info.ptr = info.nextptr;
-
-      if (!strcmp (info.token, "Type"))
-	{
-	  expect (&info, "ObjectSensor");
-	}
-      else if (!strcmp (info.token, "Name"))
-	{
-	  getName (objectsensors, &info, SW_SEN_OBJECTSENSOR_SET);
-	  sw = info.where->getSW ();
-	  info.where->setDidConf (1);
-	  expect (&info, "Location");
-	  sw->data.objectsensor.mount.x = getReal (&info);
-	  sw->data.objectsensor.mount.y = getReal (&info);
-	  sw->data.objectsensor.mount.z = getReal (&info);
-
-	  expect (&info, "Orientation");
-	  sw->data.objectsensor.mount.roll = getReal (&info);
-	  sw->data.objectsensor.mount.pitch = getReal (&info);
-	  sw->data.objectsensor.mount.yaw = getReal (&info);
-	  expect (&info, "Mount");
-	  info.nextptr = getValue (info.ptr, info.token);
-	  ulapi_strncpy (sw->data.objectsensor.mount.offsetFrom, info.token,
-			 SW_NAME_MAX);
-	}
-      else
-	{
-	  /* skip unknown entry  */
-	  info.nextptr = getValue (info.ptr, info.token);
-	}
-    }
-  info.where->setDidGeo (1);
-  info.op = SW_SEN_OBJECTSENSOR_SET;
-  msgout (sw, info);
-  return info.count;
-}
-
+//method to handle many different GEO messages (with some exceptions)
 /*
-  GEO {Type Gripper} {Name Gripper Location 0.0600,0.0000,-0.0087 Orientation 0.0000,0.0000,0.0000}
+GEO {Type componentName} {Name <name>} {Location 0.0600,0.0000,-0.0087} {Orientation 0.0000,0.0000,0.0000} {Mount Parent} {Link 5}
 */
-int
-UsarsimInf::handleGeoGripper (char *msg)
+int UsarsimInf::handleGeoComponent(const char* componentName, char* msg, sw_pose &mount, UsarsimList *list, int opcode)
 {
-  componentInfo info;
-  sw_struct *sw = grippers->getSW ();
-
-  setComponentInfo (msg, &info);
-
+	componentInfo info;
+    setComponentInfo (msg, &info);
+    sw_struct *sw = list->getSW();
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -4165,27 +4012,36 @@ UsarsimInf::handleGeoGripper (char *msg)
 
       if (!strcmp (info.token, "Type"))
 	{
-	  expect (&info, "Gripper");
+	  expect (&info, componentName);
 	}
       else if (!strcmp (info.token, "Name"))
 	{
-	  getName (grippers, &info, SW_EFF_GRIPPER_SET);
+	  getName (list, &info, opcode);
 	  sw = info.where->getSW ();
 	  info.where->setDidConf (1);
+	  mount.linkOffset = -1;
 	  expect (&info, "Location");
-	  sw->data.gripper.mount.x = getReal (&info);
-	  sw->data.gripper.mount.y = getReal (&info);
-	  sw->data.gripper.mount.z = getReal (&info);
+	  mount.x = getReal (&info);
+	  mount.y = getReal (&info);
+	  mount.z = getReal (&info);
 	  expect (&info, "Orientation");
-	  sw->data.gripper.mount.roll = getReal (&info);
-	  sw->data.gripper.mount.pitch = getReal (&info);
-	  sw->data.gripper.mount.yaw = getReal (&info);
+	  mount.roll = getReal (&info);
+	  mount.pitch = getReal (&info);
+	  mount.yaw = getReal (&info);
 	  expect (&info, "Mount");
 	  info.nextptr = getValue (info.ptr, info.token);
-	  ulapi_strncpy (sw->data.gripper.mount.offsetFrom, info.token,
+	  ulapi_strncpy (mount.offsetFrom, info.token,
 			 SW_NAME_MAX);
 	  info.count++;
 	  info.ptr = info.nextptr;
+	}
+	else if(!strcmp(info.token, "Link"))
+	{
+	   info.nextptr = getValue (info.ptr, info.token);
+	   if (info.nextptr == info.ptr)
+	    return -1;
+	   mount.linkOffset = getReal(&info);
+	  
 	}
       else
 	{
@@ -4193,65 +4049,11 @@ UsarsimInf::handleGeoGripper (char *msg)
 	  info.nextptr = getValue (info.ptr, info.token);
 	}
     }
-
   info.where->setDidGeo (1);
-  info.op = SW_EFF_GRIPPER_SET;
+  info.op = opcode;
   msgout (sw, info);
   return info.count;
 }
-
-int
-UsarsimInf::handleGeoToolchanger (char *msg)
-{
-  componentInfo info;
-  sw_struct *sw = toolchangers->getSW ();
-
-  setComponentInfo (msg, &info);
-
-  while (1)
-    {
-      info.nextptr = getKey (info.ptr, info.token);
-      if (info.nextptr == info.ptr)
-	break;
-      info.ptr = info.nextptr;
-
-      if (!strcmp (info.token, "Type"))
-	{
-	  expect (&info, "ToolChanger");
-	}
-      else if (!strcmp (info.token, "Name"))
-	{
-	  getName (toolchangers, &info, SW_EFF_TOOLCHANGER_SET);
-	  sw = info.where->getSW ();
-	  info.where->setDidConf (1);
-	  expect (&info, "Location");
-	  sw->data.toolchanger.mount.x = getReal (&info);
-	  sw->data.toolchanger.mount.y = getReal (&info);
-	  sw->data.toolchanger.mount.z = getReal (&info);
-	  expect (&info, "Orientation");
-	  sw->data.toolchanger.mount.roll = getReal (&info);
-	  sw->data.toolchanger.mount.pitch = getReal (&info);
-	  sw->data.toolchanger.mount.yaw = getReal (&info);
-	  expect (&info, "Mount");
-	  info.nextptr = getValue (info.ptr, info.token);
-	  ulapi_strncpy (sw->data.toolchanger.mount.offsetFrom, info.token,
-			 SW_NAME_MAX);
-	  info.count++;
-	  info.ptr = info.nextptr;
-	}
-      else
-	{
-	  /* skip unknown entry  */
-	  info.nextptr = getValue (info.ptr, info.token);
-	}
-    }
-
-  info.where->setDidGeo (1);
-  info.op = SW_EFF_TOOLCHANGER_SET;
-  msgout (sw, info);
-  return info.count;
-}
-
 
 /*
   GEO {Type Actuator} {Name TeleMaxArm} {Link 1} {Parent -1} {Location 0.1789,-0.0014,-0.0905} {Orientation 3.1415,0.0000,0.0000} {Link 2} {ParentLink 1} {Location 0.0258,-0.0720,0.1566} {Orientation 1.5707,0.0000,0.0000} ...
@@ -4291,7 +4093,7 @@ UsarsimInf::handleGeoActuator (char *msg)
 	  sw = info.where->getSW();
 	  info.where->setDidConf(1);
 	  sw->data.actuator.number = 0;
-
+	  sw->data.toolchanger.mount.linkOffset = -1;
 	  expect (&info, "Location");
 	  sw->data.actuator.mount.x = getReal (&info);
 	  sw->data.actuator.mount.y = getReal (&info);
@@ -4530,7 +4332,7 @@ UsarsimInf::handleGeo (char *msg)
   char token[MAX_TOKEN_LEN];
   char *ptr = msg;
   char *nextptr;
-
+  sw_struct *sw;
   waitingForGeo = 0;
   ROS_DEBUG ("waitingForGeo cleared");
   while (1)
@@ -4552,11 +4354,13 @@ UsarsimInf::handleGeo (char *msg)
 	    }
 	  else if (!strcmp (token, "RangeScanner"))
 	    {
-	      return handleGeoRangescanner (msg);
+	      sw = rangescanners->getSW();
+	      return handleGeoComponent("RangeScanner", msg, sw->data.rangescanner.mount, rangescanners, SW_SEN_RANGESCANNER_SET);
 	    }
 	  else if (!strcmp (token, "RangeImager"))
 	    {
-	      return handleGeoRangeimager (msg);
+	      sw = rangeimagers->getSW();
+	      return handleGeoComponent("RangeImager", msg, sw->data.rangeimager.mount, rangeimagers, SW_SEN_RANGEIMAGER_SET);
 	    }
 	  else if (!strcmp (token, "Encoder"))
 	    {
@@ -4600,11 +4404,13 @@ UsarsimInf::handleGeo (char *msg)
 	    }
 	  else if (!strcmp (token, "Gripper"))
 	    {
-	      return handleGeoGripper (msg);
+	      sw = grippers->getSW();
+	      return handleGeoComponent("Gripper", msg, sw->data.gripper.mount, grippers, SW_EFF_GRIPPER_SET);
 	    }
 	  else if (!strcmp (token, "ToolChanger"))
 	    {
-	      return handleGeoToolchanger (msg);
+	      sw = toolchangers->getSW();
+	      return handleGeoComponent("ToolChanger", msg, sw->data.toolchanger.mount, toolchangers, SW_EFF_TOOLCHANGER_SET);
 	    }
 	  else if (!strcmp (token, "Actuator"))
 	    {
@@ -4624,7 +4430,8 @@ UsarsimInf::handleGeo (char *msg)
 	    }
 	  else if(!strcmp(token, "ObjectSensor"))
 	    {
-	      return handleGeoObjectsensor(msg);
+	      sw = objectsensors->getSW();
+	      return handleGeoComponent("ObjectSensor", msg, sw->data.objectsensor.mount, objectsensors, SW_SEN_OBJECTSENSOR_SET);
 	    }
 	  else
 	    {

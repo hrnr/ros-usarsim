@@ -83,6 +83,7 @@ public:
 private:
   int waitingForConf;
   int waitingForGeo;
+  int didScan; //whether or not a rangeimager has sent a scan (for testing)
   int socket_fd;
   void *socket_mutex;
   int buildlen;
@@ -145,8 +146,6 @@ private:
   int handleGeo (char *msg);
   int handleGeoEncoder (char *msg);
   int handleGeoSonar (char *msg);
-  int handleGeoRangeimager (char *msg);
-  int handleGeoRangescanner (char *msg);
   int handleGeoTouch (char *msg);
   int handleGeoCo2sensor (char *msg);
   //  int handleGeoGroundtruth (char *msg);
@@ -156,13 +155,12 @@ private:
   int handleGeoTachometer (char *msg);
   int handleGeoAcoustic (char *msg);
   int handleGeoVictim (char *msg);
-  int handleGeoGripper (char *msg);
-  int handleGeoToolchanger (char *msg);
   int handleGeoActuator (char *msg);
   int handleGeoGroundvehicle (char *msg);
   int handleGeoBasemachine (char *msg);
   int handleGeoStaticplatform (char *msg);
-  int handleGeoObjectsensor(char *msg);
+  
+  int handleGeoComponent(const char* componentName, char *msg, sw_pose &mount, UsarsimList *list, int opcode);
 
   int handleAsta (char *msg);
   int handleMsg (char *msg);
@@ -187,6 +185,7 @@ private:
   int handleSenBasemachine (char *msg);
   int handleSenStaticplatform (char *msg);
   int handleSenObjectSensor(char *msg);
+  int handleSenKinect(char *msg);
   
   int handleEff (char *msg);
   int handleEffGripper(char *msg);

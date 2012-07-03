@@ -82,6 +82,7 @@ typedef struct
   double pitch;
   double yaw;
   char offsetFrom[SW_NAME_MAX];	// parent of pose
+  int linkOffset;
 } sw_pose;
 
 /*

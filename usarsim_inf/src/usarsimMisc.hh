@@ -35,6 +35,7 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/JointState.h>
+#include <sensor_msgs/PointCloud2.h>
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <usarsim_inf/SenseObject.h>
@@ -213,6 +214,7 @@ public:
   double time;			// usarsim time of last report
   ros::Publisher pub;		// publisher for data
   geometry_msgs::TransformStamped tf;	// transform for sensor
+  int linkOffset; //which link this component is mounted on. -1 if not parented to a link.  
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -224,6 +226,7 @@ public:
   UsarsimOdomSensor ();
   geometry_msgs::Twist lastPosition;
   nav_msgs::Odometry odom;
+  
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -235,7 +238,18 @@ public:
   UsarsimRngScnSensor ();
   sensor_msgs::LaserScan scan;
 };
-
+class UsarsimRngImgSensor:public UsarsimSensor
+{
+public:
+  UsarsimRngImgSensor();
+  sensor_msgs::PointCloud2 cloud;
+  int totalFrames;
+  bool isReady();
+  void sentFrame(int frame);
+private:
+  int lastFrameReceived;
+  bool ready;
+};
 ////////////////////////////////////////////////////////////////////////
 // Object sensor
 ////////////////////////////////////////////////////////////////////////
@@ -292,6 +306,7 @@ public:
   std::vector<float> maxValues; 
   std::vector<float> maxTorques; //config data needed for URDF generation
   std::vector <geometry_msgs::TransformStamped> jointTf; // transforms for links
+  
   sensor_msgs::JointState jstate;
   GenericInf *infHandle;
   CycleTimer cycleTimer;

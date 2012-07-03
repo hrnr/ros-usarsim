@@ -3,7 +3,7 @@
     <node pkg="arm_kinematics_constraint_aware" type="arm_kinematics_constraint_aware" name="KR60_KR60Arm_kinematics">
         <param name="group" type="string" value="KR60Arm" />
         <param name="KR60Arm/root_name" type="string" value="KR60Arm_link0" />
-        <param name="KR60Arm/tip_name" type="string" value="KR60Arm_link6" />
+        <param name="KR60Arm/tip_name" type="string" value="KR60Arm_tip" />
         <param name="kinematics_solver" type="string" value="arm_kinematics_constraint_aware/KDLArmKinematicsPlugin" />
     </node>
 </launch>

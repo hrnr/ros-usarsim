@@ -43,15 +43,13 @@ void NavigationGoal::moveOrientation(float x, float y, float z, float w)
 		goal.motion_plan_request.goal_constraints.orientation_constraints[0].orientation);
 }
 
-NavigationGoal::NavigationGoal(std::string actuatorName, int linkCount)
+NavigationGoal::NavigationGoal(std::string actuatorName)
 {
 	std::stringstream linkSStream;
 	
 	actName = actuatorName;
-	linkNum = linkCount;
 	
-	linkSStream<<(linkCount - 1);
-	effectorFrame = actuatorName + "_link"+linkSStream.str();
+	effectorFrame = actuatorName + "_tip";
 	
 	goal.motion_plan_request.goal_constraints.position_constraints.resize(1);
 	goal.motion_plan_request.goal_constraints.orientation_constraints.resize(1);

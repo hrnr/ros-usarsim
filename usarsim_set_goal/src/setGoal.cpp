@@ -19,7 +19,7 @@ int main(int argc, char** argv)
 	}
 	else
 	{
-		NavigationGoal goal(actName, 7);// number of links could be discovered either from usarsim or urdf file
+		NavigationGoal goal(actName);// number of links could be discovered either from usarsim or urdf file
 		nh.getParam("/goalset/orientationFrame", orientationFrame);
 		nh.getParam("/goalset/positionFrame",positionFrame);
 		nh.getParam("/goalset/controlOffset",controlOffset);

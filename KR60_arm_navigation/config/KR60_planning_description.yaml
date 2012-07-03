@@ -6,7 +6,7 @@ multi_dof_joints:
 groups:
   - name: KR60Arm
     base_link: KR60Arm_link0
-    tip_link: KR60Arm_link6
+    tip_link: KR60Arm_tip
 default_collision_operations:
   - object1: base_link
     object2: KR60Arm_link0
@@ -28,6 +28,12 @@ default_collision_operations:
     operation: disable  # Adjacent in collision
   - object1: KR60Arm_link5
     object2: KR60Arm_link6
+    operation: disable  # Adjacent in collision
+  - object1: KR60Arm_link6
+    object2: KR60Arm_tip
+    operation: disable  # Adjacent in collision
+  - object1: KR60Arm_link6
+    object2: toolchanger
     operation: disable  # Adjacent in collision
   - object1: KR60Arm_link0
     object2: KR60Arm_link5

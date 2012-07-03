@@ -62,23 +62,31 @@ public:
    ~ServoInf ();
   const UsarsimActuator *getActuator(unsigned int num);
   unsigned int getNumActuators();
+  unsigned int getNumExtras();
+  const UsarsimSensor *getComponent(unsigned int num);
   const std::string getPlatformName();
   const geometry_msgs::Vector3 getPlatformSize();
   int init (GenericInf * siblingIn);
   int msgOut ();
   int msgIn ();
   int peerMsg (sw_struct * sw);
-  
+  void setBuildingTFTree();
 private:
+  bool buildTFTree; //whether or not the TF tree should be built. If false, rely on the robot_state_publisher node for some tf broadcasting.
   std::string odomName;
   static void *servoSetMutex;
   //  ros::Rate *loopRate;
   ros::NodeHandle n;
+  tf::TransformListener tfListener;
+  sensor_msgs::JointState joints; //joint state for the entire robot
+  ros::Publisher jointPublisher;
+  
   UsarsimPlatform *basePlatform;
   UsarsimGrdVeh grdVehSettings;
   UsarsimSensor sensorSettings;
   
-  void setTransform(UsarsimSensor *sen, const sw_pose &pose);
+  void setTransform(UsarsimSensor *sen, const sw_pose &pose, ros::Time currentTime);
+  void publishJoints();
   
   //! We will always need a transform
   tf::TransformBroadcaster rosTfBroadcaster;
@@ -94,7 +102,8 @@ private:
   std::vector < UsarsimGripperEffector > grippers;
   //! Toolchangers
   std::vector < UsarsimToolchanger > toolchangers;
-  
+  //! Range imager sensors
+  std::vector < UsarsimRngImgSensor > rangeImagers;
   int actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
 		     std::string name);
   int odomSensorIndex (std::vector < UsarsimOdomSensor > &sensors,
@@ -107,6 +116,8 @@ private:
   std::string name);
   int toolchangerIndex (std::vector <UsarsimToolchanger > &effectors, 
   std::string name);
+  int rangeImagerIndex (std::vector < UsarsimRngImgSensor > &sensors,
+			std::string name);
   int copyActuator (UsarsimActuator * sen, const sw_struct * sw);
   int copyObjectSensor(UsarsimObjectSensor * sen, const sw_struct *sw);
   int copyIns (UsarsimOdomSensor * sen, const sw_struct * sw);
@@ -115,6 +126,7 @@ private:
   int copyStaticVehSettings (UsarsimPlatform * settings, const sw_struct * sw);
   int copyGripperEffector(UsarsimGripperEffector *effector, const sw_struct *sw);
   int copyToolchanger(UsarsimToolchanger *effector, const sw_struct *sw);
+  int copyRangeImager (UsarsimRngImgSensor * sen, const sw_struct * sw);
   void VelCmdCallback (const geometry_msgs::TwistConstPtr & msg);
   int updateActuatorTF(UsarsimActuator *act, const sw_struct *sw);
   void updateActuatorCycle(UsarsimActuator *act);

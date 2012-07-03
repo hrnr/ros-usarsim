@@ -14,7 +14,7 @@ enum frame_type
 class NavigationGoal
 {
 public:
-	NavigationGoal(std::string actuatorName, int linkCount);
+	NavigationGoal(std::string actuatorName);
 	void movePosition(float xGoal, float yGoal, float zGoal);
 	void moveOffset(float xGoal, float yGoal, float zGoal);
 	void moveOrientation(float roll, float pitch, float yaw);
@@ -31,7 +31,6 @@ private:
 	bool useGlobalPositionFrame, useGlobalOrientationFrame;
 	std::string actName;
 	std::string effectorFrame;
-	int linkNum;
 	void setGlobalPositionGoal(float xGoal, float yGoal, float zGoal);
 };
 
