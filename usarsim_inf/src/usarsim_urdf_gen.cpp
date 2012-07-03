@@ -188,7 +188,8 @@ main (int argc, char **argv)
     ROS_ERROR("Done with actuator links.");
     for(unsigned int i = 0;i<servo->getNumExtras();i++)
     {
-    	addComponentLink(servo->getComponent(i), fp);
+    	if(servo->getComponent(i)->linkOffset >= 0)
+    		addComponentLink(servo->getComponent(i), fp);
     }
     ROS_ERROR("Done with component links.");
     for(unsigned int i=0;i<servo->getNumActuators();i++)
@@ -227,7 +228,8 @@ main (int argc, char **argv)
 	}
 	for(unsigned int i = 0;i<servo->getNumExtras();i++)
     {
-    	addComponentParentJoint(servo->getComponent(i), fp);
+    	if(servo->getComponent(i)->linkOffset >= 0)
+    		addComponentParentJoint(servo->getComponent(i), fp);
     }
   fprintf( fp, "</robot>\n" );
   ulapi_exit ();
