@@ -521,7 +521,12 @@ ServoInf::peerMsg (sw_struct * sw)
 			num = gripperEffectorIndex(grippers, sw->name);
 			if(copyGripperEffector(&grippers[num], sw) == 1)
 			{
-				rosTfBroadcaster.sendTransform (grippers[num].tf);
+				//if we aren't building an URDF file, but this item is mounted on an actuator link, publish it as a joint
+				//otherwise publish its transformation directly.
+				if(!buildTFTree && grippers[num].linkOffset >= 0)
+					publishJoints();
+				else
+					rosTfBroadcaster.sendTransform (grippers[num].tf);
 				grippers[num].pub.publish(grippers[num].status);
 				if(grippers[num].isActive() && grippers[num].isDone())
 					grippers[num].clearActive();
@@ -554,7 +559,9 @@ ServoInf::peerMsg (sw_struct * sw)
 			num = toolchangerIndex(toolchangers, sw->name);
 			if(copyToolchanger(&toolchangers[num], sw) == 1)
 			{
-				if(!buildTFTree && toolchangers[num].linkOffset >= 0)
+				//if we aren't building an URDF file, but this item is mounted on an actuator link, publish it as a joint
+				//otherwise publish its transformation directly.
+				if(!buildTFTree && toolchangers[num].linkOffset >= 0) 
 					publishJoints();
 				else
 					rosTfBroadcaster.sendTransform(toolchangers[num].tf);
@@ -703,7 +710,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
   std::stringstream tempSS;
   tf::Vector3 currentTipPosition;
   tf::Transform lastTipTransform;
-  
+  tf::Transform absoluteTransform;
   int invertZ = 0;
   double mountRoll, mountZ;
 
@@ -746,6 +753,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
   lastTipTransform.setOrigin(tf::Vector3(0,0,0));
   lastTipTransform.setRotation(tf::Quaternion(0,0,0,1));
   currentTipPosition = tf::Vector3(0,0,0);
+  absoluteTransform.setRotation(tf::Quaternion(0,0,0,1));
   //  ROS_ERROR( "sent transform from \"%s\" to \"%s\"", act->tf.header.frame_id.c_str(), act->tf.child_frame_id.c_str() );
   for(int i = 0;i<act->numJoints;i++)
   {
@@ -768,7 +776,6 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
 	  
 	  //find the position of the next link tip in the global coordinate frame
 	  currentTipPosition += tf::Vector3(sw->data.actuator.link[i].mount.x,sw->data.actuator.link[i].mount.y,sw->data.actuator.link[i].mount.z);
-	  tf::Transform absoluteTransform;
 	  absoluteTransform.setOrigin(currentTipPosition);
 	  
 	  //find the transformation from the tip of the last link to the tip of the next link
@@ -781,10 +788,36 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw)
 	  lastTipTransform *= relativeTransform;
 	  
 	  tf::transformTFToMsg(relativeTransform, currentJointTf.transform);
-      
       rosTfBroadcaster.sendTransform (currentJointTf);
       act->jointTf.push_back(currentJointTf);
   }
+  //add transformation for tip link
+  if(!act->jointTf.empty())
+  {
+  	currentJointTf.header.frame_id = act->jointTf.back().child_frame_id;
+  }else
+  {
+    currentJointTf.header.frame_id = act->name + "_link0";
+  }
+  currentJointTf.child_frame_id = act->name + "_tip";
+  //find the position of the next link tip in the global coordinate frame
+  currentTipPosition += tf::Vector3(sw->data.actuator.tip.x,sw->data.actuator.tip.y,sw->data.actuator.tip.z);
+  absoluteTransform.setOrigin(currentTipPosition);
+  
+  //find the transformation from the tip of the last link to the tip of the next link
+  tf::Transform relativeTransform = lastTipTransform.inverseTimes(absoluteTransform);
+  
+  //set the rotation to the last one used
+  relativeTransform.setRotation(quat);
+  
+  //update the transform for the tip of the last link
+  lastTipTransform *= relativeTransform;
+  
+  tf::transformTFToMsg(relativeTransform, currentJointTf.transform);
+  
+  rosTfBroadcaster.sendTransform (currentJointTf);
+  act->jointTf.push_back(currentJointTf);
+   
   return 1;
 }
 int

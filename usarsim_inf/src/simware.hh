@@ -456,6 +456,7 @@ enum
 typedef struct
 {
   sw_pose mount;
+  sw_pose tip;
   sw_link_struct link[SW_ACT_LINK_MAX];
   int number;			/*!< how many links */
 } sw_actuator_struct;

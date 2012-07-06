@@ -4093,7 +4093,7 @@ UsarsimInf::handleGeoActuator (char *msg)
 	  sw = info.where->getSW();
 	  info.where->setDidConf(1);
 	  sw->data.actuator.number = 0;
-	  sw->data.toolchanger.mount.linkOffset = -1;
+	  sw->data.actuator.mount.linkOffset = -1;
 	  expect (&info, "Location");
 	  sw->data.actuator.mount.x = getReal (&info);
 	  sw->data.actuator.mount.y = getReal (&info);
@@ -4184,6 +4184,12 @@ UsarsimInf::handleGeoActuator (char *msg)
 	  sw->data.actuator.link[linkindex].mount.roll = getReal(&info); 
 	  sw->data.actuator.link[linkindex].mount.pitch = getReal(&info); 
 	  sw->data.actuator.link[linkindex].mount.yaw = getReal(&info); 
+	}
+	else if (!strcmp (info.token, "Tip"))
+	{
+	  sw->data.actuator.tip.x = getReal(&info); 
+	  sw->data.actuator.tip.y = getReal(&info); 
+	  sw->data.actuator.tip.z = getReal(&info); 
 	}
       else
 	{

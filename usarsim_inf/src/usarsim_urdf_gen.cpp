@@ -137,27 +137,21 @@ main (int argc, char **argv)
     actPt = servo->getActuator(i);
     platformSize = servo->getPlatformSize();
     numJoints = actPt->jointTf.size();
-    for( unsigned int j=0; j<actPt->jointTf.size(); j++ )
+    for( unsigned int j=0; j<actPt->jointTf.size(); j++ )//only loop as far as tip link
     {
 	 	fprintf( fp, "\t<link name =\"%s\">\n", actPt->jointTf[j].header.frame_id.c_str () );
 	  	fprintf( fp, "\t\t<visual>\n");
       	fprintf( fp, "\t\t\t<geometry>\n");  
-	    length = sqrt( (actPt->jointTf[j].transform.translation.x -
-	      actPt->tf.transform.translation.x) *
-	     (actPt->jointTf[j].transform.translation.x -
-	      actPt->tf.transform.translation.x) +
-	     (actPt->jointTf[j].transform.translation.y -
-	      actPt->tf.transform.translation.y) *
-	     (actPt->jointTf[j].transform.translation.y -
-	      actPt->tf.transform.translation.y) +
-	     (actPt->jointTf[j].transform.translation.z -
-	      actPt->tf.transform.translation.z) *
-	     (actPt->jointTf[j].transform.translation.z -
-	      actPt->tf.transform.translation.z) );
-	    pitch = atan2((actPt->jointTf[j].transform.translation.z - actPt->tf.transform.translation.z),
-			  (actPt->jointTf[j].transform.translation.x - actPt->tf.transform.translation.x));
-	    yaw = atan2((actPt->jointTf[j].transform.translation.y - actPt->tf.transform.translation.y),
-			(actPt->jointTf[j].transform.translation.x - actPt->tf.transform.translation.x));
+	    length = sqrt(actPt->jointTf[j].transform.translation.x *
+	     actPt->jointTf[j].transform.translation.x +
+	     actPt->jointTf[j].transform.translation.y *
+	     actPt->jointTf[j].transform.translation.y +
+	     actPt->jointTf[j].transform.translation.z *
+	     actPt->jointTf[j].transform.translation.z );
+	    pitch = atan2(actPt->jointTf[j].transform.translation.z,
+			  actPt->jointTf[j].transform.translation.x);
+	    yaw = atan2(actPt->jointTf[j].transform.translation.y,
+			actPt->jointTf[j].transform.translation.x);
 	    fprintf( fp, "\t\t\t\t<box size = \"%f 0.05 0.05\"/>\n",//"\t\t\t\t<cylinder length=\"%f\" radius =\".05\"/>\n",
 		   length );
 	    fprintf( fp, "\t\t\t</geometry>\n" );
@@ -168,9 +162,9 @@ main (int argc, char **argv)
 	           0., pitch, yaw );
 	    fprintf( fp, "\t\t</visual>\n" );
 	  	fprintf( fp, "\t</link>\n");
-      }
+    }
       //last arm link: assume half the length, same rpy as previous link
-      length = length/2;
+      /*length = length/2;
       fprintf( fp, "\t<link name=\"%s_link%d\">\n", actPt->name.c_str(), numJoints);
       fprintf( fp, "\t\t<visual>\n");
       fprintf( fp, "\t\t\t<geometry>\n" );
@@ -180,57 +174,63 @@ main (int argc, char **argv)
 	  fprintf( fp, "\t\t\t<origin xyz=\"%f 0 0\" rpy=\"%.2f %.2f %.2f\" />\n",
 		   length/2., 0.0,0.0,0.0);//roll, pitch, yaw );
 	  fprintf( fp, "\t\t</visual>\n" );
-	  fprintf( fp, "\t</link>\n");
+	  fprintf( fp, "\t</link>\n");*/
 	  
 	  //tip link (used for actuator control)
-	  fprintf( fp, "\t<link name = \"%s_tip\" />\n",actPt->name.c_str());
-    }
-    ROS_ERROR("Done with actuator links.");
-    for(unsigned int i = 0;i<servo->getNumExtras();i++)
-    {
-    	if(servo->getComponent(i)->linkOffset >= 0)
-    		addComponentLink(servo->getComponent(i), fp);
-    }
-    ROS_ERROR("Done with component links.");
-    for(unsigned int i=0;i<servo->getNumActuators();i++)
-    {
-    	actPt = servo->getActuator(i);
-      	platformSize = servo->getPlatformSize();
-      	numJoints = actPt->jointTf.size();
-      	//base joint
-		fprintf( fp, "\t<joint name=\"%s_mount\" type=\"fixed\">\n", actPt->name.c_str());
-		fprintf( fp, "\t\t<parent link=\"base_link\" />\n");
-		fprintf( fp, "\t\t<child link=\"%s\" />\n", actPt->jointTf[0].header.frame_id.c_str());
-		//add a line here for the offset from robot base to actuator base
-		fprintf( fp, "\t</joint>\n");
-    	for( unsigned int j=0; j<actPt->jointTf.size(); j++ )
-		{
-		  fprintf( fp, "\t<joint name=\"%s_joint_%d\" type=\"revolute\">\n",actPt->name.c_str(), j+1);
-		  fprintf( fp, "\t\t<parent link=\"%s\"/>\n", actPt->jointTf[j].header.frame_id.c_str () );
-		  fprintf( fp, "\t\t<child link=\"%s\"/>\n", actPt->jointTf[j].child_frame_id.c_str () );
-		  tf::quaternionMsgToTF(actPt->jointTf[j].transform.rotation, bt_q);
-		  ROS_ERROR("quaternion in from link %d: %f, %f, %f, %f", j, bt_q.x(), bt_q.y(), bt_q.z(), bt_q.w());
-		  btMatrix3x3(bt_q).getRPY( roll, pitch, yaw );
-		  fprintf( fp, "\t\t<origin xyz=\"%.2f %.2f %.2f\" rpy=\"%.2f %.2f %.2f\" />\n",
-			   actPt->jointTf[j].transform.translation.x - actPt->tf.transform.translation.x,
-			   actPt->jointTf[j].transform.translation.y - actPt->tf.transform.translation.y,
-			   actPt->jointTf[j].transform.translation.z - actPt->tf.transform.translation.z,
-			   roll, pitch, yaw );
-		  fprintf( fp, "\t\t<axis xyz=\"0.0 0.0 1\" />\n" );
-		  fprintf( fp, "\t\t<limit effort=\"%f\" lower=\"%f\" upper=\"%f\" velocity=\"0.5\" />\n", actPt->maxTorques[j], actPt->minValues[j], actPt->maxValues[j]);
-		  fprintf( fp, "\t</joint>\n\n");
-		}
-		//joint for tip link
-		fprintf( fp, "\t<joint name = \"%s_tip_joint\" type = \"fixed\">\n", actPt->name.c_str());
-		fprintf( fp, "\t\t<parent link=\"%s\" />\n", actPt->jointTf[numJoints - 1].child_frame_id.c_str());
-		fprintf( fp, "\t\t<child link=\"%s_tip\" />\n", actPt->name.c_str());
-		fprintf( fp, "\t</joint>\n");
+	  fprintf( fp, "\t<link name = \"%s_tip\">\n",actPt->name.c_str());
+	  fprintf( fp, "\t</link>\n");
+  }
+  ROS_ERROR("Done with actuator links.");
+  for(unsigned int i = 0;i<servo->getNumExtras();i++)
+  {
+  	if(servo->getComponent(i)->linkOffset >= 0)
+   		addComponentLink(servo->getComponent(i), fp);
+  }
+  ROS_ERROR("Done with component links.");
+  for(unsigned int i=0;i<servo->getNumActuators();i++)
+  {
+   	actPt = servo->getActuator(i);
+   	platformSize = servo->getPlatformSize();
+   	numJoints = actPt->jointTf.size();
+   	//base joint
+	fprintf( fp, "\t<joint name=\"%s_mount\" type=\"fixed\">\n", actPt->name.c_str());
+	fprintf( fp, "\t\t<parent link=\"base_link\" />\n");
+	fprintf( fp, "\t\t<child link=\"%s\" />\n", actPt->jointTf[0].header.frame_id.c_str());
+	//add a line here for the offset from robot base to actuator base
+	fprintf( fp, "\t</joint>\n");
+    for( unsigned int j=0; j<actPt->jointTf.size() - 1; j++ ) // exclude last joint and put it in manually as the tip
+	{
+	  fprintf( fp, "\t<joint name=\"%s_joint_%d\" type=\"revolute\">\n",actPt->name.c_str(), j+1);
+	  fprintf( fp, "\t\t<parent link=\"%s\"/>\n", actPt->jointTf[j].header.frame_id.c_str () );
+	  fprintf( fp, "\t\t<child link=\"%s\"/>\n", actPt->jointTf[j].child_frame_id.c_str () );
+	  tf::quaternionMsgToTF(actPt->jointTf[j].transform.rotation, bt_q);
+	  ROS_ERROR("quaternion in from link %d: %f, %f, %f, %f", j, bt_q.x(), bt_q.y(), bt_q.z(), bt_q.w());
+	  btMatrix3x3(bt_q).getRPY( roll, pitch, yaw );
+	  fprintf( fp, "\t\t<origin xyz=\"%.2f %.2f %.2f\" rpy=\"%.2f %.2f %.2f\" />\n",
+		   actPt->jointTf[j].transform.translation.x - actPt->tf.transform.translation.x,
+		   actPt->jointTf[j].transform.translation.y - actPt->tf.transform.translation.y,
+		   actPt->jointTf[j].transform.translation.z - actPt->tf.transform.translation.z,
+		   roll, pitch, yaw );
+	  fprintf( fp, "\t\t<axis xyz=\"0.0 0.0 1\" />\n" );
+	  fprintf( fp, "\t\t<limit effort=\"%f\" lower=\"%f\" upper=\"%f\" velocity=\"0.5\" />\n", actPt->maxTorques[j], actPt->minValues[j], actPt->maxValues[j]);
+	  fprintf( fp, "\t</joint>\n\n");
 	}
-	for(unsigned int i = 0;i<servo->getNumExtras();i++)
-    {
-    	if(servo->getComponent(i)->linkOffset >= 0)
-    		addComponentParentJoint(servo->getComponent(i), fp);
-    }
+	//joint for tip link
+	fprintf( fp, "\t<joint name = \"%s_tip_joint\" type = \"fixed\">\n", actPt->name.c_str());
+	fprintf( fp, "\t\t<parent link=\"%s\" />\n", actPt->jointTf.back().header.frame_id.c_str());
+	fprintf( fp, "\t\t<child link=\"%s_tip\" />\n", actPt->name.c_str());
+	fprintf( fp, "\t\t<origin xyz=\"%f %f %f\" rpy = \"%f %f %f\" />\n",
+	actPt->jointTf.back().transform.translation.x,
+	actPt->jointTf.back().transform.translation.y,
+	actPt->jointTf.back().transform.translation.z,
+	0.0, 0.0, 0.0);
+	fprintf( fp, "\t</joint>\n");
+  }
+  for(unsigned int i = 0;i<servo->getNumExtras();i++)
+  {
+   	if(servo->getComponent(i)->linkOffset >= 0)
+  		addComponentParentJoint(servo->getComponent(i), fp);
+  }
   fprintf( fp, "</robot>\n" );
   ulapi_exit ();
   return (1);
