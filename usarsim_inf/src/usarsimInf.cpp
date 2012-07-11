@@ -1148,7 +1148,7 @@ UsarsimInf::handleSenRangeimager (char *msg)
   componentInfo info;;
   int number;
   sw_struct *sw = rangeimagers->getSW ();
-  double d;
+  float f;
 
   setComponentInfo (msg, &info);
 
@@ -1184,7 +1184,7 @@ UsarsimInf::handleSenRangeimager (char *msg)
 	}
       else if (!strcmp (info.token, "Name"))
 	{
-	  getName (rangeimagers, &info, SW_SEN_RANGESCANNER_STAT);
+	  getName (rangeimagers, &info, SW_SEN_RANGEIMAGER_STAT);
 	  sw = info.where->getSW ();
 	}
       else if (!strcmp (info.token, "Time"))
@@ -1218,7 +1218,7 @@ UsarsimInf::handleSenRangeimager (char *msg)
 		  else
 		    break;
 		}
-	      if (sscanf (info.token, "%lf", &d) != 1)
+	      if (sscanf (info.token, "%f", &f) != 1)
 		return -1;
 	      if (number >= SW_SEN_RANGEIMAGER_MAX)
 		{
@@ -1227,7 +1227,7 @@ UsarsimInf::handleSenRangeimager (char *msg)
 		}
 	      else
 		{
-		  sw->data.rangeimager.range[number] = d;
+		  sw->data.rangeimager.range[number] = f;
 		  number++;
 		}
 	      info.ptr = info.nextptr;

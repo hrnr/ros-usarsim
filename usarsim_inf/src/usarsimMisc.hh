@@ -35,7 +35,8 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/JointState.h>
-#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 #include <actionlib/server/simple_action_server.h>
 #include <control_msgs/FollowJointTrajectoryAction.h>
 #include <usarsim_inf/SenseObject.h>
@@ -242,8 +243,10 @@ class UsarsimRngImgSensor:public UsarsimSensor
 {
 public:
   UsarsimRngImgSensor();
-  sensor_msgs::PointCloud2 cloud;
+  sensor_msgs::Image depthImage;
   int totalFrames;
+  ros::Publisher cameraInfoPub;
+  sensor_msgs::CameraInfo camInfo;
   bool isReady();
   void sentFrame(int frame);
 private:

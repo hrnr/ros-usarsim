@@ -28,6 +28,7 @@
   \date   October 19, 2011
 */
 #include "servoInf.hh"
+#include <sensor_msgs/image_encodings.h>
 
 void
 ServoInf::VelCmdCallback (const geometry_msgs::TwistConstPtr & msg)
@@ -600,7 +601,11 @@ ServoInf::peerMsg (sw_struct * sw)
 			rosTfBroadcaster.sendTransform(rangeImagers[num].tf);
 			if(rangeImagers[num].isReady())
 			{
-				rangeImagers[num].pub.publish(rangeImagers[num].cloud);
+				rangeImagers[num].depthImage.header.stamp = currentTime;
+				rangeImagers[num].camInfo.header.stamp = currentTime;
+				rangeImagers[num].pub.publish(rangeImagers[num].depthImage);
+				rangeImagers[num].cameraInfoPub.publish(rangeImagers[num].camInfo);
+				
 			}
 		}else
 		{
@@ -1045,31 +1050,44 @@ int ServoInf::copyRangeImager(UsarsimRngImgSensor *sen, const sw_struct *sw)
 {
 	ros::Time currentTime = ros::Time::now();
 	setTransform(sen, sw->data.rangeimager.mount, currentTime);
-	sen->cloud.header.stamp = currentTime;
-	sen->cloud.header.frame_id = sen->name;
+	sen->depthImage.header.stamp = currentTime;
+	sen->depthImage.header.frame_id = sen->name;
 	
-	sen->cloud.fields.resize(1);
-	sen->cloud.fields[0].name = "Depth";
-	sen->cloud.fields[0].datatype = sensor_msgs::PointField::FLOAT64; //assuming a double is 8 bytes
-	sen->cloud.fields[0].offset = 0;
-	sen->cloud.fields[0].count = 1;
 	sen->totalFrames = sw->data.rangeimager.totalframes;
+	sen->depthImage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
 	if(sen->totalFrames != 0)
 	{
 		sen->sentFrame(sw->data.rangeimager.frame);
-		sen->cloud.height = sw->data.rangeimager.resolutiony;
-		sen->cloud.width = sw->data.rangeimager.resolutionx;
-		sen->cloud.point_step = sizeof(double);
-		sen->cloud.row_step = sizeof(double)*sw->data.rangeimager.resolutionx;
-		sen->cloud.data.reserve(sen->cloud.point_step * sen->cloud.height);	
-		ROS_ERROR("Handling frame %d of %d", sw->data.rangeimager.frame + 1, sw->data.rangeimager.totalframes);
+		sen->depthImage.height = sw->data.rangeimager.resolutiony;
+		sen->depthImage.width = sw->data.rangeimager.resolutionx;
+		sen->depthImage.step = sizeof(float)*sw->data.rangeimager.resolutionx;
+		sen->depthImage.data.reserve(sen->depthImage.step * sen->depthImage.height);
 		
-		//sen->cloud.data.insert(sen->cloud.data.begin() + (sw->data.rangeimager.frame * sw->data.rangeimager.numberperframe * sen->cloud.point_step), 
-		//    reinterpret_cast<const uint8_t*>(sw->data.rangeimager.range),
-		// 	reinterpret_cast<const uint8_t*>(sw->data.rangeimager.range + sw->data.rangeimager.numberperframe));
+		sen->depthImage.data.insert(sen->depthImage.data.begin() + (sw->data.rangeimager.frame * sw->data.rangeimager.numberperframe * sizeof(float)), 
+		    reinterpret_cast<const uint8_t*>(sw->data.rangeimager.range),
+		 	reinterpret_cast<const uint8_t*>(sw->data.rangeimager.range + sw->data.rangeimager.numberperframe));
 		int num = 1;
-		sen->cloud.is_bigendian = (*((uint8_t*)(&num)) == 0);
+		sen->depthImage.is_bigendian = (*((uint8_t*)(&num)) == 0);
 	}
+	//camera calibration data from the Kinect
+	sen->camInfo.height = sw->data.rangeimager.resolutiony;
+    sen->camInfo.width = sw->data.rangeimager.resolutionx;
+    sen->camInfo.distortion_model = "plumb_bob";
+    double dArray[] = {0.00000000, 0.00000000, 0.00000000, 0.00000000, 0.00000000};
+    double kArray[] = {585.05108211, 0.00000000, 315.83800193, 0.00000000, 585.05108211, 242.94140713, 0.00000000, 0.00000000, 1.00000000};
+    double rArray[] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
+    double pArray[] = {585.05108211, 0.00000000, 315.83800193, 0.0, 0.00000000, 585.05108211, 242.94140713, 0.0, 0.00000000, 0.00000000, 1.00000000, 0.0};
+    sen->camInfo.D.assign(dArray, dArray+5);
+    std::copy(kArray, kArray+9, sen->camInfo.K.begin());
+    std::copy(rArray, rArray+9, sen->camInfo.R.begin());
+    std::copy(pArray, pArray+12, sen->camInfo.P.begin());
+    sen->camInfo.binning_x = 0;
+    sen->camInfo.binning_y = 0;
+    sen->camInfo.roi.x_offset = 0;
+    sen->camInfo.roi.y_offset = 0;
+    sen->camInfo.roi.height = 0;
+    sen->camInfo.roi.width = 0;
+    sen->camInfo.roi.do_rectify = false;
 	return 1;
 }
 int ServoInf::copyGripperEffector(UsarsimGripperEffector * effector, const sw_struct *sw)
@@ -1332,7 +1350,8 @@ int ServoInf::rangeImagerIndex(std::vector < UsarsimRngImgSensor> &sensors, std:
     UsarsimRngImgSensor *sensePtr = &(sensors.back());
     sensePtr->name = name;
     sensePtr->time = 0;
-    sensePtr->pub = nh->advertise <sensor_msgs::PointCloud2 > (name, 2);
+    sensePtr->pub = nh->advertise <sensor_msgs::Image > (name + "/image_rect", 2);
+    sensePtr->cameraInfoPub = nh->advertise<sensor_msgs::CameraInfo >(name + "/camera_info",2);
     sensePtr->tf.header.frame_id = "base_link";
     sensePtr->tf.child_frame_id = ("/"+name).c_str ();
     

@@ -16,6 +16,7 @@ void NavigationGoal::moveOffset(float xGoal, float yGoal, float zGoal)
 		tf::StampedTransform effectorTransform;
 		try
 		{
+			listener.waitForTransform("/base_footprint",effectorFrame,ros::Time(0), ros::Duration(10.0));
 			listener.lookupTransform("/base_footprint",effectorFrame,ros::Time(0),effectorTransform);
 		}catch(tf::TransformException ex)
 		{
@@ -135,6 +136,7 @@ void NavigationGoal::setGlobalPositionGoal(float xGoal, float yGoal, float zGoal
 	tf::StampedTransform transform;
 	try
 	{
+		listener.waitForTransform(effectorFrame, "/base_footprint",ros::Time(0), ros::Duration(10.0));
 		listener.lookupTransform(effectorFrame,"/base_footprint",ros::Time(0),transform);
 	}catch(tf::TransformException ex)
 	{

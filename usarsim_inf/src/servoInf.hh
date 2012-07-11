@@ -35,6 +35,7 @@
 #include <tf/transform_listener.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/Image.h>
 #include "genericInf.hh"
 #include "simware.hh"
 #include "usarsimInf.hh"

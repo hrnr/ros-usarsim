@@ -238,7 +238,7 @@ typedef struct
   int frame;			/*!< Frame number (out of totalframes), frames must break on a line boundary */
   int totalframes;		/*!< Total number of frames */
   int numberperframe;		/*!< how many elements in this message  */
-  double range[SW_SEN_RANGEIMAGER_MAX];
+  float range[SW_SEN_RANGEIMAGER_MAX];
   double maxrange;
   double minrange;
   double resolutionx;
