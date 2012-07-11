@@ -210,7 +210,11 @@ main (int argc, char **argv)
 		  fprintf( fp, "\t\t<child link=\"%s\"/>\n", actPt->jointTf[j].child_frame_id.c_str () );
 		  tf::quaternionMsgToTF(actPt->jointTf[j].transform.rotation, bt_q);
 		  ROS_ERROR("quaternion in from link %d: %f, %f, %f, %f", j, bt_q.x(), bt_q.y(), bt_q.z(), bt_q.w());
+#if ROS_VERSION_MINIMUM(1, 8, 0)
 		  tf::Matrix3x3(bt_q).getRPY( roll, pitch, yaw );
+#else
+		  btMatrix3x3(bt_q).getRPY( roll, pitch, yaw );
+#endif
 		  fprintf( fp, "\t\t<origin xyz=\"%.2f %.2f %.2f\" rpy=\"%.2f %.2f %.2f\" />\n",
 			   actPt->jointTf[j].transform.translation.x - actPt->tf.transform.translation.x,
 			   actPt->jointTf[j].transform.translation.y - actPt->tf.transform.translation.y,
