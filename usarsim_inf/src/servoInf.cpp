@@ -257,6 +257,7 @@ ServoInf::peerMsg (sw_struct * sw)
       switch (sw->op)
 	{
 	case SW_DEVICE_STAT:
+	publishJoints();
 	  if (botType == SW_ROBOT_UNKNOWN)
 	    {
 	      botType = SW_ROBOT_STATIC_VEH;
@@ -889,21 +890,21 @@ ServoInf::copyIns (UsarsimOdomSensor * sen, const sw_struct * sw)
       basePlatform->tf.transform.translation.z = sw->data.ins.mount.z;
       basePlatform->tf.transform.rotation = quatMsg;
       //      basePlatform->tf.header.frame_id = sen->name.c_str ();
-      basePlatform->tf.header.frame_id = "odom";
+      basePlatform->tf.header.frame_id = "base_footprint";
       basePlatform->tf.header.stamp = currentTime;
       ROS_DEBUG( "servoInf.cpp:: rosTime: %f sensorTime: %f",
 		 currentTime.toSec(), sw->time );
       basePlatform->tf.child_frame_id = "base_link";
       //  basePlatform->tf.child_frame_id = basePlatform->platformName.c_str ();
-      sen_child_id = std::string("odom");
-      sen_frame_id = std::string("base_footprint");
+      sen_child_id = std::string("base_footprint");
+      sen_frame_id = std::string("odom");
     }
   else
     {
-      //sen_child_id = std::string("base_") + sen->name;
-      //sen_frame_id = sen->name;
-      sen_frame_id = std::string("base_footprint");
-      sen_child_id = sen->name;
+      sen_child_id = std::string("base_") + sen->name;
+      sen_frame_id = sen->name;
+      //sen_frame_id = std::string("odom");
+      //sen_child_id = sen->name;
     }
   // now set up the sensor
   sen->tf.transform.translation.x = sw->data.ins.position.x;

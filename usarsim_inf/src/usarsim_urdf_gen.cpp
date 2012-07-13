@@ -218,7 +218,6 @@ main (int argc, char **argv)
 		  fprintf( fp, "\t\t<limit effort=\"%f\" lower=\"%f\" upper=\"%f\" velocity=\"0.5\" />\n", actPt->maxTorques[j], actPt->minValues[j], actPt->maxValues[j]);
 		  fprintf( fp, "\t</joint>\n\n");
 		}
-	}
 	//joint for tip link
 	fprintf( fp, "\t<joint name = \"%s_tip_joint\" type = \"fixed\">\n", actPt->name.c_str());
 	fprintf( fp, "\t\t<parent link=\"%s\" />\n", actPt->jointTf.back().header.frame_id.c_str());
