@@ -1351,8 +1351,8 @@ int ServoInf::rangeImagerIndex(std::vector < UsarsimRngImgSensor> &sensors, std:
     UsarsimRngImgSensor *sensePtr = &(sensors.back());
     sensePtr->name = name;
     sensePtr->time = 0;
-    sensePtr->pub = nh->advertise <sensor_msgs::Image > (name + "/image_rect", 2);
-    sensePtr->cameraInfoPub = nh->advertise<sensor_msgs::CameraInfo >(name + "/camera_info",2);
+    sensePtr->pub = nh->advertise <sensor_msgs::Image > ("image_rect", 2);
+    sensePtr->cameraInfoPub = nh->advertise<sensor_msgs::CameraInfo >("camera_info",2);
     sensePtr->tf.header.frame_id = "base_link";
     sensePtr->tf.child_frame_id = ("/"+name).c_str ();
     
