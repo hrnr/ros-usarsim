@@ -87,6 +87,7 @@ private:
   UsarsimSensor sensorSettings;
   
   void setTransform(UsarsimSensor *sen, const sw_pose &pose, ros::Time currentTime);
+  void addJoint(std::string jointName, double jointValue);
   void publishJoints();
   
   //! We will always need a transform

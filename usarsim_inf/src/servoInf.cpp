@@ -115,7 +115,9 @@ ServoInf::init (GenericInf * usarsimIn)
   buildTFTree = false;
   
   //initialize joint publisher
-	  jointPublisher = n.advertise <sensor_msgs::JointState> ("joint_states", 2);
+  jointPublisher = n.advertise <sensor_msgs::JointState> ("joint_states", 2);
+  //add the world joint
+  addJoint("world_joint", 0.0);
 	  
   sibling = usarsimIn;
   servoSetMutex = ulapi_mutex_new (SERVO_SET_KEY);
@@ -159,6 +161,8 @@ ServoInf::peerMsg (sw_struct * sw)
 	    else
 	    	publishJoints();
 	    updateActuatorCycle(&actuators[num]);
+	    if(actuators[num].preempted())
+	    	ROS_ERROR("PREEMPT");
 	    if(actuators[num].isTrajectoryActive() && updateTrajectory(&actuators[num], sw))
 	    {
 	    	control_msgs::FollowJointTrajectoryResult result;
@@ -600,6 +604,7 @@ ServoInf::peerMsg (sw_struct * sw)
 		{
 			
 			rosTfBroadcaster.sendTransform(rangeImagers[num].tf);
+			rosTfBroadcaster.sendTransform(rangeImagers[num].opticalTransform);
 			if(rangeImagers[num].isReady())
 			{
 				rangeImagers[num].depthImage.header.stamp = currentTime;
@@ -618,6 +623,7 @@ ServoInf::peerMsg (sw_struct * sw)
 		if(copyRangeImager(&rangeImagers[num], sw) == 1)
 		{
 			rosTfBroadcaster.sendTransform(rangeImagers[num].tf);
+			rosTfBroadcaster.sendTransform(rangeImagers[num].opticalTransform);
 		}else
 		{
 			ROS_ERROR("Range imager error for %s: couldn't copy",sw->name.c_str());
@@ -683,11 +689,8 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
   act->numJoints = sw->data.actuator.number;
 
   //define the mounting joint and the tip joint for this actuator
-  joints.name.push_back(act->name + "_mount");
-  joints.position.push_back(0.0);
-  joints.name.push_back(act->name + "_tip");
-  joints.position.push_back(0.0);
-  
+  addJoint(act->name + "_mount", 0.0);
+  addJoint(act->name + "_tip", 0.0);
   act->minValues.clear();
   act->maxValues.clear();
   act->maxTorques.clear();
@@ -697,8 +700,8 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
       // now create actuator message
       tempSS.str("");
       tempSS << i+1;
-      joints.name.push_back((act->name + std::string("_joint_") + tempSS.str ()));
-      joints.position.push_back(sw->data.actuator.link[i].position);
+      
+      addJoint(act->name + std::string("_joint_") + tempSS.str (), sw->data.actuator.link[i].position);
       
       act->minValues.push_back(sw->data.actuator.link[i].minvalue);
       act->maxValues.push_back(sw->data.actuator.link[i].maxvalue);
@@ -1024,6 +1027,7 @@ int ServoInf::copyObjectSensor (UsarsimObjectSensor *sen, const sw_struct *sw)
   
   sen->objSense.header.stamp = currentTime;
   sen->objSense.header.frame_id = sen->name;
+  sen->objSense.fov = sw->data.objectsensor.fov;
   sen->objSense.object_names.clear();
   sen->objSense.material_names.clear();
   sen->objSense.object_poses.clear();
@@ -1051,8 +1055,9 @@ int ServoInf::copyRangeImager(UsarsimRngImgSensor *sen, const sw_struct *sw)
 {
 	ros::Time currentTime = ros::Time::now();
 	setTransform(sen, sw->data.rangeimager.mount, currentTime);
+	sen->opticalTransform.header.stamp = currentTime;
 	sen->depthImage.header.stamp = currentTime;
-	sen->depthImage.header.frame_id = sen->name;
+	sen->depthImage.header.frame_id = sen->name + "_optical";
 	
 	sen->totalFrames = sw->data.rangeimager.totalframes;
 	sen->depthImage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
@@ -1184,8 +1189,7 @@ void ServoInf::setTransform(UsarsimSensor *sen, const sw_pose &pose, ros::Time c
     	tempSS<<"_link";
     	tempSS<<pose.linkOffset;
     	sen->tf.header.frame_id = tempSS.str();
-    	joints.name.push_back(sen->name + "_mount");
-    	joints.position.push_back(0.0);
+    	addJoint(sen->name + "_mount", 0.0);
     }
     bool success = false;
     try
@@ -1355,7 +1359,12 @@ int ServoInf::rangeImagerIndex(std::vector < UsarsimRngImgSensor> &sensors, std:
     sensePtr->cameraInfoPub = nh->advertise<sensor_msgs::CameraInfo >("camera_info",2);
     sensePtr->tf.header.frame_id = "base_link";
     sensePtr->tf.child_frame_id = ("/"+name).c_str ();
-    
+    sensePtr->opticalTransform.header.frame_id = "/"+name;
+    sensePtr->opticalTransform.child_frame_id = "/"+name+"_optical";
+    //create a transformation from the camera frame to the optical frame (image coordinates)
+    tf::Quaternion quat;
+    quat.setEuler(1.5707, 0, 1.5707);//yaw, pitch, roll 
+    tf::quaternionTFToMsg(quat, sensePtr->opticalTransform.transform.rotation);
     return sensors.size() - 1;
 }
 
@@ -1474,7 +1483,23 @@ bool ServoInf::checkTrajectoryGoal(UsarsimActuator *act, const sw_struct *sw)
 	  return true;
 }
 /*
-Publish all of the angles in joints, and then clear the array for later use
+If a joint isn't already in the joints array, add it
+*/
+void ServoInf::addJoint(std::string jointName, double jointValue)
+{
+	for(unsigned int i = 0;i<joints.name.size();i++)
+	{
+		if(joints.name[i] == jointName)
+		{
+			joints.position[i] = jointValue;
+			return;
+		}
+	}
+	joints.name.push_back(jointName);
+	joints.position.push_back(jointValue);
+}
+/*
+Publish all of the joint angles
 */
 void ServoInf::publishJoints()
 {
@@ -1482,11 +1507,6 @@ void ServoInf::publishJoints()
 	joints.header.frame_id = "base_link";
 	joints.header.stamp = currentTime;
 	jointPublisher.publish(joints);
-	joints.name.clear();
-	joints.position.clear();
-	//also add the world joint
-	joints.name.push_back("world_joint");
-	joints.position.push_back(0.0);
 }
 void *
   ServoInf::servoSetMutex = NULL;

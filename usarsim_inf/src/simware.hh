@@ -385,6 +385,7 @@ typedef struct
 {
   sw_sen_object_struct objects[SW_SEN_RANGESCANNER_MAX];
   sw_pose mount;
+  double fov;
   int number; //the number of objects detected by the sensor
 } sw_sen_objectsensor_struct;
 enum

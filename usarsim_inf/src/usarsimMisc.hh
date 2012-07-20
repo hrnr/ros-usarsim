@@ -239,6 +239,9 @@ public:
   UsarsimRngScnSensor ();
   sensor_msgs::LaserScan scan;
 };
+////////////////////////////////////////////////////////////////////////
+// Range Imager
+////////////////////////////////////////////////////////////////////////
 class UsarsimRngImgSensor:public UsarsimSensor
 {
 public:
@@ -247,6 +250,7 @@ public:
   int totalFrames;
   ros::Publisher cameraInfoPub;
   sensor_msgs::CameraInfo camInfo;
+  geometry_msgs::TransformStamped opticalTransform;
   bool isReady();
   void sentFrame(int frame);
 private:
@@ -318,7 +322,9 @@ public:
   
   void setUpTrajectory();
   void trajectoryCallback();
+  void preemptCallback();
   bool isTrajectoryActive();
+  bool preempted();
   void setTrajectoryResult(control_msgs::FollowJointTrajectoryResult result);
 private:
   actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction> *trajectoryServer;

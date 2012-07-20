@@ -3294,6 +3294,10 @@ int UsarsimInf::handleConfObjectsensor(char *msg)
 	  sw = info.where->getSW ();
 	  info.where->setDidConf (1);
 	}
+	  else if (!strcmp (info.token, "Fov"))
+	{
+	  sw->data.objectsensor.fov = getReal (&info);
+	}
       else
 	{
 	  /* skip unknown entry  */
