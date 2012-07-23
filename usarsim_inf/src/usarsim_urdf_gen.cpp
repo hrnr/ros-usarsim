@@ -197,7 +197,7 @@ main (int argc, char **argv)
 		fprintf( fp, "\t\t<child link=\"%s\" />\n", actPt->jointTf[0].header.frame_id.c_str());
 		//add a line here for the offset from robot base to actuator base
 		fprintf( fp, "\t</joint>\n");
-    	for( unsigned int j=0; j<actPt->jointTf.size(); j++ )
+    	for( unsigned int j=0; j<actPt->jointTf.size() - 1; j++ )
 		{
 		  fprintf( fp, "\t<joint name=\"%s_joint_%d\" type=\"revolute\">\n",actPt->name.c_str(), j+1);
 		  fprintf( fp, "\t\t<parent link=\"%s\"/>\n", actPt->jointTf[j].header.frame_id.c_str () );

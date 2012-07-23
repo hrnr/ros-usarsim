@@ -690,7 +690,7 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
 
   //define the mounting joint and the tip joint for this actuator
   addJoint(act->name + "_mount", 0.0);
-  addJoint(act->name + "_tip", 0.0);
+  addJoint(act->name + "_tip_joint", 0.0);
   act->minValues.clear();
   act->maxValues.clear();
   act->maxTorques.clear();
