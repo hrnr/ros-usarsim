@@ -97,7 +97,8 @@ enum
   SW_ROS_CMD_VEL = 1,
   SW_ROS_CMD_TRAJ,
   SW_ROS_CMD_GRIP,
-  SW_ROS_CMD_TOOLCHANGE
+  SW_ROS_CMD_TOOLCHANGE,
+  SW_ROS_CMD_SCAN
 };
 
 enum
@@ -473,6 +474,10 @@ typedef struct
 } sw_ros_cmd_effector_struct;
 typedef struct
 {
+  int dummy;
+} sw_ros_cmd_scan_struct;
+typedef struct
+{
   double time;
   sw_type type;			/*!< Which resource is selected. */
   sw_op op;			/*!< What operation to do on the resource.  */
@@ -483,6 +488,7 @@ typedef struct
     sw_ros_cmd_vel_struct roscmdvel;
     sw_ros_cmd_traj_struct roscmdtraj;
     sw_ros_cmd_effector_struct roscmdeff;
+    sw_ros_cmd_scan_struct roscmdscan;
     /* robots */
     sw_robot_groundvehicle_struct groundvehicle;
     sw_robot_airbot_struct airbot;

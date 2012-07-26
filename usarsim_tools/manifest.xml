@@ -10,6 +10,7 @@
   <url>http://ros.org/wiki/usarsim_tools</url>
   <depend package="roscpp"/>
   <depend package="tf"/>
+  <depend package="usarsim_inf" />
 
 </package>
 

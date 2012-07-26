@@ -38,7 +38,6 @@ UsarsimInf::UsarsimInf ():GenericInf ()
   build = NULL;
   waitingForConf = 0;
   waitingForGeo = 0;
-  didScan = 0;
 }
 
 int
@@ -421,6 +420,13 @@ UsarsimInf::peerMsg (sw_struct * swIn)
       	usarsim_socket_write (socket_fd, str, strlen (str));
 		ulapi_mutex_give (socket_mutex);
       break; 
+      case SW_ROS_CMD_SCAN:
+      ulapi_snprintf(str, sizeof(str), "SET {Type RangeImager} {Name %s} {Opcode SCAN}\r\n",
+      swIn->name.c_str());
+      NULLTERM(str);
+      usarsim_socket_write(socket_fd, str, strlen (str));
+		ulapi_mutex_give (socket_mutex);
+      break;
     default:
       ROS_ERROR ("usarsimInf::peerMsg: not handling type %s",
 		 swTypeToString (swIn->type));
@@ -1154,15 +1160,6 @@ UsarsimInf::handleSenRangeimager (char *msg)
 
   number = 0;
   
-  if(!didScan)
-  {
-      ulapi_snprintf (str, sizeof (str), "SET {Type RangeImager} {Opcode SCAN}\r\n");
-	  NULLTERM (str);
-	  ulapi_mutex_take (socket_mutex);
-	  usarsim_socket_write (socket_fd, str, strlen (str));
-	  ulapi_mutex_give (socket_mutex);
-      didScan = 1; 
-  }
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);

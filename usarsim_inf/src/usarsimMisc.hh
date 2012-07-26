@@ -43,6 +43,7 @@
 #include <usarsim_inf/EffectorStatus.h>
 #include <usarsim_inf/EffectorCommand.h>
 #include <usarsim_inf/ToolchangerStatus.h>
+#include <usarsim_inf/RangeImageScan.h>
 #include "simware.hh"
 #include "genericInf.hh"
 
@@ -245,14 +246,17 @@ public:
 class UsarsimRngImgSensor:public UsarsimSensor
 {
 public:
-  UsarsimRngImgSensor();
+  UsarsimRngImgSensor(GenericInf *parentInf);
+  GenericInf *infHandle;
   sensor_msgs::Image depthImage;
   int totalFrames;
   ros::Publisher cameraInfoPub;
+  ros::Subscriber command;
   sensor_msgs::CameraInfo camInfo;
   geometry_msgs::TransformStamped opticalTransform;
   bool isReady();
   void sentFrame(int frame);
+  void commandCallback(const usarsim_inf::RangeImageScanConstPtr &msg);
 private:
   int lastFrameReceived;
   bool ready;

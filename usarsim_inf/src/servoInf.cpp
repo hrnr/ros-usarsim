@@ -823,15 +823,19 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw, bool b
   currentTipPosition += tipOffset;
   
   //tip z-axis points along the tip offset, so get the rotation between actuator z-axis and tip offset
-  tf::Vector3 tipZAxis = tipOffset.normalized();
-  tf::Vector3 rotationAxis = tf::Vector3(-1* tipZAxis.getY(), tipZAxis.getX(), 0.0); //rotation axis is k cross tipOffset
-  if(rotationAxis.length2() == 0)
-  {
-  	rotationAxis = tf::Vector3(0, 1, 0);
+  if(tipOffset.length2() == 0)
+  	quat = tf::Quaternion(0, 0, 0, 1);
+  else
+  {	
+	  tf::Vector3 tipZAxis = tipOffset.normalized();
+	  tf::Vector3 rotationAxis = tf::Vector3(-1* tipZAxis.getY(), tipZAxis.getX(), 0.0); //rotation axis is k cross tipOffset
+	  if(rotationAxis.length2() == 0)
+	  {
+	  	rotationAxis = tf::Vector3(0, 1, 0);
+	  }
+	  double angle = acos(tipZAxis.getZ());
+	  quat = tf::Quaternion(rotationAxis, angle);
   }
-  double angle = acos(tipZAxis.getZ());
-  quat = tf::Quaternion(rotationAxis, angle);
-  
   absoluteTransform.setRotation(quat);
   absoluteTransform.setOrigin(currentTipPosition);
   //find the transformation from the tip of the last link to the tip of the arm
@@ -1088,22 +1092,20 @@ int ServoInf::copyRangeImager(UsarsimRngImgSensor *sen, const sw_struct *sw)
 		sen->depthImage.data.insert(sen->depthImage.data.begin() + (sw->data.rangeimager.frame * sw->data.rangeimager.numberperframe * sizeof(float)), 
 		    reinterpret_cast<const uint8_t*>(sw->data.rangeimager.range),
 		 	reinterpret_cast<const uint8_t*>(sw->data.rangeimager.range + sw->data.rangeimager.numberperframe));
-		int num = 1;
-		sen->depthImage.is_bigendian = (*((uint8_t*)(&num)) == 0);
 	}
 	//camera calibration data from the Kinect
 	sen->camInfo.header.frame_id = "/"+sen->name+"_optical";
 	sen->camInfo.height = sw->data.rangeimager.resolutiony;
     sen->camInfo.width = sw->data.rangeimager.resolutionx;
+    float xScale = (float)sen->camInfo.width/640.0;
+    float yScale = (float)sen->camInfo.height/480.0;
     sen->camInfo.distortion_model = "plumb_bob";
     double dArray[] = {0.00000000, 0.00000000, 0.00000000, 0.00000000, 0.00000000};
-    double kArray[] = {585.05108211, 0.00000000, 315.83800193, 0.00000000, 585.05108211, 242.94140713, 0.00000000, 0.00000000, 1.00000000};
+    double kArray[] = {585.05108211 * xScale, 0.00000000, 315.83800193 * xScale, 0.00000000, 585.05108211 * yScale, 242.94140713 * yScale, 0.00000000, 0.00000000, 1.00000000};
     double rArray[] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
-    double pArray[] = {585.05108211, 0.00000000, 315.83800193, 0.0, 0.00000000, 585.05108211, 242.94140713, 0.0, 0.00000000, 0.00000000, 1.00000000, 0.0};
-    /*double dArray[] = {0.00000000, 0.00000000, 0.00000000, 0.00000000, 0.00000000};
-    double kArray[] = {575.8157348632812, 0.00000000, 314.5, 0.00000000, 575.8157348632812, 235.5, 0.00000000, 0.00000000, 1.00000000};
-    double rArray[] = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
-    double pArray[] = {575.8157348632812, 0.00000000, 314.5, 0.00000000, 0.0, 0.00000000, 575.8157348632812, 235.5, 0.0, 0.00000000, 0.00000000, 1.00000000, 0.0};*/
+    double pArray[] = {585.05108211 * xScale, 0.00000000, 315.83800193 * xScale, 0.0, 0.00000000, 585.05108211 * yScale, 242.94140713 * yScale, 0.0, 0.00000000, 0.00000000, 1.00000000, 0.0};
+    
+    
     sen->camInfo.D.assign(dArray, dArray+5);
     std::copy(kArray, kArray+9, sen->camInfo.K.begin());
     std::copy(rArray, rArray+9, sen->camInfo.R.begin());
@@ -1371,12 +1373,14 @@ int ServoInf::rangeImagerIndex(std::vector < UsarsimRngImgSensor> &sensors, std:
 	return t;		// found it
     }
     ROS_INFO("Adding sensor: %s",name.c_str());
-    UsarsimRngImgSensor newSensor;
+    UsarsimRngImgSensor newSensor(this);
     sensors.push_back(newSensor);
     UsarsimRngImgSensor *sensePtr = &(sensors.back());
     sensePtr->name = name;
     sensePtr->time = 0;
     sensePtr->pub = nh->advertise <sensor_msgs::Image > ("image_mono", 2);
+    ROS_ERROR("subscribing to topic %s",(sensePtr->name+"/command").c_str());
+    sensePtr->command = nh->subscribe(sensePtr->name+"/command", 10, &UsarsimRngImgSensor::commandCallback, sensePtr);
     sensePtr->cameraInfoPub = nh->advertise<sensor_msgs::CameraInfo >("camera_info",2);
     sensePtr->tf.header.frame_id = "base_link";
     sensePtr->tf.child_frame_id = ("/"+name).c_str ();

@@ -200,9 +200,10 @@ bool UsarsimGripperEffector::isDone()
 ////////////////////////////////////////////////////////////////////////
 // Range imager
 ////////////////////////////////////////////////////////////////////////
-UsarsimRngImgSensor::UsarsimRngImgSensor ():UsarsimSensor ()
+UsarsimRngImgSensor::UsarsimRngImgSensor (GenericInf *parentInf):UsarsimSensor ()
 {
-	ready = false;
+	infHandle = parentInf;
+	ready = true;
 	lastFrameReceived = 0;
 }
 bool UsarsimRngImgSensor::isReady()
@@ -217,6 +218,17 @@ void UsarsimRngImgSensor::sentFrame(int frame)
  		ready = true;
  	else
  		ready = false;
+}
+void UsarsimRngImgSensor::commandCallback(const usarsim_inf::RangeImageScanConstPtr &msg)
+{
+	if(ready)
+	{
+		sw_struct newSw;
+		newSw.type = SW_ROS_CMD_SCAN;
+		newSw.name = name;
+		newSw.data.roscmdscan.dummy = 1;
+		infHandle->sibling->peerMsg(&newSw);
+	}
 }
 ////////////////////////////////////////////////////////////////////////
 // Toolchanger
