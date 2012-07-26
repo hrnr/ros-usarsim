@@ -44,33 +44,32 @@
 	<link name ="KR60Arm_link5">
 		<visual>
 			<geometry>
-				<box size = "0.000000 0.05 0.05"/>
+				<box size = "0.150000 0.05 0.05"/>
 			</geometry>
-			<origin xyz="-0.000000 0.000000 -0.000000" rpy="0.00 -1.57 1.84" />
+			<origin xyz="0.075000 0.000019 -0.000179" rpy="0.00 -0.00 0.00" />
 		</visual>
 	</link>
 	<link name ="KR60Arm_link6">
 		<visual>
 			<geometry>
-				<box size = "0.040000 0.05 0.05"/>
+				<box size = "0.060000 0.05 0.05"/>
 			</geometry>
-			<origin xyz="-0.000064 0.000005 -0.020000" rpy="0.00 -1.57 3.06" />
+			<origin xyz="-0.000096 0.000008 -0.030000" rpy="0.00 -1.57 3.06" />
 		</visual>
 	</link>
-	<link name = "KR60Arm_tip">
-	</link>
-	<link name = "KR60Vacuum">
+	<link name = "KR60Cup">
 	</link>
 	<joint name="KR60Arm_mount" type="fixed">
 		<parent link="base_link" />
 		<child link="KR60Arm_link0" />
+		<origin xyz="0.000000 0.000000 0.000000" rpy="0.000000 0.000000 0.000000" />
 	</joint>
 	<joint name="KR60Arm_joint_1" type="revolute">
 		<parent link="KR60Arm_link0"/>
 		<child link="KR60Arm_link1"/>
 		<origin xyz="0.00 0.00 -0.97" rpy="3.14 -0.00 0.00" />
 		<axis xyz="0.0 0.0 1" />
-		<limit effort="600.000000" lower="-3.140000" upper="3.140000" velocity="0.5" />
+		<limit effort="600.000000" lower="-3.140000" upper="3.140000" velocity="1.0" />
 	</joint>
 
 	<joint name="KR60Arm_joint_2" type="revolute">
@@ -78,7 +77,7 @@
 		<child link="KR60Arm_link2"/>
 		<origin xyz="0.41 0.00 0.00" rpy="-3.14 -1.57 -1.57" />
 		<axis xyz="0.0 0.0 1" />
-		<limit effort="1500.000000" lower="-0.610000" upper="2.356000" velocity="0.5" />
+		<limit effort="1500.000000" lower="-0.610000" upper="2.356000" velocity="1.0" />
 	</joint>
 
 	<joint name="KR60Arm_joint_3" type="revolute">
@@ -86,7 +85,7 @@
 		<child link="KR60Arm_link3"/>
 		<origin xyz="1.01 0.00 0.00" rpy="0.00 0.00 -1.57" />
 		<axis xyz="0.0 0.0 1" />
-		<limit effort="700.000000" lower="-2.757000" upper="2.094000" velocity="0.5" />
+		<limit effort="700.000000" lower="-2.757000" upper="2.094000" velocity="1.0" />
 	</joint>
 
 	<joint name="KR60Arm_joint_4" type="revolute">
@@ -94,7 +93,7 @@
 		<child link="KR60Arm_link4"/>
 		<origin xyz="0.59 0.19 0.00" rpy="2.36 1.57 2.36" />
 		<axis xyz="0.0 0.0 1" />
-		<limit effort="100.000000" lower="-3.140000" upper="3.140000" velocity="0.5" />
+		<limit effort="100.000000" lower="-3.140000" upper="3.140000" velocity="1.0" />
 	</joint>
 
 	<joint name="KR60Arm_joint_5" type="revolute">
@@ -102,25 +101,20 @@
 		<child link="KR60Arm_link5"/>
 		<origin xyz="-0.00 0.02 0.35" rpy="-0.79 -1.57 -2.36" />
 		<axis xyz="0.0 0.0 1" />
-		<limit effort="60.000000" lower="-2.076000" upper="2.076000" velocity="0.5" />
+		<limit effort="60.000000" lower="-2.076000" upper="2.076000" velocity="1.0" />
 	</joint>
 
 	<joint name="KR60Arm_joint_6" type="revolute">
 		<parent link="KR60Arm_link5"/>
 		<child link="KR60Arm_link6"/>
-		<origin xyz="-0.00 0.00 -0.00" rpy="3.14 -1.57 -3.14" />
+		<origin xyz="0.15 0.00 -0.00" rpy="3.14 -1.57 -3.14" />
 		<axis xyz="0.0 0.0 1" />
-		<limit effort="25.000000" lower="-3.140000" upper="3.140000" velocity="0.5" />
+		<limit effort="25.000000" lower="-3.140000" upper="3.140000" velocity="1.0" />
 	</joint>
 
-	<joint name = "KR60Arm_tip_joint" type = "fixed">
-		<parent link="KR60Arm_link6" />
-		<child link="KR60Arm_tip" />
-		<origin xyz="-0.000127 0.000010 -0.040000" rpy = "0.000000 0.000000 0.000000" />
-	</joint>
-	<joint name = "KR60Vacuum_mount" type = "fixed">
+	<joint name = "KR60Cup_mount" type = "fixed">
 		<parent link = "KR60Arm_link6" />
-		<child link = "KR60Vacuum" />
-		<origin xyz = "-0.000041 0.010010 -0.039998" rpy = "0.000000 0.000000 0.000000" />
+		<child link = "KR60Cup" />
+		<origin xyz = "-0.000423 0.010040 -0.159997" rpy = "3.136814 -0.000486 -1.579081" />
 	</joint>
 </robot>

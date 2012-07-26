@@ -2119,7 +2119,6 @@ int UsarsimInf::handleSenObjectSensor(char *msg)
     componentInfo info;
     sw_struct *sw = objectsensors->getSW();
     int objectIndex = -1;
-    
     setComponentInfo(msg, &info);
     
 	while(1)
@@ -2964,8 +2963,6 @@ UsarsimInf::handleConfActuator (char *msg)
 
   setComponentInfo (msg, &info);
   linkindex = 0;
-
-  ROS_ERROR( "not an error but... usarsimInf.cpp::HandleConfActuator: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -4039,13 +4036,20 @@ int UsarsimInf::handleGeoComponent(const char* componentName, char* msg, sw_pose
 	  info.count++;
 	  info.ptr = info.nextptr;
 	}
-	else if(!strcmp(info.token, "Link"))
+	  else if(!strcmp(info.token, "Link"))
 	{
 	   info.nextptr = getValue (info.ptr, info.token);
 	   if (info.nextptr == info.ptr)
 	    return -1;
 	   mount.linkOffset = getReal(&info);
 	  
+	}
+	  else if(!strcmp(info.token, "Tip"))
+	{
+	  //adjust position to be at the tip of the effector instead of the base
+	  mount.x += getReal(&info);
+	  mount.y += getReal(&info);
+	  mount.z += getReal(&info);
 	}
       else
 	{
@@ -4078,8 +4082,7 @@ UsarsimInf::handleGeoActuator (char *msg)
 
   setComponentInfo( msg, &info );
   linkindex = 0;
-
-  ROS_ERROR( "not an error, but... usarsimInf.cpp::HandleGeoActuator: %s", msg );
+  
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);

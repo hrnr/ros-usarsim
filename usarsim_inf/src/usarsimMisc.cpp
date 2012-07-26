@@ -96,6 +96,7 @@ UsarsimPlatform::UsarsimPlatform ()
   cg.y = 0;
   cg.z = 0;
   steerType = SW_STEER_UNKNOWN;
+  groundTruthSet = false;
 }
 
 ////////////////////////////////////////////////////////////////////////

@@ -130,7 +130,7 @@ private:
   int copyToolchanger(UsarsimToolchanger *effector, const sw_struct *sw);
   int copyRangeImager (UsarsimRngImgSensor * sen, const sw_struct * sw);
   void VelCmdCallback (const geometry_msgs::TwistConstPtr & msg);
-  int updateActuatorTF(UsarsimActuator *act, const sw_struct *sw);
+  int updateActuatorTF(UsarsimActuator *act, const sw_struct *sw, bool broadcastTF);
   void updateActuatorCycle(UsarsimActuator *act);
   bool updateTrajectory(UsarsimActuator *act, const sw_struct *sw);
   bool checkTrajectoryGoal(UsarsimActuator *act, const sw_struct *sw);

@@ -172,7 +172,7 @@ public:
   //! center of gravity wrt origin, in [m], same convention as above
     geometry_msgs::Vector3 cg;
   sw_steer_type steerType;
-
+  bool groundTruthSet;
   /* not yet used
      //! Number of effecters mounted on platform
      // If effCount==0, servo echelon will not open the effecter nml channels

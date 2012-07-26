@@ -1,5 +1,5 @@
-#ifndef __setGoal__
-#define __setGoal__
+#ifndef __navigationGoal__
+#define __navigationGoal__
 
 #include <ros/ros.h>
 #include <arm_navigation_msgs/MoveArmAction.h>
@@ -14,7 +14,9 @@ enum frame_type
 class NavigationGoal
 {
 public:
-	NavigationGoal(std::string actuatorName);
+	NavigationGoal();
+	~NavigationGoal(){};
+	int setupActuator();
 	void movePosition(float xGoal, float yGoal, float zGoal);
 	void moveOffset(float xGoal, float yGoal, float zGoal);
 	void moveOrientation(float roll, float pitch, float yaw);
@@ -24,14 +26,21 @@ public:
 	void resetOrientation();
 	void setPositionTolerance(double tolerance);
 	void setOrientationTolerance(double tolerance);
+	void setTargetPointFrame(std::string targetPointFrameIn);
+	void setTransformListener(tf::TransformListener *listenerPtrIn);
 	arm_navigation_msgs::MoveArmGoal getGoal();
+	std::string getActName();
 private:
-	tf::TransformListener listener;
+	tf::TransformListener *listenerPtr;
 	arm_navigation_msgs::MoveArmGoal goal;
 	bool useGlobalPositionFrame, useGlobalOrientationFrame;
+	bool controlOffset;
 	std::string actName;
-	std::string effectorFrame;
-	void setGlobalPositionGoal(float xGoal, float yGoal, float zGoal);
+	std::string targetPointFrame;
+	std::string tipLink;
+	tf::Vector3 goalPosition;
+	tf::Quaternion goalOrientation;
+	void updateGoalTransformation();
 };
 
 #endif
