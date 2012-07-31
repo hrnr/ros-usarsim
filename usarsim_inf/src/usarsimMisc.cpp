@@ -306,6 +306,14 @@ void UsarsimActuator::trajectoryCallback()
 		goal.time = currentTime + newGoal.trajectory.points[pointCount].time_from_start;
 		currentTrajectory.goals.push_back(goal);
     }
+
+    // sbb debug!!! adding extra point
+    ros::Duration rosDelay(0.25);
+    goal.time += rosDelay;
+    currentTrajectory.goals.push_back(goal);
+    goal.time += rosDelay;
+    currentTrajectory.goals.push_back(goal);
+    // end of debug
       
     for(unsigned int jointCount=0; jointCount<goal.numJoints; jointCount++)
       {

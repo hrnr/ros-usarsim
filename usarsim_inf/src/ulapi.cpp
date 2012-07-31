@@ -355,3 +355,17 @@ ulapi_task_init (void)
 
   return ULAPI_OK;
 }
+
+void ulapi_sleep(ulapi_real secs)
+{
+  int isecs, insecs;
+  struct timespec ts;
+
+  isecs = (int) secs;
+  insecs = (int) ((secs - isecs) * 1.0e9);
+
+  ts.tv_sec = isecs;
+  ts.tv_nsec = insecs;
+
+  (void) nanosleep(&ts, NULL);
+}

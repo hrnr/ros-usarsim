@@ -29,6 +29,7 @@
 */
 #include "servoInf.hh"
 #include <sensor_msgs/image_encodings.h>
+#include "ulapi.hh"
 
 void
 ServoInf::VelCmdCallback (const geometry_msgs::TwistConstPtr & msg)
@@ -172,7 +173,8 @@ ServoInf::peerMsg (sw_struct * sw)
 	    		ROS_ERROR("Trajectory aborted: arm position not at goal");
 	    		result.error_code = result.GOAL_TOLERANCE_VIOLATED;
 	    	}
-	    	actuators[num].setTrajectoryResult(result);
+		actuators[num].setTrajectoryResult(result);
+		//		ulapi_sleep(.75);
 	    }
 	  }
 	  
@@ -1428,19 +1430,21 @@ if it is still in progress
 */
 bool ServoInf::updateTrajectory(UsarsimActuator *act, const sw_struct *sw)
 {
-	TrajectoryPoint currentPoint;
+  TrajectoryPoint currentPoint;
   ros::Time currentTime = ros::Time::now();
   
   if( act->currentTrajectory.goals.size() == 0 ) // check if done
       return true;
   currentPoint = act->currentTrajectory.goals.front();
-  // find next point to execute by looking at where we are likely to be the next time that this routine is called
+  // find next point to execute by looking at where we are likely 
+  // to be the next time that this routine is called
   currentTime += ros::Duration(act->cycleTimer.cycleTime);
+
   while( currentPoint.time < currentTime )
     {
       act->currentTrajectory.goals.pop_front();
       if( act->currentTrajectory.goals.size() == 0 )
-	  	break;
+	  break;
       currentPoint = act->currentTrajectory.goals.front();
     }
     
@@ -1453,8 +1457,8 @@ bool ServoInf::updateTrajectory(UsarsimActuator *act, const sw_struct *sw)
 	  // send next goal point to the robotic arm
 	  newSw.data.roscmdtraj.goal[i] = currentPoint.jointGoals[i];
     }
+
     sibling->peerMsg(&newSw);
-    
     return false;
   
 }
@@ -1465,11 +1469,28 @@ bool ServoInf::checkTrajectoryGoal(UsarsimActuator *act, const sw_struct *sw)
 {
 	for(int i = 0;i<sw->data.actuator.number;i++)
 	  {
-	  if(abs(sw->data.actuator.link[i].position - act->currentTrajectory.finalGoal.jointGoals[i]) > 
+	  if(fabs(sw->data.actuator.link[i].position - act->currentTrajectory.finalGoal.jointGoals[i]) > 
 	     act->currentTrajectory.finalGoal.tolerances[i])
 	     {
 	    	return false;
 	     }
+	  ROS_ERROR( "No error: goal check joint %d desired: %f actual: %f tol: %f diff: %f\n",
+		  i, sw->data.actuator.link[i].position, 
+		  act->currentTrajectory.finalGoal.jointGoals[i],
+		  act->currentTrajectory.finalGoal.tolerances[i],
+		  fabs(sw->data.actuator.link[i].position - act->currentTrajectory.finalGoal.jointGoals[i]) );
+	  /*
+	  if( fabs(sw->data.actuator.link[i].position - act->currentTrajectory.finalGoal.jointGoals[i]) > 0.01 )
+	    {
+	      ulapi_sleep(.5);
+	      ROS_ERROR( "goal check 2 joint %d desired: %f actual: %f tol: %f diff: %f\n",
+			 i, sw->data.actuator.link[i].position, 
+			 act->currentTrajectory.finalGoal.jointGoals[i],
+			 act->currentTrajectory.finalGoal.tolerances[i],
+			 fabs(sw->data.actuator.link[i].position - act->currentTrajectory.finalGoal.jointGoals[i]) );
+	      //	      return false;
+	    }
+	  */
 	  }
 	  return true;
 }
