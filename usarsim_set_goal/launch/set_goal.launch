@@ -6,7 +6,6 @@
 	<param name="goalset/orientationFrame" value="$(arg orientation_frame)" />
 	<param name="goalset/positionFrame" value="$(arg position_frame)" />
 	<param name="goalset/controlOffset" value="$(arg control_offset)" />
-	<param name="goalset/actuatorName" value="KR60Arm" />
 	
 	<node name = "set_goal" pkg = "usarsim_set_goal" type = "set_goal" />
 </launch>

@@ -45,7 +45,7 @@ KR60Arm_cartesian:
     - SBLkConfig1
     - LBKPIECEkConfig1
   kinematics_solver: arm_kinematics_constraint_aware/KDLArmKinematicsPlugin
-  tip_name: KR60Arm_tip
+  tip_name: KR60Arm_link6
   root_name: KR60Arm_link0
   projection_evaluator: joint_state
   longest_valid_segment_fraction: 0.001

@@ -38,7 +38,6 @@ UsarsimInf::UsarsimInf ():GenericInf ()
   build = NULL;
   waitingForConf = 0;
   waitingForGeo = 0;
-  didScan = 0;
 }
 
 int
@@ -421,6 +420,13 @@ UsarsimInf::peerMsg (sw_struct * swIn)
       	usarsim_socket_write (socket_fd, str, strlen (str));
 		ulapi_mutex_give (socket_mutex);
       break; 
+      case SW_ROS_CMD_SCAN:
+      ulapi_snprintf(str, sizeof(str), "SET {Type RangeImager} {Name %s} {Opcode SCAN}\r\n",
+      swIn->name.c_str());
+      NULLTERM(str);
+      usarsim_socket_write(socket_fd, str, strlen (str));
+		ulapi_mutex_give (socket_mutex);
+      break;
     default:
       ROS_ERROR ("usarsimInf::peerMsg: not handling type %s",
 		 swTypeToString (swIn->type));
@@ -1154,15 +1160,6 @@ UsarsimInf::handleSenRangeimager (char *msg)
 
   number = 0;
   
-  if(!didScan)
-  {
-      ulapi_snprintf (str, sizeof (str), "SET {Type RangeImager} {Opcode SCAN}\r\n");
-	  NULLTERM (str);
-	  ulapi_mutex_take (socket_mutex);
-	  usarsim_socket_write (socket_fd, str, strlen (str));
-	  ulapi_mutex_give (socket_mutex);
-      didScan = 1; 
-  }
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -2119,7 +2116,6 @@ int UsarsimInf::handleSenObjectSensor(char *msg)
     componentInfo info;
     sw_struct *sw = objectsensors->getSW();
     int objectIndex = -1;
-    
     setComponentInfo(msg, &info);
     
 	while(1)
@@ -2964,8 +2960,6 @@ UsarsimInf::handleConfActuator (char *msg)
 
   setComponentInfo (msg, &info);
   linkindex = 0;
-
-  ROS_ERROR( "not an error but... usarsimInf.cpp::HandleConfActuator: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -3293,6 +3287,10 @@ int UsarsimInf::handleConfObjectsensor(char *msg)
 	  getName (objectsensors, &info, SW_SEN_OBJECTSENSOR_SET);
 	  sw = info.where->getSW ();
 	  info.where->setDidConf (1);
+	}
+	  else if (!strcmp (info.token, "Fov"))
+	{
+	  sw->data.objectsensor.fov = getReal (&info);
 	}
       else
 	{
@@ -4035,13 +4033,20 @@ int UsarsimInf::handleGeoComponent(const char* componentName, char* msg, sw_pose
 	  info.count++;
 	  info.ptr = info.nextptr;
 	}
-	else if(!strcmp(info.token, "Link"))
+	  else if(!strcmp(info.token, "Link"))
 	{
 	   info.nextptr = getValue (info.ptr, info.token);
 	   if (info.nextptr == info.ptr)
 	    return -1;
 	   mount.linkOffset = getReal(&info);
 	  
+	}
+	  else if(!strcmp(info.token, "Tip"))
+	{
+	  //adjust position to be at the tip of the effector instead of the base
+	  mount.x += getReal(&info);
+	  mount.y += getReal(&info);
+	  mount.z += getReal(&info);
 	}
       else
 	{
@@ -4074,8 +4079,7 @@ UsarsimInf::handleGeoActuator (char *msg)
 
   setComponentInfo( msg, &info );
   linkindex = 0;
-
-  ROS_ERROR( "not an error, but... usarsimInf.cpp::HandleGeoActuator: %s", msg );
+  
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);

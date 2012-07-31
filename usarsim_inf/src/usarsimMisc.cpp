@@ -96,6 +96,7 @@ UsarsimPlatform::UsarsimPlatform ()
   cg.y = 0;
   cg.z = 0;
   steerType = SW_STEER_UNKNOWN;
+  groundTruthSet = false;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -199,9 +200,10 @@ bool UsarsimGripperEffector::isDone()
 ////////////////////////////////////////////////////////////////////////
 // Range imager
 ////////////////////////////////////////////////////////////////////////
-UsarsimRngImgSensor::UsarsimRngImgSensor ():UsarsimSensor ()
+UsarsimRngImgSensor::UsarsimRngImgSensor (GenericInf *parentInf):UsarsimSensor ()
 {
-	ready = false;
+	infHandle = parentInf;
+	ready = true;
 	lastFrameReceived = 0;
 }
 bool UsarsimRngImgSensor::isReady()
@@ -216,6 +218,17 @@ void UsarsimRngImgSensor::sentFrame(int frame)
  		ready = true;
  	else
  		ready = false;
+}
+void UsarsimRngImgSensor::commandCallback(const usarsim_inf::RangeImageScanConstPtr &msg)
+{
+	if(ready)
+	{
+		sw_struct newSw;
+		newSw.type = SW_ROS_CMD_SCAN;
+		newSw.name = name;
+		newSw.data.roscmdscan.dummy = 1;
+		infHandle->sibling->peerMsg(&newSw);
+	}
 }
 ////////////////////////////////////////////////////////////////////////
 // Toolchanger
@@ -289,6 +302,7 @@ UsarsimActuator::~UsarsimActuator()
 
 void UsarsimActuator::trajectoryCallback()
 {
+  ROS_ERROR("trajectory callback.");
   control_msgs::FollowJointTrajectoryGoal newGoal = *(trajectoryServer->acceptNewGoal());
   ros::Time currentTime = ros::Time::now();
   TrajectoryPoint goal;
@@ -335,13 +349,17 @@ void UsarsimActuator::trajectoryCallback()
     }
     infHandle->sibling->peerMsg(&sw);
 }
-
+void UsarsimActuator::preemptCallback()
+{	
+	ROS_ERROR("Goal preempted!");
+}
 void UsarsimActuator::setUpTrajectory()
 {
 	trajectoryServer = new actionlib::SimpleActionServer<control_msgs::FollowJointTrajectoryAction>(name + "_controller/follow_joint_trajectory/", false);
 	if(trajectoryServer)
 	{
 		trajectoryServer->registerGoalCallback(boost::bind(&UsarsimActuator::trajectoryCallback, this));
+		trajectoryServer->registerPreemptCallback(boost::bind(&UsarsimActuator::preemptCallback, this));
 		trajectoryServer->start();
 	}
 }
@@ -350,6 +368,10 @@ bool UsarsimActuator::isTrajectoryActive()
 	if(trajectoryServer)
 		return trajectoryServer->isActive();
 	return false;
+}
+bool UsarsimActuator::preempted()
+{
+	return trajectoryServer->isPreemptRequested();
 }
 void UsarsimActuator::setTrajectoryResult(control_msgs::FollowJointTrajectoryResult result)
 {

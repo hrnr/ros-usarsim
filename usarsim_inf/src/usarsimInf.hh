@@ -83,7 +83,6 @@ public:
 private:
   int waitingForConf;
   int waitingForGeo;
-  int didScan; //whether or not a rangeimager has sent a scan (for testing)
   int socket_fd;
   void *socket_mutex;
   int buildlen;

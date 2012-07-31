@@ -2,42 +2,42 @@ joint_limits:
   KR60Arm_joint_1:
     has_position_limits: true
     has_velocity_limits: true
-    max_velocity: 0.5
+    max_velocity: 1
     has_acceleration_limits: true
     max_acceleration: 1
     angle_wraparound: false
   KR60Arm_joint_2:
     has_position_limits: true
     has_velocity_limits: true
-    max_velocity: 0.5
+    max_velocity: 1
     has_acceleration_limits: true
     max_acceleration: 1
     angle_wraparound: false
   KR60Arm_joint_3:
     has_position_limits: true
     has_velocity_limits: true
-    max_velocity: 0.5
+    max_velocity: 1
     has_acceleration_limits: true
     max_acceleration: 1
     angle_wraparound: false
   KR60Arm_joint_4:
     has_position_limits: true
     has_velocity_limits: true
-    max_velocity: 0.5
+    max_velocity: 1
     has_acceleration_limits: true
     max_acceleration: 1
     angle_wraparound: false
   KR60Arm_joint_5:
     has_position_limits: true
     has_velocity_limits: true
-    max_velocity: 0.5
+    max_velocity: 1
     has_acceleration_limits: true
     max_acceleration: 1
     angle_wraparound: false
   KR60Arm_joint_6:
     has_position_limits: true
     has_velocity_limits: true
-    max_velocity: 0.5
+    max_velocity: 1
     has_acceleration_limits: true
     max_acceleration: 1
     angle_wraparound: false

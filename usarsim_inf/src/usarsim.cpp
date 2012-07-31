@@ -79,7 +79,8 @@ main (int argc, char **argv)
     {
       if (usarsim->msgIn () != 1)
 	{
-	  ROS_ERROR ("Error from usarsimInf");
+	  ROS_ERROR ("Error from usarsimInf, exiting");
+	  break;
 	}
     }
   ulapi_exit ();
