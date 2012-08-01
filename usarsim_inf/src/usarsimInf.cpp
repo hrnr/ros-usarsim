@@ -118,7 +118,7 @@ UsarsimInf::init (GenericInf * siblingIn)
      we need to force a request for geo and conf information. It may
      come back empty.] <--  THIS IS NO LONGER TRUE!
    */
-  ulapi_snprintf (str, sizeof (str), "GETCONF {Type Actuator}\r\n");
+  /*ulapi_snprintf (str, sizeof (str), "GETCONF {Type Actuator}\r\n");
   NULLTERM (str);
   ulapi_mutex_take (socket_mutex);
   usarsim_socket_write (socket_fd, str, strlen (str));
@@ -128,7 +128,7 @@ UsarsimInf::init (GenericInf * siblingIn)
   NULLTERM (str);
   ulapi_mutex_take (socket_mutex);
   usarsim_socket_write (socket_fd, str, strlen (str));
-  ulapi_mutex_give (socket_mutex);
+  ulapi_mutex_give (socket_mutex);*/
 
   /*
   ulapi_snprintf (str, sizeof (str), "GETCONF {Type MisPkg}\r\n");
@@ -2166,6 +2166,14 @@ int UsarsimInf::handleSenObjectSensor(char *msg)
 	  		sw->data.objectsensor.objects[objectIndex].position.pitch = getReal (&info);
 	  		sw->data.objectsensor.objects[objectIndex].position.yaw = getReal (&info);
 		}
+		else if (!strcmp(info.token, "HitLoc"))
+		{
+			if(objectIndex < 0)
+				return -1;
+			sw->data.objectsensor.objects[objectIndex].hit_location.x = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].hit_location.y = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].hit_location.z = getReal (&info);
+		}
 		else if (!strcmp(info.token, "Material"))
 		{
 			info.nextptr = getValue (info.ptr, info.token);
@@ -4033,20 +4041,12 @@ int UsarsimInf::handleGeoComponent(const char* componentName, char* msg, sw_pose
 	  info.count++;
 	  info.ptr = info.nextptr;
 	}
-	  else if(!strcmp(info.token, "Link"))
+	  else if(!strcmp(info.token, "MountLink"))
 	{
 	   info.nextptr = getValue (info.ptr, info.token);
 	   if (info.nextptr == info.ptr)
 	    return -1;
-	   mount.linkOffset = getReal(&info);
-	  
-	}
-	  else if(!strcmp(info.token, "Tip"))
-	{
-	  //adjust position to be at the tip of the effector instead of the base
-	  mount.x += getReal(&info);
-	  mount.y += getReal(&info);
-	  mount.z += getReal(&info);
+	   mount.linkOffset = getReal(&info); 
 	}
       else
 	{
@@ -4189,6 +4189,11 @@ UsarsimInf::handleGeoActuator (char *msg)
 	  sw->data.actuator.link[linkindex].mount.pitch = getReal(&info); 
 	  sw->data.actuator.link[linkindex].mount.yaw = getReal(&info); 
 	}
+	else if (!strcmp (info.token, "MountLink"))
+	{
+	   sw->data.actuator.mount.linkOffset = getReal(&info);
+	   ROS_ERROR("Mountlink for %s is %d", sw->name.c_str(), sw->data.actuator.mount.linkOffset);
+	}
 	else if (!strcmp (info.token, "Tip"))
 	{
 	  sw->data.actuator.tip.x = getReal(&info); 
@@ -4212,6 +4217,70 @@ UsarsimInf::handleGeoActuator (char *msg)
   info.where->setDidGeo (1);
   return info.count;
 }
+
+int UsarsimInf::handleGeoGripper (char *msg)
+{
+	componentInfo info;
+    setComponentInfo (msg, &info);
+    sw_struct *sw = grippers->getSW();
+  while (1)
+    {
+      info.nextptr = getKey (info.ptr, info.token);
+      if (info.nextptr == info.ptr)
+	break;
+      info.ptr = info.nextptr;
+
+      if (!strcmp (info.token, "Type"))
+	{
+	  expect (&info, "Gripper");
+	}
+      else if (!strcmp (info.token, "Name"))
+	{
+	  getName (grippers, &info, SW_EFF_GRIPPER_SET);
+	  sw = info.where->getSW ();
+	  info.where->setDidConf (1);
+	  sw->data.gripper.mount.linkOffset = -1;
+	  expect (&info, "Location");
+	  sw->data.gripper.mount.x = getReal (&info);
+	  sw->data.gripper.mount.y = getReal (&info);
+	  sw->data.gripper.mount.z = getReal (&info);
+	  expect (&info, "Orientation");
+	  sw->data.gripper.mount.roll = getReal (&info);
+	  sw->data.gripper.mount.pitch = getReal (&info);
+	  sw->data.gripper.mount.yaw = getReal (&info);
+	  expect (&info, "Mount");
+	  info.nextptr = getValue (info.ptr, info.token);
+	  ulapi_strncpy (sw->data.gripper.mount.offsetFrom, info.token,
+			 SW_NAME_MAX);
+	  info.count++;
+	  info.ptr = info.nextptr;
+	}
+	  else if(!strcmp(info.token, "MountLink"))
+	{
+	   info.nextptr = getValue (info.ptr, info.token);
+	   if (info.nextptr == info.ptr)
+	    return -1;
+	   sw->data.gripper.mount.linkOffset = getReal(&info); 
+	}
+	  else if(!strcmp(info.token, "Tip"))
+	{
+	  //adjust position to be at the tip of the effector instead of the base
+	  sw->data.gripper.tip.x = getReal(&info);
+	  sw->data.gripper.tip.y = getReal(&info);
+	  sw->data.gripper.tip.z = getReal(&info);
+	}
+      else
+	{
+	  /* skip unknown entry  */
+	  info.nextptr = getValue (info.ptr, info.token);
+	}
+    }
+  info.where->setDidGeo (1);
+  info.op = SW_EFF_GRIPPER_SET;
+  msgout (sw, info);
+  return info.count;
+}
+
 
 /*
   GEO {Type GroundVehicle}
@@ -4414,8 +4483,7 @@ UsarsimInf::handleGeo (char *msg)
 	    }
 	  else if (!strcmp (token, "Gripper"))
 	    {
-	      sw = grippers->getSW();
-	      return handleGeoComponent("Gripper", msg, sw->data.gripper.mount, grippers, SW_EFF_GRIPPER_SET);
+	      return handleGeoGripper(msg);
 	    }
 	  else if (!strcmp (token, "ToolChanger"))
 	    {

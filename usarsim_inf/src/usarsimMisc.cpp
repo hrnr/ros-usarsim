@@ -180,7 +180,7 @@ void UsarsimGripperEffector::commandCallback(const usarsim_inf::EffectorCommandC
 	{
 		commandActive = true;
 		goal.state = msg->state;
-		ROS_ERROR("Received gripper command, opcode %d", msg->state);
+		ROS_INFO("Received gripper command, opcode %d", msg->state);
 		sw_struct newSw;
 		newSw.type = SW_ROS_CMD_GRIP;
 		newSw.name = name;
@@ -212,10 +212,13 @@ bool UsarsimRngImgSensor::isReady()
 }
 void UsarsimRngImgSensor::sentFrame(int frame)
 {
-	ROS_ERROR("receiving frame %d of %d", frame, totalFrames);
+	ROS_INFO("receiving frame %d of %d", frame, totalFrames);
  	lastFrameReceived = frame;
  	if(lastFrameReceived == totalFrames - 1)
+ 	{
  		ready = true;
+ 		ROS_INFO("RangeImager scan complete.");
+ 	}
  	else
  		ready = false;
 }
@@ -240,7 +243,7 @@ UsarsimToolchanger::UsarsimToolchanger (GenericInf *parentInf):UsarsimSensor ()
 void UsarsimToolchanger::commandCallback(const usarsim_inf::EffectorCommandConstPtr &msg)
 {
 	goal.state = msg->state;
-	ROS_ERROR("Received toolchanger command, opcode %d", msg->state);
+	ROS_INFO("Received toolchanger command, opcode %d", msg->state);
 	sw_struct newSw;
 	newSw.type = SW_ROS_CMD_TOOLCHANGE;
 	newSw.name = name;
@@ -302,7 +305,7 @@ UsarsimActuator::~UsarsimActuator()
 
 void UsarsimActuator::trajectoryCallback()
 {
-  ROS_ERROR("trajectory callback.");
+  ROS_INFO("Starting a new arm trajectory...");
   control_msgs::FollowJointTrajectoryGoal newGoal = *(trajectoryServer->acceptNewGoal());
   ros::Time currentTime = ros::Time::now();
   TrajectoryPoint goal;
@@ -362,6 +365,7 @@ void UsarsimActuator::setUpTrajectory()
 		trajectoryServer->registerPreemptCallback(boost::bind(&UsarsimActuator::preemptCallback, this));
 		trajectoryServer->start();
 	}
+	ROS_INFO("Started trajectory server for actuator %s", name.c_str());
 }
 bool UsarsimActuator::isTrajectoryActive()
 {
@@ -371,7 +375,9 @@ bool UsarsimActuator::isTrajectoryActive()
 }
 bool UsarsimActuator::preempted()
 {
-	return trajectoryServer->isPreemptRequested();
+	if(trajectoryServer)
+		return trajectoryServer->isPreemptRequested();
+	return false;
 }
 void UsarsimActuator::setTrajectoryResult(control_msgs::FollowJointTrajectoryResult result)
 {

@@ -161,14 +161,12 @@ ServoInf::peerMsg (sw_struct * sw)
 	    if(!buildTFTree)
 	    	publishJoints();
 	    updateActuatorCycle(&actuators[num]);
-	    if(actuators[num].preempted())
-	    	ROS_ERROR("PREEMPT %s", actuators[num].name.c_str());
 	    if(actuators[num].isTrajectoryActive() && updateTrajectory(&actuators[num], sw))
 	    {
 	    	control_msgs::FollowJointTrajectoryResult result;
 	    	if(checkTrajectoryGoal(&actuators[num], sw))
 	    	{
-	    		ROS_ERROR("Trajectory succeeded");
+	    		ROS_INFO("Trajectory succeeded");
 	    		result.error_code = result.SUCCESSFUL;
 	    	}
 	    	else
@@ -730,41 +728,12 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw, bool b
   tf::Vector3 currentTipPosition; //relative to actuator base
   tf::Transform lastTipTransform; //relative to actuator base
   tf::Transform absoluteTransform;//relative to actuator base
-  int invertZ = 0;
-  double mountRoll, mountZ;
 
   currentTime = ros::Time::now ();
   act->jointTf.clear();
   currentJointTf.header.stamp = currentTime;
-   if (!ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom, "HARD") ||
-      !ulapi_strcasecmp (sw->data.actuator.mount.offsetFrom,
-   			 basePlatform->platformName.c_str ()))
-    {
-	act->tf.header.frame_id = "base_link";
-	invertZ = 1;
-   }
-   else
-    {
-	act->tf.header.frame_id = sw->data.actuator.mount.offsetFrom;
-   }
   
-  // compute transform for entire package
-  mountRoll = sw->data.actuator.mount.roll;
-  mountZ = sw->data.actuator.mount.z;
-  if( invertZ )
-    {
-      mountRoll += M_PI;
-      mountZ *= -1;
-    }
-  quat = tf::createQuaternionFromRPY ( mountRoll,
-				      sw->data.actuator.mount.pitch,
-				      sw->data.actuator.mount.yaw);
-  tf::quaternionTFToMsg (quat, quatMsg);
-  act->tf.transform.translation.x = sw->data.actuator.mount.x;
-  act->tf.transform.translation.y = sw->data.actuator.mount.y;
-  act->tf.transform.translation.z = mountZ;
-  act->tf.transform.rotation = quatMsg;
-  act->tf.header.stamp = currentTime;
+  setTransform(act, sw->data.actuator.mount, currentTime);
   act->tf.child_frame_id = act->name + "_link0";
   if(broadcastTF)
   	rosTfBroadcaster.sendTransform (act->tf);
@@ -779,21 +748,17 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw, bool b
       tempSS.str("");
       tempSS << i+1; // link is array index + 2 (starts at joint 1);
       currentJointTf.child_frame_id = act->name + std::string("_link") + tempSS.str ();
-      if( sw->data.actuator.link[i].parent == 0 )
-	currentJointTf.header.frame_id = act->tf.child_frame_id;
-      else
-	{
 	  tempSS.str("");
 	  tempSS << sw->data.actuator.link[i].parent;
 	  currentJointTf.header.frame_id = act->name + std::string("_link") + tempSS.str ();
-	}
+	  
 	  //USARSim specifies link offsets in actuator coordinates and link rotations in link coordinates,
 	  //so we need to treat rotations and positions seperately when calculating link transforms.
       quat = tf::createQuaternionFromRPY (sw->data.actuator.link[i].mount.roll,
 					  sw->data.actuator.link[i].mount.pitch,
 					  sw->data.actuator.link[i].mount.yaw);
 	  
-	  //find the position of the next link tip in the global coordinate frame
+	  //find the position of the next link tip in the actuator coordinate frame
 	  currentTipPosition += tf::Vector3(sw->data.actuator.link[i].mount.x,sw->data.actuator.link[i].mount.y,sw->data.actuator.link[i].mount.z);
 	  absoluteTransform.setOrigin(currentTipPosition);
 	  
@@ -1057,18 +1022,26 @@ int ServoInf::copyObjectSensor (UsarsimObjectSensor *sen, const sw_struct *sw)
   {
   	sen->objSense.object_names.push_back(std::string(sw->data.objectsensor.objects[i].tag));
   	sen->objSense.material_names.push_back(std::string(sw->data.objectsensor.objects[i].material_name));
-  	geometry_msgs::Pose pose;
-  	pose.position.x = sw->data.objectsensor.objects[i].position.x;
-  	pose.position.y = sw->data.objectsensor.objects[i].position.y;
-  	pose.position.z = sw->data.objectsensor.objects[i].position.z;
+  	geometry_msgs::Pose objectPose;
+  	geometry_msgs::Pose objectHitLocation;
+  	
+  	objectPose.position.x = sw->data.objectsensor.objects[i].position.x;
+  	objectPose.position.y = sw->data.objectsensor.objects[i].position.y;
+  	objectPose.position.z = sw->data.objectsensor.objects[i].position.z;
+  	
+  	objectHitLocation.position.x = sw->data.objectsensor.objects[i].hit_location.x;
+  	objectHitLocation.position.y = sw->data.objectsensor.objects[i].hit_location.y;
+  	objectHitLocation.position.z = sw->data.objectsensor.objects[i].hit_location.z;
   	
   	quat = tf::createQuaternionFromRPY(sw->data.objectsensor.objects[i].position.roll,
   						sw->data.objectsensor.objects[i].position.pitch,
   						sw->data.objectsensor.objects[i].position.yaw);
   						
   	tf::quaternionTFToMsg(quat, quatMsg);
-  	pose.orientation = quatMsg;
-  	sen->objSense.object_poses.push_back(pose);
+  	objectPose.orientation = quatMsg;
+  	
+  	sen->objSense.object_hit_locations.push_back(objectHitLocation);
+  	sen->objSense.object_poses.push_back(objectPose);
   	
   }
   
@@ -1124,7 +1097,17 @@ int ServoInf::copyRangeImager(UsarsimRngImgSensor *sen, const sw_struct *sw)
 int ServoInf::copyGripperEffector(UsarsimGripperEffector * effector, const sw_struct *sw)
 {
 	ros::Time currentTime = ros::Time::now();
+	tf::Transform baseTransform;
+	tf::Transform tipTransform;
+	
 	setTransform(effector, sw->data.gripper.mount, currentTime);
+
+	//adjust transform for gripper by tip offset
+	tipTransform.setRotation(tf::Quaternion(0,0,0,1));
+	tipTransform.setOrigin(tf::Vector3(sw->data.gripper.tip.x, sw->data.gripper.tip.y, sw->data.gripper.tip.z));
+	tf::transformMsgToTF(effector->tf.transform, baseTransform);
+	tf::transformTFToMsg(baseTransform * tipTransform, effector->tf.transform);
+
 	effector->status.header.stamp = currentTime;
 	effector->status.header.frame_id = effector->name;
 	
@@ -1262,22 +1245,17 @@ ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
   unsigned int t;
   std::string pubName;
   UsarsimActuator newActuator(this);
-  UsarsimActuator *actPtr;
   
   for (t = 0; t < actuatorsIn.size (); t++)
     {
       if (name == actuatorsIn[t].name)
 	return t;		// found it
     }
-  
-  ROS_INFO ("Adding actuator: %s", name.c_str ());
-   
-  actuatorsIn.push_back (newActuator);
-  actPtr = &actuatorsIn.back();
   //unable to find the actuator, so must create it.
-  actPtr->name = name;
-  actPtr->time = 0;
-  actPtr->setUpTrajectory();
+  actuatorsIn.push_back (newActuator);
+  actuatorsIn.back().name = name;
+  actuatorsIn.back().time = 0;
+  actuatorsIn.back().setUpTrajectory();
   
   return actuatorsIn.size () - 1;
 }
@@ -1381,7 +1359,7 @@ int ServoInf::rangeImagerIndex(std::vector < UsarsimRngImgSensor> &sensors, std:
     sensePtr->name = name;
     sensePtr->time = 0;
     sensePtr->pub = nh->advertise <sensor_msgs::Image > ("image_mono", 2);
-    ROS_ERROR("subscribing to topic %s",(sensePtr->name+"/command").c_str());
+    ROS_INFO("subscribing to topic %s",(sensePtr->name+"/command").c_str());
     sensePtr->command = nh->subscribe(sensePtr->name+"/command", 10, &UsarsimRngImgSensor::commandCallback, sensePtr);
     sensePtr->cameraInfoPub = nh->advertise<sensor_msgs::CameraInfo >("camera_info",2);
     sensePtr->tf.header.frame_id = "base_link";
