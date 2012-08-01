@@ -66,7 +66,7 @@ void addComponentParentJoint(const UsarsimSensor *sen, FILE *fp)
 	fprintf(fp, "\t<joint name = \"%s_mount\" type = \"fixed\">\n", sen->name.c_str());
 	fprintf(fp, "\t\t<parent link = \"%s\" />\n", sen->tf.header.frame_id.c_str());
 	fprintf(fp, "\t\t<child link = \"%s\" />\n", sen->tf.child_frame_id.c_str());
-	fprintf(fp, "\t\t<origin xyz = \"%f %f %f\" rpy = \"%f %f %f\" />\n",
+	fprintf(fp, "\t\t<origin xyz = \"%.2f %.2f %.2f\" rpy = \"%.2f %.2f %.2f\" />\n",
 	sen->tf.transform.translation.x, sen->tf.transform.translation.y, sen->tf.transform.translation.z,
 	roll,pitch,yaw);
 	fprintf(fp, "\t</joint>\n");
@@ -122,8 +122,8 @@ main (int argc, char **argv)
 	//ROS_INFO ("Waiting %f more seconds (cur: %d start: %d", (float)(5.-(currentTime.sec - startTime.sec )),
 	//	  currentTime.sec, startTime.sec);
     }
-  ROS_ERROR ("Generating urdf file...\n");
   fileName = servo->getPlatformName().c_str () + std::string(".xml");
+  ROS_INFO ("Generating urdf file...\nOutput file is ~/.ros/%s\n", fileName.c_str());
   fp = fopen( fileName.c_str (), "w" );
   if( fp == NULL )
     {
@@ -155,17 +155,17 @@ main (int argc, char **argv)
 	     actPt->jointTf[j].transform.translation.y +
 	     actPt->jointTf[j].transform.translation.z *
 	     actPt->jointTf[j].transform.translation.z );
-	    pitch = atan2(actPt->jointTf[j].transform.translation.z,
+	    pitch = -1 * atan2(actPt->jointTf[j].transform.translation.z,
 			  actPt->jointTf[j].transform.translation.x);
 	    yaw = atan2(actPt->jointTf[j].transform.translation.y,
 			actPt->jointTf[j].transform.translation.x);
-	    fprintf( fp, "\t\t\t\t<box size = \"%f 0.05 0.05\"/>\n",//"\t\t\t\t<cylinder length=\"%f\" radius =\".05\"/>\n",
+	    fprintf( fp, "\t\t\t\t<box size = \"%.2f 0.05 0.05\"/>\n",//"\t\t\t\t<cylinder length=\"%f\" radius =\".05\"/>\n",
 		   length );
 	    fprintf( fp, "\t\t\t</geometry>\n" );
-	    fprintf( fp, "\t\t\t<origin xyz=\"%f %f %f\" rpy=\"%.2f %.2f %.2f\" />\n",
-		   (actPt->jointTf[j].transform.translation.x -actPt->tf.transform.translation.x)/2.,
-		   (actPt->jointTf[j].transform.translation.y -actPt->tf.transform.translation.y)/2.,
-		   (actPt->jointTf[j].transform.translation.z -actPt->tf.transform.translation.z)/2.,
+	    fprintf( fp, "\t\t\t<origin xyz=\"%.2f %.2f %.2f\" rpy=\"%.2f %.2f %.2f\" />\n",
+		   (actPt->jointTf[j].transform.translation.x)/2.,
+		   (actPt->jointTf[j].transform.translation.y)/2.,
+		   (actPt->jointTf[j].transform.translation.z)/2.,
 	           0., pitch, yaw );
 	    fprintf( fp, "\t\t</visual>\n" );
 	  	fprintf( fp, "\t</link>\n");
@@ -180,15 +180,18 @@ main (int argc, char **argv)
     ROS_ERROR("Done with component links.");
     for(unsigned int i=0;i<servo->getNumActuators();i++)
     {
+    	
     	actPt = servo->getActuator(i);
       	platformSize = servo->getPlatformSize();
       	//base joint
+      	tf::quaternionMsgToTF(actPt->tf.transform.rotation, bt_q);
+      	QUAT_TO_RPY(bt_q, roll, pitch, yaw);
 		fprintf( fp, "\t<joint name=\"%s_mount\" type=\"fixed\">\n", actPt->name.c_str());
-		fprintf( fp, "\t\t<parent link=\"base_link\" />\n");
+		fprintf( fp, "\t\t<parent link=\"%s\" />\n", actPt->tf.header.frame_id.c_str());
 		fprintf( fp, "\t\t<child link=\"%s\" />\n", actPt->jointTf[0].header.frame_id.c_str());
-		fprintf( fp, "\t\t<origin xyz=\"%f %f %f\" rpy=\"%f %f %f\" />\n",
+		fprintf( fp, "\t\t<origin xyz=\"%.2f %.2f %.2f\" rpy=\"%.2f %.2f %.2f\" />\n",
 			actPt->tf.transform.translation.x, actPt->tf.transform.translation.y,
-			actPt->tf.transform.translation.z, 0.0, 0.0, 0.0);
+			actPt->tf.transform.translation.z, roll, pitch, yaw);
 		fprintf( fp, "\t</joint>\n");
     	for( unsigned int j=0; j<actPt->jointTf.size() - 1; j++ )
 		{
@@ -196,15 +199,14 @@ main (int argc, char **argv)
 		  fprintf( fp, "\t\t<parent link=\"%s\"/>\n", actPt->jointTf[j].header.frame_id.c_str () );
 		  fprintf( fp, "\t\t<child link=\"%s\"/>\n", actPt->jointTf[j].child_frame_id.c_str () );
 		  tf::quaternionMsgToTF(actPt->jointTf[j].transform.rotation, bt_q);
-		  ROS_ERROR("quaternion in from link %d: %f, %f, %f, %f", j, bt_q.x(), bt_q.y(), bt_q.z(), bt_q.w());
 		  QUAT_TO_RPY(bt_q, roll, pitch, yaw);
 		  fprintf( fp, "\t\t<origin xyz=\"%.2f %.2f %.2f\" rpy=\"%.2f %.2f %.2f\" />\n",
-			   actPt->jointTf[j].transform.translation.x - actPt->tf.transform.translation.x,
-			   actPt->jointTf[j].transform.translation.y - actPt->tf.transform.translation.y,
-			   actPt->jointTf[j].transform.translation.z - actPt->tf.transform.translation.z,
+			   actPt->jointTf[j].transform.translation.x,
+			   actPt->jointTf[j].transform.translation.y,
+			   actPt->jointTf[j].transform.translation.z,
 			   roll, pitch, yaw );
 		  fprintf( fp, "\t\t<axis xyz=\"0.0 0.0 1\" />\n" );
-		  fprintf( fp, "\t\t<limit effort=\"%f\" lower=\"%f\" upper=\"%f\" velocity=\"1.0\" />\n", actPt->maxTorques[j], actPt->minValues[j], actPt->maxValues[j]);
+		  fprintf( fp, "\t\t<limit effort=\"%.2f\" lower=\"%.2f\" upper=\"%.2f\" velocity=\"1.0\" />\n", actPt->maxTorques[j], actPt->minValues[j], actPt->maxValues[j]);
 		  fprintf( fp, "\t</joint>\n\n");
 		}
   }

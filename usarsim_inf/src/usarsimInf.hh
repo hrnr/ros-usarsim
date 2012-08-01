@@ -158,6 +158,7 @@ private:
   int handleGeoGroundvehicle (char *msg);
   int handleGeoBasemachine (char *msg);
   int handleGeoStaticplatform (char *msg);
+  int handleGeoGripper (char *msg);
   
   int handleGeoComponent(const char* componentName, char *msg, sw_pose &mount, UsarsimList *list, int opcode);
 

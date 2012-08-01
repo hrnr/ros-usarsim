@@ -376,6 +376,7 @@ typedef struct
   char tag[SW_NAME_MAX];
   char material_name[SW_NAME_MAX];
   sw_pose position;
+  sw_pose hit_location;
 } sw_sen_object_struct;
 enum
 {
@@ -403,6 +404,7 @@ enum
 typedef struct
 {
   sw_pose mount;
+  sw_pose tip;
   effector_status status;
 } sw_eff_gripper_struct;
 enum
