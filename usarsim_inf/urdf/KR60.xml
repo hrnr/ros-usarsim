@@ -44,9 +44,9 @@
 	<link name ="KR60Arm_link5">
 		<visual>
 			<geometry>
-				<box size = "0.15 0.05 0.05"/>
+				<box size = "0.01 0.05 0.05"/>
 			</geometry>
-			<origin xyz="0.07 0.00 -0.00" rpy="0.00 0.00 0.00" />
+			<origin xyz="0.00 -0.00 0.00" rpy="0.00 -1.57 -1.30" />
 		</visual>
 	</link>
 	<link name ="KR60Arm_link6">
@@ -54,7 +54,7 @@
 			<geometry>
 				<box size = "0.06 0.05 0.05"/>
 			</geometry>
-			<origin xyz="0.01 -0.00 -0.03" rpy="0.00 1.39 -0.55" />
+			<origin xyz="-0.00 0.00 -0.03" rpy="0.00 1.57 3.06" />
 		</visual>
 	</link>
 	<link name = "KR60Cup">
@@ -107,7 +107,7 @@
 	<joint name="KR60Arm_joint_6" type="revolute">
 		<parent link="KR60Arm_link5"/>
 		<child link="KR60Arm_link6"/>
-		<origin xyz="0.15 0.00 -0.00" rpy="0.11 -1.39 -0.00" />
+		<origin xyz="0.00 -0.00 0.01" rpy="3.14 -1.57 -3.14" />
 		<axis xyz="0.0 0.0 1" />
 		<limit effort="25.00" lower="-3.14" upper="3.14" velocity="1.0" />
 	</joint>
@@ -115,6 +115,6 @@
 	<joint name = "KR60Cup_mount" type = "fixed">
 		<parent link = "KR60Arm_link6" />
 		<child link = "KR60Cup" />
-		<origin xyz = "0.04 -0.02 -0.10" rpy = "2.97 0.11 1.56" />
+		<origin xyz = "-0.01 -0.01 -0.27" rpy = "3.14 0.00 -1.58" />
 	</joint>
 </robot>

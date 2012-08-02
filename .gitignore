@@ -9,3 +9,5 @@
 /usarsim_joint_gui/build/*
 /usarsim_joint_gui/bin/*
 /usarsim_twolink_arm_nav/build/*
+/usarsim_set_goal/build/*
+/usarsim_set_goal/bin/*

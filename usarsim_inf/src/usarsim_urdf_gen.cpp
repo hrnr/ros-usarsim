@@ -81,6 +81,7 @@ main (int argc, char **argv)
   tf::Quaternion bt_q;
   FILE *fp;
   std::string fileName;
+  unsigned int i;
   
   // init ros
   ros::init (argc, argv, "usarsim");
@@ -140,9 +141,11 @@ main (int argc, char **argv)
   fprintf( fp, "\t<link name=\"base_link\" />\n");
   
   //loop through all actuators, adding link elements
-  for( unsigned int i=0; i<servo->getNumActuators(); i++ )
+  i = 0;
+  for(std::list<UsarsimActuator>::iterator it = servo->getActuatorBegin();it != servo->getActuatorEnd();it++)
   {
-    actPt = servo->getActuator(i);
+    actPt = (UsarsimActuator*)(&*it);
+    //actPt = servo->getActuator(i);
     platformSize = servo->getPlatformSize();
     for( unsigned int j=0; j<actPt->jointTf.size(); j++ )//only loop as far as tip link
     {
@@ -172,16 +175,16 @@ main (int argc, char **argv)
     }
     }
     ROS_ERROR("Done with actuator links.");
-    for(unsigned int i = 0;i<servo->getNumExtras();i++)
+    for(i = 0;i<servo->getNumExtras();i++)
     {
     	if(servo->getComponent(i)->linkOffset >= 0)
     		addComponentLink(servo->getComponent(i), fp);
     }
     ROS_ERROR("Done with component links.");
-    for(unsigned int i=0;i<servo->getNumActuators();i++)
+    i = 0;
+    for(std::list<UsarsimActuator>::iterator it = servo->getActuatorBegin();it != servo->getActuatorEnd();it++)
     {
-    	
-    	actPt = servo->getActuator(i);
+    	actPt = (UsarsimActuator*)(&*it);
       	platformSize = servo->getPlatformSize();
       	//base joint
       	tf::quaternionMsgToTF(actPt->tf.transform.rotation, bt_q);
@@ -209,8 +212,9 @@ main (int argc, char **argv)
 		  fprintf( fp, "\t\t<limit effort=\"%.2f\" lower=\"%.2f\" upper=\"%.2f\" velocity=\"1.0\" />\n", actPt->maxTorques[j], actPt->minValues[j], actPt->maxValues[j]);
 		  fprintf( fp, "\t</joint>\n\n");
 		}
+		i++;
   }
-  for(unsigned int i = 0;i<servo->getNumExtras();i++)
+  for(i = 0;i<servo->getNumExtras();i++)
   {
    	if(servo->getComponent(i)->linkOffset >= 0)
   		addComponentParentJoint(servo->getComponent(i), fp);
