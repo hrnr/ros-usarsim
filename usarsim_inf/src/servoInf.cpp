@@ -60,28 +60,35 @@ ServoInf::ServoInf ():GenericInf ()
   buildTFTree = false;
 }
 
-const UsarsimActuator*
+/*const UsarsimActuator*
 ServoInf::getActuator( unsigned int num)
 {
   if( num > actuators.size() )
     return NULL;
   return &actuators[num];
-}
-
-unsigned int
-ServoInf::getNumActuators()
+}*/
+std::list<UsarsimActuator>::iterator ServoInf::getActuatorBegin()
 {
-  return actuators.size();
+	return actuators.begin();
 }
+std::list<UsarsimActuator>::iterator ServoInf::getActuatorEnd()
+{
+	return actuators.end();
+}
+//unsigned int
+//ServoInf::getNumActuators()
+//{
+//  return actuators.size();
+//}
 unsigned int ServoInf::getNumExtras()
 {
 	return grippers.size() + toolchangers.size(); //should include any components that are specified in the robot URDF file
 }
 const UsarsimSensor* ServoInf::getComponent(unsigned int num)
 {
-	if(num > grippers.size() || grippers.empty())
+	if(num >= grippers.size() || grippers.empty())
 	{
-		if(num - grippers.size() > toolchangers.size())
+		if(num - grippers.size() >= toolchangers.size())
 			return NULL;
 		return &toolchangers[num - grippers.size()];
 	}
@@ -137,6 +144,7 @@ int
 ServoInf::peerMsg (sw_struct * sw)
 {
   int num;
+  UsarsimActuator *actPtr;
   static double previousTime = 0;
   ros::Time currentTime;
   currentTime = ros::Time::now();
@@ -152,18 +160,19 @@ ServoInf::peerMsg (sw_struct * sw)
       switch (sw->op)
 	{
 	case SW_ACT_STAT:
-	  num = actuatorIndex (actuators, sw->name);
-	  if( copyActuator( &actuators[num], sw ) )
+	actPtr = actuatorIn(actuators, sw->name);
+	  //num = actuatorIndex (actuators, sw->name);
+	  if( copyActuator( actPtr, sw ) )
 	  {
 	    //actuators[num].pub.publish (actuators[num].jstate);
-	    updateActuatorTF(&actuators[num], sw, buildTFTree);
+	    updateActuatorTF(actPtr, sw, buildTFTree);
 	    if(!buildTFTree)
 	    	publishJoints();
-	    updateActuatorCycle(&actuators[num]);
-	    if(actuators[num].isTrajectoryActive() && updateTrajectory(&actuators[num], sw))
+	    updateActuatorCycle(actPtr);
+	    if(actPtr->isTrajectoryActive() && updateTrajectory(actPtr, sw))
 	    {
 	    	control_msgs::FollowJointTrajectoryResult result;
-	    	if(checkTrajectoryGoal(&actuators[num], sw))
+	    	if(checkTrajectoryGoal(actPtr, sw))
 	    	{
 	    		ROS_INFO("Trajectory succeeded");
 	    		result.error_code = result.SUCCESSFUL;
@@ -173,18 +182,18 @@ ServoInf::peerMsg (sw_struct * sw)
 	    		ROS_ERROR("Trajectory aborted: arm position not at goal");
 	    		result.error_code = result.GOAL_TOLERANCE_VIOLATED;
 	    	}
-	    	actuators[num].setTrajectoryResult(result);
+	    	actPtr->setTrajectoryResult(result);
 	    }
 	  }
 	  
 	  break;
 
 	case SW_ACT_SET:
-	  num = actuatorIndex (actuators, sw->name);
-	  if(copyActuator( &actuators[num], sw ))
+	  actPtr = actuatorIn (actuators, sw->name);
+	  if(copyActuator( actPtr, sw ))
 	  {
 	  	publishJoints();
-	  	updateActuatorTF(&actuators[num], sw, true);
+	  	updateActuatorTF(actPtr, sw, true);
 	  }
 	  //	  rosTfBroadcaster.sendTransform (actuators[num].tf);
 	  //	  ROS_INFO ( "Act setting %d joints", actuators[num].jointTf.size() );
@@ -1016,6 +1025,7 @@ int ServoInf::copyObjectSensor (UsarsimObjectSensor *sen, const sw_struct *sw)
   sen->objSense.object_names.clear();
   sen->objSense.material_names.clear();
   sen->objSense.object_poses.clear();
+  sen->objSense.object_hit_locations.clear();
   for(int i = 0;i<sw->data.objectsensor.number;i++)
   {
   	sen->objSense.object_names.push_back(std::string(sw->data.objectsensor.objects[i].tag));
@@ -1236,26 +1246,33 @@ void ServoInf::setTransform(UsarsimSensor *sen, const sw_pose &pose, ros::Time c
   determine which index in the array of SensorData structures is
   assigned to which name.
 */
-int
-ServoInf::actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
+UsarsimActuator* 
+ServoInf::actuatorIn (std::list < UsarsimActuator > &actuatorsIn,
 			   std::string name)
 {
-  unsigned int t;
+  //unsigned int t;
+  std::list<UsarsimActuator>::iterator it;
   std::string pubName;
   UsarsimActuator newActuator(this);
-  
+  UsarsimActuator *actPtr;
+  /*
   for (t = 0; t < actuatorsIn.size (); t++)
     {
       if (name == actuatorsIn[t].name)
 	return t;		// found it
-    }
+    }*/
+  for(it = actuatorsIn.begin();it != actuatorsIn.end();it++)
+  {
+  	if(it->name == name)
+  		return (UsarsimActuator*)(&*it);
+  }
   //unable to find the actuator, so must create it.
   actuatorsIn.push_back (newActuator);
-  actuatorsIn.back().name = name;
-  actuatorsIn.back().time = 0;
-  actuatorsIn.back().setUpTrajectory();
-  
-  return actuatorsIn.size () - 1;
+  actPtr = &actuatorsIn.back();
+  actPtr->name = name;
+  actPtr->time = 0;
+  actPtr->setUpTrajectory();
+  return actPtr;
 }
 
 int

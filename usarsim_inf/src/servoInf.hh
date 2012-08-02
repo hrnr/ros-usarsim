@@ -61,8 +61,10 @@ public:
 
     ServoInf ();
    ~ServoInf ();
-  const UsarsimActuator *getActuator(unsigned int num);
-  unsigned int getNumActuators();
+  std::list<UsarsimActuator>::iterator getActuatorBegin();
+  std::list<UsarsimActuator>::iterator getActuatorEnd();
+  //const UsarsimActuator *getActuator(unsigned int num);
+  //unsigned int getNumActuators();
   unsigned int getNumExtras();
   const UsarsimSensor *getComponent(unsigned int num);
   const std::string getPlatformName();
@@ -93,7 +95,7 @@ private:
   //! We will always need a transform
   tf::TransformBroadcaster rosTfBroadcaster;
   //! Actuators
-  std::vector < UsarsimActuator > actuators;
+  std::list < UsarsimActuator > actuators;
   //! Odometry sensors 
   std::vector < UsarsimOdomSensor > odometers;
   //! Range scanner sensors
@@ -106,7 +108,7 @@ private:
   std::vector < UsarsimToolchanger > toolchangers;
   //! Range imager sensors
   std::vector < UsarsimRngImgSensor > rangeImagers;
-  int actuatorIndex (std::vector < UsarsimActuator > &actuatorsIn,
+  UsarsimActuator* actuatorIn (std::list < UsarsimActuator > &actuatorsIn,
 		     std::string name);
   int odomSensorIndex (std::vector < UsarsimOdomSensor > &sensors,
 		       std::string name);

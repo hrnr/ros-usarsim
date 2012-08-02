@@ -32,12 +32,12 @@ default_collision_operations:
   - object1: KR60Arm_link6
     object2: KR60Cup
     operation: disable  # Adjacent in collision
+  - object1: KR60Arm_link4
+    object2: KR60Arm_link6
+    operation: disable  # Always in collision
   - object1: KR60Arm_link3
     object2: KR60Arm_link5
     operation: disable  # Never in collision
   - object1: KR60Arm_link3
-    object2: KR60Arm_link6
-    operation: disable  # Never in collision
-  - object1: KR60Arm_link4
     object2: KR60Arm_link6
     operation: disable  # Never in collision
