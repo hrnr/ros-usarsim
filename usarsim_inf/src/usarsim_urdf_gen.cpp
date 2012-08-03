@@ -145,7 +145,6 @@ main (int argc, char **argv)
   for(std::list<UsarsimActuator>::iterator it = servo->getActuatorBegin();it != servo->getActuatorEnd();it++)
   {
     actPt = (UsarsimActuator*)(&*it);
-    //actPt = servo->getActuator(i);
     platformSize = servo->getPlatformSize();
     for( unsigned int j=0; j<actPt->jointTf.size(); j++ )//only loop as far as tip link
     {
@@ -182,6 +181,7 @@ main (int argc, char **argv)
     }
     ROS_ERROR("Done with component links.");
     i = 0;
+    //now add the joint elements
     for(std::list<UsarsimActuator>::iterator it = servo->getActuatorBegin();it != servo->getActuatorEnd();it++)
     {
     	actPt = (UsarsimActuator*)(&*it);

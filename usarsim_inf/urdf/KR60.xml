@@ -115,6 +115,6 @@
 	<joint name = "KR60Cup_mount" type = "fixed">
 		<parent link = "KR60Arm_link6" />
 		<child link = "KR60Cup" />
-		<origin xyz = "-0.01 -0.01 -0.27" rpy = "3.14 0.00 -1.58" />
+		<origin xyz = "-0.01 -0.01 -0.32" rpy = "3.14 0.00 -1.58" />
 	</joint>
 </robot>

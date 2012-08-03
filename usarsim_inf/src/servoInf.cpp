@@ -621,10 +621,12 @@ ServoInf::peerMsg (sw_struct * sw)
 			
 			rosTfBroadcaster.sendTransform(rangeImagers[num].tf);
 			rosTfBroadcaster.sendTransform(rangeImagers[num].opticalTransform);
+			//since virtual range imaging is slow, wait for a full scan before publishing the camera info and depth image
 			if(rangeImagers[num].isReady())
 			{
 				rangeImagers[num].depthImage.header.stamp = currentTime;
 				rangeImagers[num].camInfo.header.stamp = currentTime;
+				//camera info and depth image need to be published in sync
 				rangeImagers[num].pub.publish(rangeImagers[num].depthImage);
 				rangeImagers[num].cameraInfoPub.publish(rangeImagers[num].camInfo);
 				
@@ -704,15 +706,15 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
   currentTime = ros::Time::now ();
   act->numJoints = sw->data.actuator.number;
 
-  //define the mounting joint and the tip joint for this actuator
+  //define the mounting joint for this actuator
   addJoint(act->name + "_mount", 0.0);
   act->minValues.clear();
   act->maxValues.clear();
   act->maxTorques.clear();
 
+  //create actuator joints
   for( int i=0; i<sw->data.actuator.number; i++ )
     {
-      // now create actuator message
       tempSS.str("");
       tempSS << i+1;
       
@@ -753,7 +755,7 @@ int ServoInf::updateActuatorTF(UsarsimActuator *act, const sw_struct *sw, bool b
   for(int i = 0;i<act->numJoints;i++)
   {
       tempSS.str("");
-      tempSS << i+1; // link is array index + 2 (starts at joint 1);
+      tempSS << i+1;
       currentJointTf.child_frame_id = act->name + std::string("_link") + tempSS.str ();
 	  tempSS.str("");
 	  tempSS << sw->data.actuator.link[i].parent;
@@ -1067,6 +1069,7 @@ int ServoInf::copyRangeImager(UsarsimRngImgSensor *sen, const sw_struct *sw)
 	sen->depthImage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
 	if(sen->totalFrames != 0)
 	{
+		//insert the current frame into a depth image
 		sen->sentFrame(sw->data.rangeimager.frame);
 		sen->depthImage.height = sw->data.rangeimager.resolutiony;
 		sen->depthImage.width = sw->data.rangeimager.resolutionx;
@@ -1076,7 +1079,8 @@ int ServoInf::copyRangeImager(UsarsimRngImgSensor *sen, const sw_struct *sw)
 		    reinterpret_cast<const uint8_t*>(sw->data.rangeimager.range),
 		 	reinterpret_cast<const uint8_t*>(sw->data.rangeimager.range + sw->data.rangeimager.numberperframe));
 	}
-	//camera calibration data from the Kinect
+	//camera calibration data from the Kinect. 
+	//This will be scaled incorrectly if the camera's FOV is not the same as the Kinect's! (58x45 degrees)
 	sen->camInfo.header.frame_id = "/"+sen->name+"_optical";
 	sen->camInfo.height = sw->data.rangeimager.resolutiony;
     sen->camInfo.width = sw->data.rangeimager.resolutionx;
@@ -1208,6 +1212,7 @@ void ServoInf::setTransform(UsarsimSensor *sen, const sw_pose &pose, ros::Time c
     	addJoint(sen->name + "_mount", 0.0);
     }
 	bool success = false;
+	//get the transformation from the robot frame to this item's direct parent
 	try
 	{
 		tfListener.lookupTransform("base_link", sen->tf.header.frame_id, ros::Time(0), parentTransform);
@@ -1246,26 +1251,26 @@ void ServoInf::setTransform(UsarsimSensor *sen, const sw_pose &pose, ros::Time c
   determine which index in the array of SensorData structures is
   assigned to which name.
 */
+/*
+Returns a pointer to the actuator with the given name. If the actuator with this name 
+does not exist, create and return it.
+This behavior is DISTINCT from that of the other *Index functions.
+*/
 UsarsimActuator* 
 ServoInf::actuatorIn (std::list < UsarsimActuator > &actuatorsIn,
 			   std::string name)
 {
-  //unsigned int t;
   std::list<UsarsimActuator>::iterator it;
   std::string pubName;
   UsarsimActuator newActuator(this);
   UsarsimActuator *actPtr;
-  /*
-  for (t = 0; t < actuatorsIn.size (); t++)
-    {
-      if (name == actuatorsIn[t].name)
-	return t;		// found it
-    }*/
+  
   for(it = actuatorsIn.begin();it != actuatorsIn.end();it++)
   {
   	if(it->name == name)
   		return (UsarsimActuator*)(&*it);
   }
+  
   //unable to find the actuator, so must create it.
   actuatorsIn.push_back (newActuator);
   actPtr = &actuatorsIn.back();
@@ -1503,7 +1508,7 @@ bool ServoInf::checkTrajectoryGoal(UsarsimActuator *act, const sw_struct *sw)
 	  return true;
 }
 /*
-If a joint isn't already in the joints array, add it
+Add a joint to the joints array if it hasn't already been added
 */
 void ServoInf::addJoint(std::string jointName, double jointValue)
 {
