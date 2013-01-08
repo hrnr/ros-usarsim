@@ -55,6 +55,7 @@ main (int argc, char **argv)
   servo = new ServoInf ();
   usarsim = new UsarsimInf ();
 
+  ROS_INFO ("Running usarsim.cpp version 1.0 from January 7, 2013\n");
   // this code uses the ULAPI library to provide portability
   // between different operating systems and architectures
   if (ULAPI_OK != ulapi_init (UL_USE_DEFAULT))

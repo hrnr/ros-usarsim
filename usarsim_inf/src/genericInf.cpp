@@ -42,7 +42,7 @@ ros::NodeHandle * GenericInf::getNH ()
 int
 GenericInf::init (GenericInf * siblingIn)
 {
-  //  sleep (1);			// allows the logging facility to catch up and log stuff
+  //  sleep (1);                        // allows the logging facility to catch up and log stuff
 
   sibling = siblingIn;
   ROS_INFO ("GenericInf sibling set");

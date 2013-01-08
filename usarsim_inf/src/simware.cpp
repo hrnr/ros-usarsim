@@ -22,7 +22,7 @@
 const char *
 swRobotType (ROBOT_TYPE type)
 {
-  //  static char retstr[3 * sizeof (type)];	// not reentrant, just for debugging
+  //  static char retstr[3 * sizeof (type)];    // not reentrant, just for debugging
 
   if (type == SW_ROBOT_UNKNOWN)
     return "SW_ROBOT_UNKNOWN";
@@ -69,7 +69,7 @@ swTypeToString (sw_type type)
   if (type == SW_EFF_GRIPPER)
     return "SW_EFF_GRIPPER";
   if (type == SW_EFF_TOOLCHANGER)
-  	return "SW_EFF_TOOLCHANGER";
+    return "SW_EFF_TOOLCHANGER";
   if (type == SW_ACT)
     return "SW_ACT";
   if (type == SW_ROBOT_FIXED)
@@ -84,8 +84,8 @@ swTypeToString (sw_type type)
     return "SW_DEVICE_CONVEYOR";
   if (type == SW_OBJECT_CARGO)
     return "SW_OBJECT_CARGO";
-  if(type == SW_SEN_OBJECTSENSOR)
-  	return "SW_SEN_OBJECTSENSOR";
+  if (type == SW_SEN_OBJECTSENSOR)
+    return "SW_SEN_OBJECTSENSOR";
 
   sprintf (retstr, "%d", (int) type);
 
