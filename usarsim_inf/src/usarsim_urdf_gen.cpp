@@ -159,6 +159,9 @@ main (int argc, char **argv)
       platformSize = servo->getPlatformSize ();
       for (unsigned int j = 0; j < actPt->jointTf.size (); j++)	//only loop as far as tip link
 	{
+	  ROS_INFO( "Link: %d frame_id: %s child_id: %s", j,
+		    actPt->jointTf[j].header.frame_id.c_str(),
+		    actPt->jointTf[j].child_frame_id.c_str() );
 	  fprintf (fp, "\t<link name =\"%s\">\n",
 		   actPt->jointTf[j].header.frame_id.c_str ());
 	  fprintf (fp, "\t\t<visual>\n");
@@ -186,13 +189,13 @@ main (int argc, char **argv)
 	  fprintf (fp, "\t</link>\n");
 	}
     }
-  ROS_ERROR ("Done with actuator links.");
+  ROS_INFO ("Done with actuator links.");
   for (i = 0; i < servo->getNumExtras (); i++)
     {
       if (servo->getComponent (i)->linkOffset >= 0)
 	addComponentLink (servo->getComponent (i), fp);
     }
-  ROS_ERROR ("Done with component links.");
+  ROS_INFO ("Done with component links.");
   i = 0;
   //now add the joint elements
   for (std::list < UsarsimActuator >::iterator it =
@@ -247,5 +250,6 @@ main (int argc, char **argv)
     }
   fprintf (fp, "</robot>\n");
   ulapi_exit ();
+  ROS_INFO( "Finished!" );
   return (1);
 }

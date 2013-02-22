@@ -352,7 +352,7 @@ UsarsimInf::peerMsg (sw_struct * swIn)
 	      ulapi_mutex_take (socket_mutex);
 	      usarsim_socket_write (socket_fd, str, strlen (str));
 	      ulapi_mutex_give (socket_mutex);
-	      ROS_ERROR ("Wrote %s", str);
+	      ROS_INFO ("Wrote %s", str);
 	    }
 	  else
 	    {
@@ -1542,6 +1542,7 @@ UsarsimInf::handleSenIns (char *msg, const char *sensorType)
       return info.count;
     }
 
+  ROS_INFO( "Groundtruth: %s\n", msg );
   sw = myList->getSW ();
   while (1)
     {
@@ -4102,6 +4103,7 @@ UsarsimInf::handleGeoActuator (char *msg)
   setComponentInfo (msg, &info);
   linkindex = 0;
 
+  ROS_INFO( "usarsimInf Actuator geo information: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -4216,14 +4218,20 @@ UsarsimInf::handleGeoActuator (char *msg)
       else if (!strcmp (info.token, "MountLink"))
 	{
 	  sw->data.actuator.mount.linkOffset = getReal (&info);
-	  ROS_ERROR ("Mountlink for %s is %d", sw->name.c_str (),
+	  /*
+	  ROS_INFO ("Mountlink for %s is %d", sw->name.c_str (),
 		     sw->data.actuator.mount.linkOffset);
+	  */
 	}
       else if (!strcmp (info.token, "Tip"))
 	{
 	  sw->data.actuator.tip.x = getReal (&info);
 	  sw->data.actuator.tip.y = getReal (&info);
 	  sw->data.actuator.tip.z = getReal (&info);
+	  ROS_DEBUG( "Got tip for actuator %f %f %f",
+		     sw->data.actuator.tip.x,
+		     sw->data.actuator.tip.y,
+		     sw->data.actuator.tip.z);
 	}
       else
 	{
@@ -4249,6 +4257,8 @@ UsarsimInf::handleGeoGripper (char *msg)
   componentInfo info;
   setComponentInfo (msg, &info);
   sw_struct *sw = grippers->getSW ();
+
+  ROS_INFO( "usarsimInf Gripper geo information: %s", msg );
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -4278,8 +4288,12 @@ UsarsimInf::handleGeoGripper (char *msg)
 	  info.nextptr = getValue (info.ptr, info.token);
 	  ulapi_strncpy (sw->data.gripper.mount.offsetFrom, info.token,
 			 SW_NAME_MAX);
-	  info.count++;
+	  // set up tip references here since not provided by message
+	  ulapi_strncpy (sw->data.gripper.tip.offsetFrom, 
+			 sw->data.gripper.mount.offsetFrom,
+			 SW_NAME_MAX);
 	  info.ptr = info.nextptr;
+	  info.count++;
 	}
       else if (!strcmp (info.token, "MountLink"))
 	{
@@ -4287,6 +4301,9 @@ UsarsimInf::handleGeoGripper (char *msg)
 	  if (info.nextptr == info.ptr)
 	    return -1;
 	  sw->data.gripper.mount.linkOffset = getReal (&info);
+	  // set up tip references here since not provided by message
+	  sw->data.gripper.tip.linkOffset = sw->data.gripper.mount.linkOffset;
+	  info.ptr = info.nextptr;
 	}
       else if (!strcmp (info.token, "Tip"))
 	{
@@ -4294,6 +4311,10 @@ UsarsimInf::handleGeoGripper (char *msg)
 	  sw->data.gripper.tip.x = getReal (&info);
 	  sw->data.gripper.tip.y = getReal (&info);
 	  sw->data.gripper.tip.z = getReal (&info);
+	  ROS_INFO( "Got tip for gripper %f %f %f",
+		     sw->data.gripper.tip.x,
+		     sw->data.gripper.tip.y,
+		     sw->data.gripper.tip.z);
 	}
       else
 	{
@@ -4439,7 +4460,7 @@ UsarsimInf::handleGeo (char *msg)
   char *nextptr;
   sw_struct *sw;
   waitingForGeo = 0;
-  ROS_DEBUG ("waitingForGeo cleared");
+  //  ROS_ERROR ("usarsimInf: geo message: %s", msg );
   while (1)
     {
       nextptr = getKey (ptr, token);
