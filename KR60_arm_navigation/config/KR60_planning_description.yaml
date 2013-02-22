@@ -5,39 +5,63 @@ multi_dof_joints:
     child_frame_id: base_link
 groups:
   - name: KR60Arm
-    base_link: KR60Arm_link0
-    tip_link: KR60Arm_link6
+    base_link: base_link
+    tip_link: MESH_link6
 default_collision_operations:
   - object1: base_link
-    object2: KR60Arm_link0
+    object2: MESH_link0
     operation: disable  # Adjacent in collision
-  - object1: KR60Arm_link0
-    object2: KR60Arm_link1
+  - object1: MESH_link0
+    object2: MESH_link1
     operation: disable  # Adjacent in collision
-  - object1: KR60Arm_link1
-    object2: KR60Arm_link2
+  - object1: MESH_link1
+    object2: MESH_link2
     operation: disable  # Adjacent in collision
-  - object1: KR60Arm_link2
-    object2: KR60Arm_link3
+  - object1: MESH_link2
+    object2: MESH_link3
     operation: disable  # Adjacent in collision
-  - object1: KR60Arm_link3
-    object2: KR60Arm_link4
+  - object1: MESH_link3
+    object2: MESH_link4
     operation: disable  # Adjacent in collision
-  - object1: KR60Arm_link4
-    object2: KR60Arm_link5
+  - object1: MESH_link4
+    object2: MESH_link5
     operation: disable  # Adjacent in collision
-  - object1: KR60Arm_link5
-    object2: KR60Arm_link6
+  - object1: MESH_link5
+    object2: MESH_link6
     operation: disable  # Adjacent in collision
-  - object1: KR60Arm_link6
-    object2: KR60Cup
-    operation: disable  # Adjacent in collision
-  - object1: KR60Arm_link4
-    object2: KR60Arm_link6
-    operation: disable  # Always in collision
-  - object1: KR60Arm_link3
-    object2: KR60Arm_link5
+  - object1: MESH_link0
+    object2: MESH_link4
     operation: disable  # Never in collision
-  - object1: KR60Arm_link3
-    object2: KR60Arm_link6
+  - object1: MESH_link0
+    object2: MESH_link5
+    operation: disable  # Never in collision
+  - object1: MESH_link0
+    object2: MESH_link6
+    operation: disable  # Never in collision
+  - object1: MESH_link1
+    object2: MESH_link3
+    operation: disable  # Never in collision
+  - object1: MESH_link1
+    object2: MESH_link4
+    operation: disable  # Never in collision
+  - object1: MESH_link1
+    object2: MESH_link5
+    operation: disable  # Never in collision
+  - object1: MESH_link1
+    object2: MESH_link6
+    operation: disable  # Never in collision
+  - object1: MESH_link2
+    object2: MESH_link4
+    operation: disable  # Never in collision
+  - object1: MESH_link2
+    object2: MESH_link5
+    operation: disable  # Never in collision
+  - object1: MESH_link2
+    object2: MESH_link6
+    operation: disable  # Never in collision
+  - object1: MESH_link3
+    object2: MESH_link5
+    operation: disable  # Never in collision
+  - object1: MESH_link3
+    object2: MESH_link6
     operation: disable  # Never in collision

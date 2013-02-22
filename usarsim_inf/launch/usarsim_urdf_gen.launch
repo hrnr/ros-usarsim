@@ -5,5 +5,5 @@
   <param name="usarsim/port" value="3000" />
   <param name="usarsim/odomSensor" value="GroundTruth" />
   <param name="usarsim/startPosition" value="RobotStart1" />
-  <node name="URDFGenerate" pkg="usarsim_inf" type="usarsim_urdf"/>
+  <node name="URDFGenerate" pkg="usarsim_inf" type="usarsim_urdf" output="screen"/>
 </launch>

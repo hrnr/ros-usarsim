@@ -13,7 +13,7 @@ KR60Arm:
     - LBKPIECEkConfig1
   projection_evaluator: joint_state
 KR60Arm_cartesian:
-  parent_frame: KR60Arm_link0
+  parent_frame: base_link
   physical_group: KR60Arm
   planner_type: RPYIKTaskSpacePlanner
   state_spaces:
@@ -45,7 +45,7 @@ KR60Arm_cartesian:
     - SBLkConfig1
     - LBKPIECEkConfig1
   kinematics_solver: arm_kinematics_constraint_aware/KDLArmKinematicsPlugin
-  tip_name: KR60Arm_link6
-  root_name: KR60Arm_link0
+  tip_name: MESH_link6
+  root_name: base_link
   projection_evaluator: joint_state
   longest_valid_segment_fraction: 0.001

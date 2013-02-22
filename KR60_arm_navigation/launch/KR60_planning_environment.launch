@@ -1,4 +1,4 @@
 <launch>
-    <param name="robot_description" textfile="$(find usarsim_inf)/urdf/KR60.xml" />
+    <param name="robot_description" textfile="$(find usarsim_inf)/urdf/KR60-V4-zeid.xml" />
     <rosparam command="load" ns="robot_description_planning" file="$(find KR60_arm_navigation)/config/KR60_planning_description.yaml" />
 </launch>

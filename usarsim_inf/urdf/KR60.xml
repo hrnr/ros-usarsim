@@ -52,12 +52,10 @@
 	<link name ="KR60Arm_link6">
 		<visual>
 			<geometry>
-				<box size = "0.06 0.05 0.05"/>
+				<box size = "0.05 0.05 0.05"/>
 			</geometry>
-			<origin xyz="-0.00 0.00 -0.03" rpy="0.00 1.57 3.06" />
+			<origin xyz="-0.00 0.00 -0.02" rpy="0.00 1.57 3.06" />
 		</visual>
-	</link>
-	<link name = "KR60Cup">
 	</link>
 	<joint name="KR60Arm_mount" type="fixed">
 		<parent link="base_link" />
@@ -112,9 +110,4 @@
 		<limit effort="25.00" lower="-3.14" upper="3.14" velocity="1.0" />
 	</joint>
 
-	<joint name = "KR60Cup_mount" type = "fixed">
-		<parent link = "KR60Arm_link6" />
-		<child link = "KR60Cup" />
-		<origin xyz = "-0.01 -0.01 -0.32" rpy = "3.14 0.00 -1.58" />
-	</joint>
 </robot>
