@@ -1323,8 +1323,8 @@ ServoInf::copyGripperEffector (UsarsimGripperEffector * effector,
   //////////////////////////////////////////////////////////////
 
   // added the next two lines at top
-  //  effector->status.header.stamp = currentTime;
-  //  effector->status.header.frame_id = effector->name;
+    effector->status.header.stamp = currentTime;
+    effector->status.header.frame_id = effector->name;
 
   if (sw->data.gripper.status == SW_EFF_OPEN)
     effector->status.state = usarsim_inf::EffectorStatus::OPEN;
