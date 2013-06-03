@@ -22,16 +22,20 @@ using namespace Eigen;
 
 std::string input="";
 std::string output="";
+std::string uc="";
 
 int main(int argc, char** argv)
 {
     std::string sep = "\n---------------------------------------------------------------------------\n";
-    if (argc<5 || argc>5) {
+    if (argc<7 || argc>7)
+    {
         std::cout << sep;
         std::cout << "                          ERROR -- Wrong Usage !!"<<sep;
-        std::cout << "Right Usage: ./uc2urdf -input oldurdf.xml -output newurdf.xml\n\n";
+        std::cout << "Right Usage: ./uc2urdf -input oldurdf.xml -uc file.uc -output newurdf.xml\n\n";
         std::cout << "oldurdf.xml: The \"name\" of the original urdf file built from tf data.\n";
-        std::cout << "The program will automatically search for this file in ../usarsim_inf/urdf\n\n";
+        std::cout << "The program will automatically search for this file in ../../usarsim_inf/urdf\n\n";
+        std::cout << "file.uc: The \"name\" of the uc file used to extract link and joint data.\n";
+        std::cout << "The program will automatically search for this file in ../etc/\n\n";
         std::cout << "newurdf.xml: The \"name\" of the output urdf file.\n";
         std::cout << "The program will automatically save the new file in ../etc/"<<sep;
 
@@ -39,24 +43,55 @@ int main(int argc, char** argv)
         exit(0);
 
     }
-    else if (argc==5){
-        input = argv[2];
-        output = argv[4];
+    else if (argc==7)
+    {
+        //-- Making sure we typed "-input"
+        if (argv[1] == std::string("-input"))
+            input = argv[2];
+        else
+        {
+            std::cout << sep;
+            std::cout << "ERROR -- make sure you use the key \"-input\" for the input file !!"<<sep;
+            exit(0);
+        }
+
+        //-- Making sure we typed "-output"
+        if (argv[3] == std::string("-uc"))
+            uc = argv[4];
+        else
+        {
+            std::cout << sep;
+            std::cout << "ERROR -- make sure you use the key \"-uc\" for the uc file !!"<<sep;
+            exit(0);
+        }
+
+        //-- Making sure we typed "-uc" for the 4th argument
+        if (argv[5] == std::string("-output"))
+            output = argv[6];
+        else
+        {
+            std::cout << sep;
+            std::cout << "ERROR -- make sure you use the key \"-output\" for the input file !!"<<sep;
+            exit(0);
+        }
+
     }
 
-    std::string input_path = "../etc/";
+    std::string input_path = "../../usarsim_inf/urdf/";
     std::string output_path = "../etc/";
+    std::string uc_path = "../etc/";
 
     std::string urdf_file = input_path.append(input);
     std::string output_urdf_file = output_path.append(output);
+    std::string uc_file = uc_path.append(uc);
 
     FileOperator *op = new FileOperator();
     URDF *urdf = new URDF();
 
     //-- Open the KR60Arm.uc file
-    string f_kr60Arm = KR60ARM_UC;
-    string f_oldURDF = KR60ARM_XML;
-    op->readUcFile(f_kr60Arm);
+    //string f_kr60Arm = KR60ARM_UC;
+    //string f_oldURDF = KR60ARM_XML;
+    op->readUcFile(uc_file);
     op->getIniData("COLLADA");
     op->getIniData("LINK");
     op->getIniData("JOINT");
@@ -77,12 +112,14 @@ int main(int argc, char** argv)
     //op->displayJointPosition();
     //op->displayJointAngles();
 
-std::string sep2 = "\n------------------------------------------------------------------------------------------------------\n";
-    if (op->writeUrdfFile(output_urdf_file)==0){
+    std::string sep2 = "\n------------------------------------------------------------------------------------------------------\n";
+    if (op->writeUrdfFile(output_urdf_file)==0)
+    {
         std::cout << sep2;
         std::cout << "                          "<<output_urdf_file << " was successfully created"<<sep2;
     }
-    else{
+    else
+    {
 
         std::cout << sep2;
         std::cout << "                          "<<"Error: "<<output_urdf_file << " was not successfully created"<<sep2;
