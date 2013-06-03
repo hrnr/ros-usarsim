@@ -1,0 +1,163 @@
+/**
+\mainpage UC2URDF Generator Main Page
+
+The goal of this project is to read an unreal script (<b>.uc</b>) file and generates the corresponding Unified Robot Description Format (<b>urdf</b>) file.<BR>
+
+The different steps performed in this project in order to build the final <b>urdf</b> file are as follows:
+<ol>
+	<li>Read a <b>.uc</b> file and store data on links and joints in memory
+    <li>Read collada.ini to retrieve the collada mesh for each link
+    <li>Read an old <b>urdf</b> file and store attributes data
+		<ul>
+        	<li>The old <b>urdf</b> file is the one created from USARSim GEO and CONF messages. Data retrieved from this file will be put back in the final <b>urdf</b> file. Data retrieved from this file are not used in any matrix transformation. The name of the links and joints are used to build the final <b>urdf</b> file.
+		</ul>
+    <li>Using <b>.uc</b> data links and data joints stored in step 1:
+		<ul>
+        	<li>Compute the position for each link
+        	<li>Compute the orientation of collada mesh for each link
+        	<li>Compute the position and orientation for each link
+		</ul>
+    <li>Write the final <b>urdf</b> file
+		<ul>
+        	<li>Merge data from the old <b>urdf</b> file (step 3) and new computed data (step 4).
+		</ul>
+</ol>
+
+<H2> Structure of a .uc file (input file)</H2>
+In a <b>.uc</b> file, the positions and orientations of each link (defined by <i>Class=parent</i>) are relative to the first link (<i>base_link</i>).
+<BR>For instance, in the following piece of code taken from <b>kr60Arm.uc</b>,
+the <i>Offset</i> for <i>Joint2</i> is relative to the position of <i>Joint1</i>.<BR>If we place <i>Joint1</i> at X=0.5,Y=0.0, Z=0.3, the position of <i>Joint2</i>
+in the environment will be at X=0.824,Y=-0.008, Z=-0.388, i.e., X=0.5+0.324,Y=0.0-0.008, Z=0.3-0.688.<BR>
+The same reasoning is applied for <i>Joint3</i>.<BR><BR>
+
+The position and orientation for each joint (defined by <i>Class=RevoluteJoint</i>) are relative to the position and orientation of the first link (<i>Joint1</i>), respectively.
+<BR>For instance if X=0.5,Y=0.0, Z=0.3 for link <i>Joint1</i>, the joint <i>Joint2_Joint3</i> will be placed in the environment at X=0.5+0.520=1.020,Y=0.0+0.016=0.016, Z=0.3-0.792=-0.492.
+
+\verbatim
+Begin Object Class = Part Name=Link1
+    Mesh=StaticMesh'KR60.KR60_1'
+    Mass=5.0
+End Object
+	Body=Joint1
+	PartList.Add(Joint1)
+
+Begin Object Class=Part Name=Link2
+    Mesh=StaticMesh'KR60.KR60_2'
+    Mass=1
+    Offset=(X=0.324,Y=-0.008,Z=-0.688)
+End Object
+	PartList.Add(Joint2)
+
+Begin Object Class=Part Name=Link3
+    Mesh=StaticMesh'KR60.KR60_3'
+    Mass=.5
+    Offset=(X=0.512,Y=0.252, Z =-1.384)
+End Object
+	PartList.Add(Joint3)
+...
+
+Begin Object Class=RevoluteJoint Name=Joint1_Joint2
+    Parent=Joint1
+    Child=Joint2
+    Damping=100
+    MaxForce=600
+    LimitLow=-3.14
+    LimitHigh=3.14
+    Offset=(X=.112,Y=0.016,Z=-.792)
+    Direction=(x=3.1415,y=0,z=0)
+End Object
+Joints.Add(Joint1_Joint2)
+
+Begin Object Class=RevoluteJoint Name=Joint2_Joint3
+    Parent=Joint2
+    Child=Joint3
+    Damping=200
+    MaxForce=1500
+    LimitLow=-0.61
+    LimitHigh=2.356
+    Offset=(X=.520,Y=.016,Z=-.792)
+    Direction=(x=-1.571,y=1.571,z=0)
+End Object
+Joints.Add(Joint2_Joint3)
+...
+\endverbatim
+
+<H2> Structure of a urdf file (output file)</H2>
+
+In a <b>urdf</b> file, The way links and joints are positioned and oriented is different from the way this is represented in a <b>.uc</b> file. In a <b>urdf</b> file, each joint has a parent link and child link.<BR>
+The position and orientation of each joint are relative to the position and orientation, respectively, of the parent link.<BR>
+The position and the orientation of each link are relative to the position and the orientation, respectively, of the joint for which this link is the child.<BR><BR>
+
+In the following piece of <b>urdf</b> file presented below, the joint <i>KR60Arm_joint_1</i> has the link <i>KR60Arm_link0</i> as its parent and link <i>KR60Arm_link1</i> as its child.
+<BR>The position and orientation of <i>KR60Arm_joint_1</i> is relative to the position and orientation of <i>KR60Arm_link0</i> (its parent).
+<BR>In the same way, since link <i>KR60Arm_link1</i> is the child of joint <i>KR60Arm_joint_1</i>, the position and orientation of <i>KR60Arm_link1</i> is relative to the position and orientation of joint <i>KR60Arm_joint_1</i>, respectively.<BR><BR>
+The same reasoning is applied to the position and orientation of joint <i>KR60Arm_joint_2</i> and link <i>KR60Arm_link2</i>.
+
+\verbatim
+<link name="KR60Arm_link0">
+    <visual>
+        <geometry>
+            <mesh filename="package://usarsim_inf/urdf/meshes/kr60_1.dae"/>
+        </geometry>
+        <material name="White"/>
+        <origin xyz="0. 0. 0" rpy="3.14 0 0." />
+    </visual>
+    <collision>
+      <geometry>
+        <box size = "0.80 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0.06 0.01 -0.40" rpy="0.00 1.43 0.18" />
+    </collision>
+</link>
+
+<link name ="KR60Arm_link1">
+    <visual>
+        <geometry>
+            <mesh filename="package://usarsim_inf/urdf/meshes/kr60_2.dae"/>
+        </geometry>
+        <material name="White"/>
+        <origin xyz="0.212 0.024 -0.104" rpy="0 0 0." />
+    </visual>
+    <collision>
+        <geometry>
+            <box size = "1.01 0.05 0.05"/>
+        </geometry>
+        <origin xyz="0.50 0.00 0.00" rpy="0.00 -0.00 0.00" />
+    </collision>
+</link>
+
+<link name ="KR60Arm_link2">
+    <visual>
+        <geometry>
+            <mesh filename="package://usarsim_inf/urdf/meshes/kr60_3.dae"/>
+        </geometry>
+        <material name="White"/>
+        <origin xyz="0.592 0.008   0.236" rpy="-1.571 0 -1.571" />
+    </visual>
+    <collision>
+        <geometry>
+            <box size = "1.01 0.05 0.05"/>
+        </geometry>
+        <origin xyz="0.50 0.00 0.00" rpy="0.00 -0.00 0.00" />
+    </collision>
+</link>
+...
+<joint name="KR60Arm_joint_1" type="revolute">
+    <parent link="KR60Arm_link0"/>
+    <child link="KR60Arm_link1"/>
+    <origin xyz="0.112 0.016 -0.792" rpy="3.14 -0.00 0.00" />
+    <axis xyz="0.0 0.0 1" />
+    <limit effort="600.00" lower="-3.14" upper="3.14" velocity="1.0" />
+</joint>
+
+<joint name="KR60Arm_joint_2" type="revolute">
+    <parent link="KR60Arm_link1"/>
+    <child link="KR60Arm_link2"/>
+    <origin xyz="0.408 0 0" rpy="-3.14 -1.57 -1.57" />
+    <axis xyz="0.0 0.0 1" />
+    <limit effort="1500.00" lower="-0.61" upper="2.36" velocity="1.0" />
+</joint>
+...
+\endverbatim
+
+*/

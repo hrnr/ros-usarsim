@@ -1,0 +1,14 @@
+<package>
+  <description brief="uc2urdf">
+
+     uc2urdf
+
+  </description>
+  <author>Zeid Kootbally</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/uc2urdf</url>
+
+</package>
+
+
