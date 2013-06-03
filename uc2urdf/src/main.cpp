@@ -92,10 +92,10 @@ int main(int argc, char** argv)
     //string f_kr60Arm = KR60ARM_UC;
     //string f_oldURDF = KR60ARM_XML;
     op->readUcFile(uc_file);
-    op->getIniData("COLLADA");
     op->getIniData("LINK");
     op->getIniData("JOINT");
     op->getIniData("LINK_ORIENTATION");
+    op->getIniData("COLLADA");
     op->addLink_base_link();
     op->addJoint_mount();
     op->readUrdfFile(urdf_file);
