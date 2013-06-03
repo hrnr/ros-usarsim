@@ -11,7 +11,7 @@
 /usarsim_twolink_arm_nav/build/*
 /usarsim_set_goal/build/*
 /usarsim_set_goal/bin/*
-/uc2urdf/bin/*
+/uc2urdf/bin/uc2urdf
 /uc2urdf/build/*
 /uc2urdf/doc/html/*
 /uc2urdf/doc/latex/*
