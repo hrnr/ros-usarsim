@@ -15,4 +15,4 @@
 /uc2urdf/build/*
 /uc2urdf/doc/html/*
 /uc2urdf/doc/latex/*
-/uc2urdf/obj/*
+/uc2urdf/obj/*.o
