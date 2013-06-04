@@ -15,7 +15,7 @@ defaultproperties
 {
 	TipOffset=(X=0.048,Y=0,Z=0) // x=? works for arm alone
 
-	Begin Object Class = Part Name=Joint1
+	Begin Object Class=Part Name=Joint1
 		Mesh=StaticMesh'KR60.KR60_1'
 		Mass=5.0
 	End Object
@@ -128,7 +128,7 @@ defaultproperties
 		Damping=5
 		MaxForce=60
 		Offset=(X=1.462,Y=0.016,Z=-2.01)
-		Direction=(x =1.571,y=0,z=0)
+		Direction=(x=1.571,y=0,z=0)
 		LimitLow=-2.076
 		LimitHigh=2.076
 //		InverseMeasureAngle=true
@@ -140,8 +140,7 @@ defaultproperties
 		Child=Joint7
 		Damping=5
 		MaxForce=25
-		//Offset=(X=1.462,Y=0.01,Z=-2.01)
-        Offset=(X=1.606,Y=0.01,Z=-2.01)
+		Offset=(X=1.606,Y=0.01,Z=-2.01)
 		Direction=(x=1.571,y=0,z=-1.571)
 		LimitLow=-3.14//-6.108
 		LimitHigh=3.14//6.108

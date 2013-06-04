@@ -22,4 +22,4 @@ uc2urdf: $(uc2urdf_OBJECTS)
 .PHONY: clean
 
 clean:
-	rm -rf $(ODIR)/*.o $(BINDIR)/*.* *~
+	rm -rf $(ODIR)/*.o *~
