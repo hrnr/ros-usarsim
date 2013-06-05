@@ -27,19 +27,7 @@ public:
         new_line = false;
         return *this;
     }
-    
-    Writer& openEltNoContent(const char* tag) {
-        this->closeTagNoContent();
-        if (elt_stack.size() > 0)
-            os << NEWLINE;
-        this->indent();
-        this->os << "<" << tag;
-        elt_stack.push(tag);
-        tag_open = true;
-        new_line = false;
-        return *this;
-    }
-    
+
     Writer& closeElt() {
         this->closeTag();
         std::string elt = elt_stack.top();
@@ -54,8 +42,8 @@ public:
         return *this;
     }
     
-    Writer& closeEltNoContent() {
-        this->closeTagNoContent();
+    Writer& closeElt_n() {
+        this->closeTag_n();
         std::string elt = elt_stack.top();
         this->elt_stack.pop();
         if (new_line)
@@ -64,7 +52,7 @@ public:
             this->indent();
         }
         new_line = true;
-        this->os << "/>";
+        //this->os << "</" << elt << ">";
         return *this;
     }
     
@@ -103,11 +91,11 @@ private:
             tag_open = false;
         }
     }
-    
-    inline void closeTagNoContent() {
+
+    inline void closeTag_n() {
         if (tag_open)
         {
-            //this->os << ">";
+            this->os << "/>";
             tag_open = false;
         }
     }

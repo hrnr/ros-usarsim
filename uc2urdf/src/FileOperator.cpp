@@ -310,6 +310,7 @@ void FileOperator::displayUrdfLink()
 
 }
 
+
 /*!
  *\brief Retrieve the vector \a m_armjoint.
  *
@@ -1673,10 +1674,10 @@ int FileOperator::writeUrdfFile(std::string _filename)
     Writer writer(fs);
     writer.openElt("robot").attr("name", "KR60");
     writer.openElt("material").attr("name", "White");
-    writer.openElt("color").attr("rgba", "1.0 1.0 1.0 1.0").closeElt();
+    writer.openElt("color").attr("rgba", "1.0 1.0 1.0 1.0").closeElt_n();
     writer.closeElt();
     writer.openElt("material").attr("name", "Black");
-    writer.openElt("color").attr("rgba", "0.1 0.1 0.1 1.0").closeElt();
+    writer.openElt("color").attr("rgba", "0.1 0.1 0.1 1.0").closeElt_n();
     writer.closeElt();
 
     //-- Write Link information
@@ -1686,7 +1687,7 @@ int FileOperator::writeUrdfFile(std::string _filename)
         if (i==0)
         {
             writer.openElt("link").attr("name", urdf_link_name);
-            writer.closeElt();//-- Closing <link>
+            writer.closeElt_n();//-- Closing <link>
         }
         else
         {
@@ -1700,11 +1701,11 @@ int FileOperator::writeUrdfFile(std::string _filename)
                 if (urdf_link_name.compare(uc_link_name)==0)
                 {
                     std::string uc_collada_path=uc_link[j]->getColladaPath();
-                    writer.openElt("mesh").attr("filename", uc_collada_path).closeElt();
+                    writer.openElt("mesh").attr("filename", uc_collada_path).closeElt_n();
                 }
             }
             writer.closeElt();//-- Closing <geometry>
-            writer.openElt("material").attr("name", "White").closeElt();
+            writer.openElt("material").attr("name", "White").closeElt_n();
             for (vector<ArmLink*>::size_type j = 0; j < uc_link.size(); j++)
             {
                 std::string uc_link_name=uc_link[j]->getLinkName();
@@ -1727,7 +1728,7 @@ int FileOperator::writeUrdfFile(std::string _filename)
 
                     std::string rpy = roll + space + pitch + space + yaw;
 
-                    writer.openElt("origin").attr("xyz", xyz).attr("rpy", rpy).closeElt();
+                    writer.openElt("origin").attr("xyz", xyz).attr("rpy", rpy).closeElt_n();
                 }
             }
 
@@ -1739,9 +1740,9 @@ int FileOperator::writeUrdfFile(std::string _filename)
 
             writer.openElt("collision");
             writer.openElt("geometry");
-            writer.openElt("box").attr("size", urdf_link_box_size).closeElt();;
+            writer.openElt("box").attr("size", urdf_link_box_size).closeElt_n();;
             writer.closeElt();
-            writer.openElt("origin").attr("xyz", urdf_link_origin_xyz).attr("rpy", urdf_link_origin_rpy).closeElt();;
+            writer.openElt("origin").attr("xyz", urdf_link_origin_xyz).attr("rpy", urdf_link_origin_rpy).closeElt_n();;
             writer.closeElt();
 
             writer.closeElt();//-- Closing <link>
@@ -1762,8 +1763,8 @@ int FileOperator::writeUrdfFile(std::string _filename)
         std::string urdf_joint_velocity=tmpurdf_joint[k]->getJointLimit_velocity();
 
         writer.openElt("joint").attr("name", urdf_joint_name).attr("type", urdf_joint_type);
-        writer.openElt("parent").attr("link", urdf_joint_parent).closeElt();
-        writer.openElt("child").attr("link", urdf_joint_child).closeElt();
+        writer.openElt("parent").attr("link", urdf_joint_parent).closeElt_n();
+        writer.openElt("child").attr("link", urdf_joint_child).closeElt_n();
 
         for (vector<ArmJoint*>::size_type l = 0; l < uc_joint.size(); l++)
         {
@@ -1785,13 +1786,13 @@ int FileOperator::writeUrdfFile(std::string _filename)
                 std::string xyz = x + space + y + space + z;
                 std::string rpy = roll + space + pitch + space + yaw;
 
-                writer.openElt("origin").attr("xyz", xyz).attr("rpy", rpy).closeElt();
+                writer.openElt("origin").attr("xyz", xyz).attr("rpy", rpy).closeElt_n();
             }
         }
 
 
         if (!urdf_joint_axis.empty())
-            writer.openElt("axis").attr("xyz", urdf_joint_axis).closeElt();
+            writer.openElt("axis").attr("xyz", urdf_joint_axis).closeElt_n();
 
         if (!urdf_joint_effort.empty())
             if (!urdf_joint_lower.empty())
@@ -1803,7 +1804,7 @@ int FileOperator::writeUrdfFile(std::string _filename)
                         .attr("lower", urdf_joint_lower)
                         .attr("upper", urdf_joint_upper)
                         .attr("velocity", urdf_joint_velocity)
-                        .closeElt();
+                        .closeElt_n();
                     }
         writer.closeElt();
     }
