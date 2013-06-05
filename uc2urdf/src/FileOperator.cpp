@@ -811,11 +811,11 @@ void FileOperator::readUCJoint(string _filename)
             //---------------------------------------------//
             //-- Look for the string "Direction=" in each line
             //---------------------------------------------//
-            int indexRPY = line.find(s_rpy);
+            int indexRPY = newline.find(s_rpy);
             if (indexRPY>=0)
             {
                 //-- We are looking for specifically the word "Offset" and not words like "TipOffset"
-                if (contains_word(line,s_rpy))
+                if (contains_word(newline,s_rpy))
                 {
                     //-- Look for the string "x="
                     int index_Roll = newline.find(s_Roll);
@@ -871,6 +871,7 @@ void FileOperator::readUCJoint(string _filename)
                             //std::cout <<"s_pitch_value: "<< s_pitch_value << endl;
                             d_pitch_value = atof(s_pitch_value.c_str());
                         }
+                        
                     }
                     comma_count = 0;
 
@@ -890,10 +891,13 @@ void FileOperator::readUCJoint(string _filename)
                         //std::cout <<"s_yaw_value: "<< s_yaw_value << endl;
                         d_yaw_value = atof(s_yaw_value.c_str());
                     }
+                    //cout << "Joint RPY: "<<d_roll_value<<","<<d_pitch_value<<","<<d_yaw_value<<endl;
                     getArmJoint().at(armjoint_count-1)->setJointRPYVector(d_roll_value, d_pitch_value, d_yaw_value);
                 }
             }
 
+            
+            
             //---------------------------------------------//
             //-- Look for the string "Offset" in each line
             //---------------------------------------------//
@@ -980,6 +984,7 @@ void FileOperator::readUCJoint(string _filename)
                             //std::cout <<"s_zvalue: "<< s_zvalue << endl;
                             d_zvalue = atof(s_zvalue.c_str());
                         }
+                        //cout << "Joint Offset: "<<d_xvalue<<","<<d_yvalue<<","<<d_zvalue<<endl;
                         getArmJoint().at(armjoint_count-1)->setJointOffsetVector(d_xvalue,d_yvalue,d_zvalue);
                     }
                 }

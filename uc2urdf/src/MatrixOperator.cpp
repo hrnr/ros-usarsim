@@ -10,6 +10,7 @@
  *****************************************************************************/
 
 #include "MatrixOperator.h"
+#include <map>
 #include <math.h>
 
 /**
@@ -40,11 +41,11 @@ MatrixOperator::~MatrixOperator()
  \brief Compute the position of each link in FileOperator::m_armlink based on the position and orientation of each joint in FileOperator::m_armjoint.
  
  <ul>
- <li> For each joint in FileOperator::m_armjoint:
- <ol>
- <li> Get the position (xyz) \f$ j^A \f$ of the joint defined in the current reference frame \f$ C \f$.
- <li> Get the orientation (rpy) of the joint from the original reference frame \f$ A \f$ to the current reference frame \f$ C \f$.
- </ol>
+    <li> For each joint in FileOperator::m_armjoint:
+    <ol>
+        <li> Get the position (xyz) \f$ j^A \f$ of the joint defined in the current reference frame \f$ C \f$.
+        <li> Get the orientation (rpy) of the joint from the original reference frame \f$ A \f$ to the current reference frame \f$ C \f$.
+    </ol>
  </ul>
  For each joint in FileOperator::m_armjoint, retrieve the child link and compute the position of this link in the joint reference frame.
  */
@@ -54,6 +55,7 @@ void MatrixOperator::computeLinkPosition()
     int v_armjoint_size = (int)v_armjoint.size();
     std::vector<Vector3d> link_position_set;
     
+    
     for (vector<ArmJoint*>::size_type i=1; i<v_armjoint_size; i++)
     {
         std::string child = v_armjoint[i]->getJointChild();
@@ -61,16 +63,19 @@ void MatrixOperator::computeLinkPosition()
         std::vector<double> v_current_joint_offset = v_armjoint[i]->getJointOffsetVector();
         std::vector<double> v_tmpRPY = v_armjoint[i]->getJointRPYVector();
         
-        Matrix3d matrix = buildRotationMatrix(v_tmpRPY);
+        //-- Compute the Rotation Matrix
+        Matrix3d rotationMatrix = buildRotationMatrix(v_tmpRPY);
         
-        Matrix4d m4d;
-        m4d.block(0,0,3,3) << matrix;
-        m4d.col(3) <<
+        //-- Build the Homogeneous Matrix
+        Matrix4d homogeneousMatrix;
+        homogeneousMatrix.block(0,0,3,3) << rotationMatrix;
+        homogeneousMatrix.col(3) <<
         v_current_joint_offset[0],
         v_current_joint_offset[1],
         v_current_joint_offset[2],1;
         
-        m4d.row(3)<< 0, 0, 0, 1;
+        homogeneousMatrix.row(3)<< 0, 0, 0, 1;
+
         
         std::vector<ArmLink*> v_armlink = m_file_operator->getArmLink();
         int v_armlink_size = (int)v_armlink.size();
@@ -80,6 +85,8 @@ void MatrixOperator::computeLinkPosition()
             std::vector<double> v_current_link_offset = v_armlink[j]->getOffsetVector();
             std::string s_link_name = v_armlink[j]->getLinkName();
             
+            //-- If the name of the link = the name of the child link
+            //- for this joint
             if (s_link_name.compare(child)==0)
             {
                 Vector4d v_linkPosition(v_current_link_offset[0],
@@ -90,7 +97,8 @@ void MatrixOperator::computeLinkPosition()
                 Vector3d _position;
                 
                 Vector4d final_position;
-                final_position=m4d.inverse()*v_linkPosition;
+                final_position=homogeneousMatrix.inverse()*v_linkPosition;
+        
                 
                 double scale = 0.001;  // i.e. round to nearest one-hundreth
                 _position[0]=floor(final_position[0] / scale + 0.5) * scale;
@@ -133,34 +141,88 @@ void MatrixOperator::computeLinkOrientation() {}
 void MatrixOperator::computeJointPosition()
 {
     std::vector<ArmJoint*> v_armjoint = m_file_operator->getArmJoint();
+    
     int v_armjoint_size = (int)v_armjoint.size();
     std::vector<Vector3d> joint_position_set;
+    map<int, std::vector<double> > map_tmpOffset;
+    
+    //cout << "----  0.112 0.016 -0.792  ----\n"<<endl;
+
+    //-- Store the offset of each v_armjoint in a map
+    //-- This map will be used later to retrieve the previous offset
+    for (vector<ArmJoint*>::size_type j=0; j<v_armjoint_size; j++)
+    {
+        
+        std::vector<double> v_tmpOffset = v_armjoint[j]->getJointOffsetVector();
+        map_tmpOffset[j]=v_tmpOffset;
+    }
     
     for (vector<ArmJoint*>::size_type i = 0; i < v_armjoint_size; i++)
     {
         std::vector<double> v_current_tmpOffset = v_armjoint[i]->getJointOffsetVector();
         
+        
+        /*
+        cout << "Matrix Joint Offset: "<<
+        v_current_tmpOffset[0]<<","<<
+        v_current_tmpOffset[1]<<","<<
+        v_current_tmpOffset[2]<<"\n"<<endl;
+        */
+        
+        
+        
         if (i>0)
         {
-            std::vector<double> v_prev_tmpOffset = v_armjoint[i-1]->getJointOffsetVector();
             std::vector<double> v_tmpRPY = v_armjoint[i-1]->getJointRPYVector();
-            Matrix3d matrix = buildRotationMatrix(v_tmpRPY);
+            //cout << "Matrix Joint RPY: "<<v_tmpRPY[0]<<","<<v_tmpRPY[1]<<","<<v_tmpRPY[2]<<endl;
+            //std::vector<double> v_prev_tmpOffset = v_armjoint[i-1]->getJointOffsetVector();
             
-            Matrix4d m4d;
-            m4d.block(0,0,3,3) << matrix;
-            m4d.col(3) << v_prev_tmpOffset[0], v_prev_tmpOffset[1], v_prev_tmpOffset[2],1;
-            m4d.row(3)<< 0, 0, 0, 1;
+            Matrix3d rotationMatrix = buildRotationMatrix(v_tmpRPY);
             
+            //-- Declaration of an empty homogeneous matrix
+            Matrix4d homogeneousMatrix;
+            
+            //-- The first 3x3 block of the homogeneous matrix
+            //-- starting at line 0 and column 0 is the rotation matrix
+            homogeneousMatrix.block(0,0,3,3) << rotationMatrix;
+            //m4d.col(3) << v_prev_tmpOffset[0], v_prev_tmpOffset[1], v_prev_tmpOffset[2],1;
+            
+            //-- The fourth column of the homogenous matrix is the displacement
+            homogeneousMatrix.col(3) <<
+            map_tmpOffset[i-1][0],
+            map_tmpOffset[i-1][1],
+            map_tmpOffset[i-1][2], 1;
+            
+            //cout << "H: \n"<<homogeneousMatrix << "\n\n"<<endl;
+            
+            //-- The last row of the homogeneous matrix is 0 0 0 1
+            homogeneousMatrix.row(3)<< 0, 0, 0, 1;
+            
+            /*
+            cout << "Matrix Previous Joint Offset: "<<
+            map_tmpOffset[i-1][0]<<","<<
+            map_tmpOffset[i-1][1]<<","<<
+            map_tmpOffset[i-1][2]<<"\n"<< endl;
+            */
+             
             Vector4d v_jointPosition(v_current_tmpOffset[0],v_current_tmpOffset[1],v_current_tmpOffset[2],1);
             Vector3d _position;
             
-            Vector4d final_position;
-            final_position=m4d.inverse()*v_jointPosition;
+            Vector4d final_position = homogeneousMatrix.inverse() * v_jointPosition;
             
             double scale = 0.001;  // i.e. round to nearest one-hundreth
             _position[0]=floor(final_position[0] / scale + 0.5) * scale;
             _position[1]=floor(final_position[1] / scale + 0.5) * scale;
             _position[2]=floor(final_position[2] / scale + 0.5) * scale;
+            
+            
+            /*
+             cout << "Joint Position: "<<
+            _position[0]<<" "<<
+            _position[1]<<" "<<
+            _position[2]<<endl;
+            */
+            
             
             //-- Update the offset for each joint with the ones just computed
             v_armjoint[i]->setJointOffsetVector((double)_position[0],(double)_position[1],(double)_position[2]);
@@ -168,27 +230,27 @@ void MatrixOperator::computeJointPosition()
             joint_position_set.push_back(_position);
         }
     }
+    
+    
     m_file_operator->setJointPosition(joint_position_set);
 }
 
 Matrix3d MatrixOperator::buildRotationMatrix(std::vector<double> _rpy_vector)
 {
-    Matrix3d matrix;
-    
-    
-    //std::cout << m1.format(CleanFmt) << sep;
-    
     if (_rpy_vector.size()==3)
     {
-        //cout << "rpy: "<<_rpy_vector[0] <<", "<<_rpy_vector[1]<<", "<<_rpy_vector[02]<<endl;
-        
-        matrix = AngleAxisd(_rpy_vector[2], Vector3d::UnitZ())
+        Matrix3d rotationMatrix;
+
+        rotationMatrix = AngleAxisd(_rpy_vector[2], Vector3d::UnitZ())
         * AngleAxisd(_rpy_vector[1], Vector3d::UnitY())
         * AngleAxisd(_rpy_vector[0], Vector3d::UnitX());
         
-        //matrixf = AngleAxisf(-0.5*(M_PI), Vector3f::UnitX());
+        return rotationMatrix;
     }
-    return matrix;
+    else{
+        cout << "Issues with buildRotationMatrix"<<endl;
+        exit(0);
+    }
 }
 
 /**

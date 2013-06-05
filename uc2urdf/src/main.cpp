@@ -100,10 +100,10 @@ int main(int argc, char** argv)
     op->addJoint_mount();
     op->readUrdfFile(urdf_file);
     MatrixOperator *matrixOp = new MatrixOperator(op);
-    matrixOp->computeJointPosition();
     matrixOp->computeLinkPosition();
+    matrixOp->computeJointPosition();
     matrixOp->computeJointAngles();
-
+    
     //op->displayUrdfLink();
     //op->displayUrdfJoint();
     //op->displayUCLink();
