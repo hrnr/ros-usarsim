@@ -5,7 +5,7 @@
  not subject to copyright in the United States.  Recipients of this software
  assume all responsibility associated with its operation, modification,
  maintenance, and subsequent redistribution.
- 
+
  See NIST Administration Manual 4.09.07 b and Appendix I.
  *****************************************************************************/
 /*!
@@ -31,21 +31,25 @@ class MatrixOperator
 public:
     MatrixOperator(FileOperator *op);
     MatrixOperator();
-    void setFileOperator(FileOperator *);
     virtual ~MatrixOperator();
-    void computeLinkPosition();
-    void computeLinkOrientation();
-    void computeJointPosition();
-    void computeJointAngles();
+
     Matrix3d buildRotationMatrix(std::vector<double>);
-    
-    
-    
+    void computeLinkOrientation();
+    void computeLinkPosition();
+    void computeJointOrientation();
+    void computeJointPosition();
     Vector3d getAnglesFromRotationMatrix(Matrix3d);
-    
-    double truncate(double, double);
     FileOperator* getFileOperator();
-    
+    void setFileOperator(FileOperator *);
+    double truncate(double, double);
+
+
+
+
+
+
+
+
 private:
     FileOperator *m_file_operator;
     std::vector<Vector3d> m_joint_position;

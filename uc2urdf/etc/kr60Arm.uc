@@ -25,7 +25,7 @@ defaultproperties
 	Begin Object Class=Part Name=Joint2
 		Mesh=StaticMesh'KR60.KR60_2'
 		Mass=1
-		Offset=(X=.324,Y=-.008,Z=-.688)
+		Offset=(X = .324, Y  =-.008,Z=-.688)
 		// in UU absolute editor coordinates x=81, y=2, z=172
 	End Object
 	PartList.Add(Joint2)
@@ -55,7 +55,7 @@ defaultproperties
 	PartList.Add(Joint5)
 
 	Begin Object Class=Part Name=Joint6
-		Mesh=StaticMesh'KR60.KR60_6'
+        Mesh=StaticMesh'KR60.KR60_6'
 		Mass=0.05
 		Offset=(X=1.522,Y=.016,Z=-2.01)
 		// in UU absolute editor coordinates x=380.5, y=4, z=502.5
@@ -116,7 +116,7 @@ defaultproperties
 		MaxForce=100
 		LimitLow=-3.14//-6.108
 		LimitHigh=3.14//6.108
-		Offset=(X=1.112,Y=0.016,Z=-1.992)
+		Offset=(X = 1.112,Y = 0.016,Z=-1.992)
 		Direction=(x=-1.571,y=0,z=-1.571)
 		InverseMeasureAngle=true
 	End Object

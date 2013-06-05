@@ -10,7 +10,7 @@
  *****************************************************************************/
 /*!
  *  \brief     Class for operations on files
- *  \details   This class is used to manipulate files (open, substract, concat, etc).
+ *  \details   This class consists of functions and procedures for reading, editing, storing, and witing files.
  *  \author    <a href="http://www.nist.gov/el/isd/ks/kootbally.cfm">Zeid Kootbally</a> \a zeid.kootbally\@nist.gov
  *  \version   1.0
  *  \date      May 17, 2012

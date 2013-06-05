@@ -101,9 +101,10 @@ int main(int argc, char** argv)
     op->readUrdfFile(urdf_file);
     MatrixOperator *matrixOp = new MatrixOperator(op);
     matrixOp->computeLinkPosition();
+    matrixOp->computeJointOrientation();
     matrixOp->computeJointPosition();
-    matrixOp->computeJointAngles();
-    
+
+
     //op->displayUrdfLink();
     //op->displayUrdfJoint();
     //op->displayUCLink();

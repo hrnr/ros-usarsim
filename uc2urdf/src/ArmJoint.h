@@ -5,9 +5,18 @@
  not subject to copyright in the United States.  Recipients of this software
  assume all responsibility associated with its operation, modification,
  maintenance, and subsequent redistribution.
- 
+
  See NIST Administration Manual 4.09.07 b and Appendix I.
  *****************************************************************************/
+
+/*!
+*  @brief     Robot Arm Joint Data
+*  @details   This file consists of functions and procedures for representing arm joints
+*  @author    <a href="http://www.nist.gov/el/isd/ks/kootbally.cfm">Zeid Kootbally</a> \a zeid.kootbally\@nist.gov
+*  @version   1.0
+*  @date      April 24, 2013
+*/
+
 #ifndef ARMJOINT_H
 #define ARMJOINT_H
 
@@ -20,39 +29,43 @@ public:
     ArmJoint();
     /** Default destructor */
     virtual ~ArmJoint();
-    void setJointName(std::string name);
-    std::string getJointName();
-    void setJointParent(ArmLink armlink);
-    void setJointParent(std::string name);
-    std::string getJointParent();
-    void setJointChild(ArmLink armlink);
-    void setJointChild(std::string name);
-    std::string getJointChild();
-    void setJointDamping(double damping);
+
+    //-- G --//
     double getJointDamping();
-    void setJointMaxForce(double maxforce);
-    double getJointMaxForce();
-    void setJointLimitLow(double limitlow);
-    double getJointLimitLow();
-    void setJointLimitHigh(double limithigh);
-    double getJointLimitHigh();
-    void setJointOffsetVector(double x, double y, double z);
+    std::string getJointChild();
+    std::string getJointName();
     std::vector<double> getJointOffsetVector();
-    void setJointRPYVector(double r, double p, double y);
+    std::string getJointParent();
     std::vector<double> getJointRPYVector();
-    
+    double getJointLimitHigh();
+    double getJointLimitLow();
+    double getJointMaxForce();
+
+    //-- S --//
+    void setJointChild(ArmLink);
+    void setJointChild(std::string);
+    void setJointDamping(double);
+    void setJointLimitHigh(double);
+    void setJointLimitLow(double);
+    void setJointMaxForce(double);
+    void setJointName(std::string);
+    void setJointOffsetVector(double, double, double);
+    void setJointParent(ArmLink);
+    void setJointParent(std::string);
+    void setJointRPYVector(double, double, double);
+
 private:
-    std::string m_jointName;
-    std::string m_jointParent;
-    std::string m_jointChild;
     ArmLink *m_armLinkParent;
     ArmLink *m_armLinkChild;
     double m_damping;
-    double m_maxForce;
-    double m_limitLow;
-    double m_limitHigh;
+    std::string m_jointChild;
     std::vector<double> m_jointOffsetVector;
+    std::string m_jointName;
+    std::string m_jointParent;
     std::vector<double> m_jointRPYVector;
+    double m_limitHigh;
+    double m_limitLow;
+    double m_maxForce;
 };
 
 #endif // ARMJOINT_H
