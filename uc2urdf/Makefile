@@ -1,4 +1,4 @@
-#include $(shell rospack find mk)/cmake.mk
+include $(shell rospack find mk)/cmake.mk
 
 PROG = uc2urdf
 TRGTS = uc2urdf

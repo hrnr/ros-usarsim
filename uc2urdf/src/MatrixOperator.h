@@ -34,21 +34,16 @@ public:
     virtual ~MatrixOperator();
 
     Matrix3d buildRotationMatrix(std::vector<double>);
+    Matrix3d buildRotationMatrix(Vector3d,Vector3d);
     void computeLinkOrientation();
     void computeLinkPosition();
     void computeJointOrientation();
     void computeJointPosition();
+    bool custom_isnan(double);
     Vector3d getAnglesFromRotationMatrix(Matrix3d);
     FileOperator* getFileOperator();
     void setFileOperator(FileOperator *);
     double truncate(double, double);
-
-
-
-
-
-
-
 
 private:
     FileOperator *m_file_operator;
