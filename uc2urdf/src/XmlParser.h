@@ -35,17 +35,25 @@
  *
  ****************************************************************************
  */
+
+/*!
+\file XmlParser.h
+ \brief File for parsing XML files.
+*/
 #ifndef __INCLUDE_XML_NODE__
 #define __INCLUDE_XML_NODE__
 
 #include <stdlib.h>
 
 #ifdef _UNICODE
-// If you comment the next "define" line then the library will never "switch to" _UNICODE (wchar_t*) mode (16/32 bits per characters).
-// This is useful when you get error messages like:
-//    'XMLNode::openFileHelper' : cannot convert parameter 2 from 'const char [5]' to 'const wchar_t *'
-// The _XMLUNICODE preprocessor variable force the XMLParser library into either utf16/32-mode (the proprocessor variable
-// must be defined) or utf8-mode(the pre-processor variable must be undefined).
+/**
+ * If you comment the next "define" line then the library will never "switch to" _UNICODE (wchar_t*) mode (16/32 bits per characters).<br>
+ * This is useful when you get error messages like:
+ *<ul>
+    <li>'XMLNode::openFileHelper' : cannot convert parameter 2 from 'const char [5]' to 'const wchar_t *'
+ *</ul>
+ The _XMLUNICODE preprocessor variable force the XMLParser library into either utf16/32-mode (the proprocessor variable must be defined) or utf8-mode (the pre-processor variable must be undefined).
+ */
 #define _XMLUNICODE
 #endif
 
@@ -108,8 +116,10 @@
 #define TRUE 1
 #endif /* TRUE */
 
-
-// Enumeration for XML parse errors.
+/*!
+ \enum 
+ \brief Enumeration for XML parse errors.
+ */
 typedef enum XMLError
 {
     eXMLErrorNone = 0,
@@ -137,7 +147,10 @@ typedef enum XMLError
     eXMLErrorBase64DecodeBufferTooSmall
 } XMLError;
 
-// Enumeration used to manage type of data. Use in conjunction with structure XMLNodeContents
+/*!
+ \enum
+ \brief Enumeration used to manage type of data. Use in conjunction with structure XMLNodeContents.
+ */
 typedef enum XMLElementType
 {
     eNodeChild=0,
@@ -147,14 +160,21 @@ typedef enum XMLElementType
     eNodeNULL=4
 } XMLElementType;
 
-// Structure used to obtain error details if the parse fails.
+/*!
+ \struct
+ \brief Structure used to obtain error details if the parse fails. 
+ */
 typedef struct XMLResults
 {
     enum XMLError error;
     int  nLine,nColumn;
 } XMLResults;
 
-// Structure for XML clear (unformatted) node (usually comments)
+
+/*!
+ \typedef
+ \brief Structure for XML clear (unformatted) node (usually comments)
+ */
 typedef struct {
     XMLCSTR lpszValue; XMLCSTR lpszOpenTag; XMLCSTR lpszCloseTag;
 } XMLClear;

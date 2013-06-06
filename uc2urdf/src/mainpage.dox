@@ -1,30 +1,63 @@
 /**
 \mainpage UC2URDF Generator Main Page
 
-The goal of this project is to read an unreal script (<b>.uc</b>) file and generates the corresponding Unified Robot Description Format (<b>urdf</b>) file.<BR>
+The goal of this tool is to read an unreal script (<i>.uc</i>) file and generates the corresponding Unified Robot Description Format (<i>urdf</i>) file.<BR>
 
-The different steps performed in this project in order to build the final <b>urdf</b> file are as follows:
+<h1>1. Prequisites</h1>
+Prior using this tool, the following actions should be performed:
+<ul>
+    <li>Generate a <i>urdf file</i> using the <i>URDF File Generator</i>: The URDF File Generator uses data from the tf trees that the USARSim ROS node maintains for all actuators, sensors, and effectors on the robot. The planning description configuration wizard can use this file to generate an arm navigation package to control the robot's actuators. In addition, the robot state publisher uses this file and the robot's joint angles to publish the current tf tree for a robot. Place the generated <i>urdf</i> file is placed in the <i>usarsim_inf/urdf</i> directory.
+    <li>Copy the robot <i>.uc</i> file from the Windows usarsim repository to this project <b>etc</b> directory. The <i>.uc</i> file on the Windows platform can be found in the UDK directory in <i>/Development/Src/USARActuator/classes/</i>. 
+</ul>
+
+<h1>2. Procedures to Generate the Final URDF File</h1>
+The different steps performed in this project in order to build the final <b>urdf</b> file are described below:
 <ol>
-	<li>Read a <b>.uc</b> file and store data on links and joints in memory
-    <li>Read config.ini to retrieve the collada mesh for each link
-    <li>Read an old <b>urdf</b> file and store attributes data
+	<li>Read the <i>.uc</i> file from the <b>etc</b> directory and store link and joint data in memory.
+    <li>Read the <i>urdf</i> file generated from the <b>URDF File Generator</b> and store link and joint data in memory.		
+    <li>Read the <i>config.ini</i> file from the <b>etc</b> directory to:
+        <ul>
+            <li>Retrieve collada meshes for each link.
+            <li>Modify the names of links and joints read from the <i>.uc</i> file with the names read from the generated <i>urdf</i> file.
+        </ul>
+    <li>Using link and joint data stored in step 1:
 		<ul>
-        	<li>The old <b>urdf</b> file is the one created from USARSim GEO and CONF messages. Data retrieved from this file will be put back in the final <b>urdf</b> file. Data retrieved from this file are not used in any matrix transformation. The name of the links and joints are used to build the final <b>urdf</b> file.
+        	<li>Compute the visual xyz for each link.
+        	<li>Compute the xyz for each joint.
+        	<li>Compute the rpy for each joint.
 		</ul>
-    <li>Using <b>.uc</b> data links and data joints stored in step 1:
+    <li>Write the final <i>urdf</i> file.
 		<ul>
-        	<li>Compute the visual xyz for each link
-        	<li>Compute the xyz for each joint
-        	<li>Compute the rpy for each joint
-		</ul>
-    <li>Write the final <b>urdf</b> file
-		<ul>
-        	<li>Merge data from the old <b>urdf</b> file (step 3) and new computed data (step 4).
+        	<li>Merge <i>urdf</i> data (step 2) with the computed data (step 4).
 		</ul>
 </ol>
 
-\warning The order of each action in step 4. must be respected.<br>Each action in step 4. replaces some data in the original stored list for links and joints and performing these actions in the wrong order results wrong data.<br>
-<H2> Structure of a .uc file (input file)</H2>
+\warning The order of each action in step 4. must be respected.<br>Each action in step 4. replaces some data in the original stored list for links and joints and performing these actions in a different order may generate a <i>urdf</i> file with wrong information.<br>
+
+<h1>3. Compiling and Running the Tool</h1>
+To compile the tool:
+<ol>
+    <li><b>cd uc2urdf</b> 
+    <li><b>make</b>
+</ol>
+
+
+To run the tool:
+<ol>
+    <li><b>cd uc2urdf/bin</b> 
+    <li><b>./uc2urdf -input generated_urdf.xml -uc file.uc -output newurdf.xml</b>
+</ol>
+Where:
+<ul>
+    <li><b>generated_urdf</b> is the file generated at step 1., section 1. (Prequisites). The tool will automatically search for this file in the <b>/usarsim_inf/urdf</b> directory.
+    <li><b>file.uc</b> is the <i>.uc</i> file described in step 2., section 1. (Prequisites). The tool will automatically search for this file in the <b>uc2urdf/etc/</b> directory.
+    <li><b>newurdf.xml</b> is the output file. The tool will automatically create this file in the <b>uc2urdf/etc/</b> directory.
+</ul>
+
+<h1>Annexes</h1>
+The following sections describe the different sections of a <i>.uc</i> file and a <i>urdf</i> file.
+
+<h2> Structure of a .uc file (input file)</h2>
 In a <b>.uc</b> file, the positions and orientations of each link (defined by <i>Class=parent</i>) are relative to the first link (<i>base_link</i>).
 <BR>For instance, in the following piece of code taken from <b>kr60Arm.uc</b>,
 the <i>Offset</i> for <i>Joint2</i> is relative to the position of <i>Joint1</i>.<BR>If we place <i>Joint1</i> at X=0.5,Y=0.0, Z=0.3, the position of <i>Joint2</i>
@@ -83,7 +116,7 @@ Joints.Add(Joint2_Joint3)
 ...
 \endverbatim
 
-<H2> Structure of a urdf file (output file)</H2>
+<h2> Structure of a urdf file (output file)</h2>
 
 In a <b>urdf</b> file, The way links and joints are positioned and oriented is different from the way this is represented in a <b>.uc</b> file. In a <b>urdf</b> file, each joint has a parent link and child link.<BR>
 The position and orientation of each joint are relative to the position and orientation, respectively, of the parent link.<BR>
