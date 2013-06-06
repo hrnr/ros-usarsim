@@ -872,7 +872,7 @@ void FileOperator::readUCJoint(string _filename)
                             //std::cout <<"s_pitch_value: "<< s_pitch_value << endl;
                             d_pitch_value = atof(s_pitch_value.c_str());
                         }
-                        
+
                     }
                     comma_count = 0;
 
@@ -897,8 +897,8 @@ void FileOperator::readUCJoint(string _filename)
                 }
             }
 
-            
-            
+
+
             //---------------------------------------------//
             //-- Look for the string "Offset" in each line
             //---------------------------------------------//

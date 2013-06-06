@@ -98,11 +98,13 @@ int main(int argc, char** argv)
     op->getIniData("COLLADA");
     op->addLink_base_link();
     op->addJoint_mount();
+    //op->displayUCJoint();
     op->readUrdfFile(urdf_file);
     MatrixOperator *matrixOp = new MatrixOperator(op);
     matrixOp->computeLinkPosition();
-    matrixOp->computeJointOrientation();
     matrixOp->computeJointPosition();
+    matrixOp->computeJointOrientation();
+
 
 
     //op->displayUrdfLink();

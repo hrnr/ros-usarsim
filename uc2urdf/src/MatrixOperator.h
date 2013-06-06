@@ -41,6 +41,7 @@ public:
     void computeJointPosition();
     bool custom_isnan(double);
     Vector3d getAnglesFromRotationMatrix(Matrix3d);
+     Vector3d getAnglesFromRotationMatrix2(Matrix3d);
     FileOperator* getFileOperator();
     void setFileOperator(FileOperator *);
     double truncate(double, double);

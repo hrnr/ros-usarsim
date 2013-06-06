@@ -6,16 +6,16 @@ The goal of this project is to read an unreal script (<b>.uc</b>) file and gener
 The different steps performed in this project in order to build the final <b>urdf</b> file are as follows:
 <ol>
 	<li>Read a <b>.uc</b> file and store data on links and joints in memory
-    <li>Read collada.ini to retrieve the collada mesh for each link
+    <li>Read config.ini to retrieve the collada mesh for each link
     <li>Read an old <b>urdf</b> file and store attributes data
 		<ul>
         	<li>The old <b>urdf</b> file is the one created from USARSim GEO and CONF messages. Data retrieved from this file will be put back in the final <b>urdf</b> file. Data retrieved from this file are not used in any matrix transformation. The name of the links and joints are used to build the final <b>urdf</b> file.
 		</ul>
     <li>Using <b>.uc</b> data links and data joints stored in step 1:
 		<ul>
-        	<li>Compute the position for each link
-        	<li>Compute the orientation of collada mesh for each link
-        	<li>Compute the position and orientation for each link
+        	<li>Compute the visual xyz for each link
+        	<li>Compute the xyz for each joint
+        	<li>Compute the rpy for each joint
 		</ul>
     <li>Write the final <b>urdf</b> file
 		<ul>
@@ -23,6 +23,7 @@ The different steps performed in this project in order to build the final <b>urd
 		</ul>
 </ol>
 
+\warning The order of each action in step 4. must be respected.<br>Each action in step 4. replaces some data in the original stored list for links and joints and performing these actions in the wrong order results wrong data.<br>
 <H2> Structure of a .uc file (input file)</H2>
 In a <b>.uc</b> file, the positions and orientations of each link (defined by <i>Class=parent</i>) are relative to the first link (<i>base_link</i>).
 <BR>For instance, in the following piece of code taken from <b>kr60Arm.uc</b>,
