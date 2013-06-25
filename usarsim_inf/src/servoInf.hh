@@ -122,6 +122,10 @@ private:
   std::string name);
   int rangeImagerIndex (std::vector < UsarsimRngImgSensor > &sensors,
 			std::string name);
+			
+	template <class T>
+  int removeEffector(std::vector <T> &effectors, const std::string &effectorName);
+  
   int copyActuator (UsarsimActuator * sen, const sw_struct * sw);
   int copyObjectSensor(UsarsimObjectSensor * sen, const sw_struct *sw);
   int copyIns (UsarsimOdomSensor * sen, const sw_struct * sw);

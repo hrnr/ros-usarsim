@@ -1,3 +1,4 @@
 Header header
 EffectorStatus effector_status
 ToolType tool_type
+string tool_name

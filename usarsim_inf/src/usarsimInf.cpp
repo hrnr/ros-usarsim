@@ -4792,7 +4792,7 @@ UsarsimInf::handleEffToolchanger (char *msg)
 	      ROS_ERROR ("Bad toolchanger status %s", info.token);
 	    }
 	}
-      else if (!strcmp (info.token, "Tool"))
+      else if (!strcmp (info.token, "ToolType"))
 	{
 	  info.nextptr = getValue (info.ptr, info.token);
 	  if (info.nextptr == info.ptr)
@@ -4805,6 +4805,11 @@ UsarsimInf::handleEffToolchanger (char *msg)
 	    sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_TOOLCHANGER;
 	  else
 	    sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_UNKNOWN_TYPE;
+	} else if(!strcmp(info.token, "Tool")) {
+	  info.nextptr = getValue (info.ptr, info.token);
+	  if(info.nextptr == info.ptr)
+	    return -1;
+	  strcpy(sw->data.toolchanger.tool_name, info.token);
 	}
       else
 	{

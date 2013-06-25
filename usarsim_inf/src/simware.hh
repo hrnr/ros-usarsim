@@ -422,6 +422,7 @@ typedef struct
   sw_pose mount;
   toolchanger_tool_type tooltype;
   effector_status status;
+  char tool_name[SW_NAME_MAX];
 } sw_eff_toolchanger_struct;
 #define SW_ACT_LINK_MAX 16	/*!< how many links a mission package can have */
 

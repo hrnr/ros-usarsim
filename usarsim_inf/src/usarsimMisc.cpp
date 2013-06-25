@@ -257,6 +257,7 @@ UsarsimToolchanger::UsarsimToolchanger (GenericInf * parentInf):UsarsimSensor
   ()
 {
   infHandle = parentInf;
+  status.effector_status.state = usarsim_inf::EffectorStatus::OPEN;
 }
 
 void

@@ -1347,29 +1347,48 @@ ServoInf::copyToolchanger (UsarsimToolchanger * effector,
   effector->status.header.frame_id = effector->name;
   setTransform (effector, sw->data.toolchanger.mount, currentTime);
 
-  switch (sw->data.toolchanger.tooltype)
-    {
-    case SW_EFF_TOOLCHANGER_GRIPPER:
-      effector->status.tool_type.type = usarsim_inf::ToolType::GRIPPER;
-      break;
-    case SW_EFF_TOOLCHANGER_VACUUM:
-      effector->status.tool_type.type = usarsim_inf::ToolType::VACUUM;
-      break;
-    case SW_EFF_TOOLCHANGER_TOOLCHANGER:
-      effector->status.tool_type.type = usarsim_inf::ToolType::TOOLCHANGER;
-      break;
-    case SW_EFF_TOOLCHANGER_UNKNOWN_TYPE:
-    default:
-      effector->status.tool_type.type = usarsim_inf::ToolType::UNKNOWN;
-      break;
+  if (sw->data.toolchanger.status == SW_EFF_OPEN) {
+    //if the toolchanger was previously closed, and is now open, remove the attached part
+    if(effector->status.effector_status.state == usarsim_inf::EffectorStatus::CLOSE) {
+      switch(effector->status.tool_type.type) {
+      case usarsim_inf::ToolType::GRIPPER:
+      case usarsim_inf::ToolType::VACUUM:
+        removeEffector(grippers, effector->status.tool_name);
+        break;
+      case usarsim_inf::ToolType::TOOLCHANGER:
+        removeEffector(toolchangers, effector->status.tool_name);
+        break;
+      case usarsim_inf::ToolType::UNKNOWN:
+      default:
+        ROS_ERROR("Did not recognize type of effector %s on toolchanger %s", effector->status.tool_name.c_str(), effector->name.c_str());
+        break;
+      }
     }
-  if (sw->data.toolchanger.status == SW_EFF_OPEN)
+    
     effector->status.effector_status.state =
       usarsim_inf::EffectorStatus::OPEN;
-  else if (sw->data.toolchanger.status == SW_EFF_CLOSE)
+    
+   } else if (sw->data.toolchanger.status == SW_EFF_CLOSE) {
+     switch (sw->data.toolchanger.tooltype)
+      {
+      case SW_EFF_TOOLCHANGER_GRIPPER:
+        effector->status.tool_type.type = usarsim_inf::ToolType::GRIPPER;
+        break;
+      case SW_EFF_TOOLCHANGER_VACUUM:
+        effector->status.tool_type.type = usarsim_inf::ToolType::VACUUM;
+        break;
+      case SW_EFF_TOOLCHANGER_TOOLCHANGER:
+        effector->status.tool_type.type = usarsim_inf::ToolType::TOOLCHANGER;
+        break;
+      case SW_EFF_TOOLCHANGER_UNKNOWN_TYPE:
+      default:
+        effector->status.tool_type.type = usarsim_inf::ToolType::UNKNOWN;
+        break;
+      }
     effector->status.effector_status.state =
       usarsim_inf::EffectorStatus::CLOSE;
-  else
+      effector->status.tool_name = std::string(sw->data.toolchanger.tool_name);
+   } else
     {
       ROS_ERROR ("Unrecognized toolchanger state: %d",
 		 sw->data.gripper.status);
@@ -1671,6 +1690,7 @@ ServoInf::toolchangerIndex (std::vector < UsarsimToolchanger > &effectors,
   effectPtr->time = 0;
   effectPtr->pub =
     nh->advertise < usarsim_inf::ToolchangerStatus > (name + "/status", 2);
+  //TODO: this will probably break if something has to be removed from the effectors vector, clean or working?
   effectPtr->command =
     nh->subscribe (name + "/command", 10,
 		   &UsarsimToolchanger::commandCallback, effectPtr);
@@ -1678,6 +1698,38 @@ ServoInf::toolchangerIndex (std::vector < UsarsimToolchanger > &effectors,
   effectPtr->tf.child_frame_id = name.c_str ();
 
   return effectors.size () - 1;
+}
+
+
+/*
+  Remove an effector from the list of attached effectors (if it is detached from the robot, for instance).
+  Returns 1 if succesful, 0 if the given effector was not found.
+  Templated, but meant to be called only for UsarsimToolchanger and UsarsimGripperEffector
+*/
+template <class T>
+int ServoInf::removeEffector (std::vector <T> &effectors, const std::string &effectorName) {
+  int effectorFound = 0;
+  for(unsigned int i = 0;i<effectors.size();i++)
+  {
+    if(effectorName == effectors[i].name) {
+      effectors[i].command.shutdown(); //explicit shutdown
+      effectors.erase(effectors.begin() + i);//ok to erase in place since we break immediately
+      effectorFound = 1;
+      break;
+    }
+  }
+  //need to reassign effector callbacks after removing one from the vector
+  for(unsigned int i = 0;i<effectors.size();i++)
+  {
+    T *effectPtr = &(effectors[i]);
+    effectPtr->command =
+    nh->subscribe (effectors[i].name + "/command", 10,
+		   &T::commandCallback, effectPtr);
+  }
+  if(!effectorFound) {
+    ROS_WARN("RosInf: could not find effector %s for removal!", effectorName.c_str());
+  }
+  return effectorFound;
 }
 
 /*
