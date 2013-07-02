@@ -466,7 +466,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	  num = rangeSensorIndex (rangeScanners, sw->name);
 	  if (copyRangeScanner (&rangeScanners[num], sw) == 1)
 	    {
-	      rosTfBroadcaster.sendTransform (rangeScanners[num].tf);
+	      broadcastTransform(rangeScanners[num].tf);
 	      /*
 	         ROS_INFO("Sending transform frame: %s child: %s",
 	         rangeScanners[num].tf.header.frame_id.c_str(),
@@ -504,7 +504,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	  num = rangeSensorIndex (rangeScanners, sw->name);
 	  if (copyRangeScanner (&rangeScanners[num], sw) == 1)
 	    {
-	      rosTfBroadcaster.sendTransform (rangeScanners[num].tf);
+	      broadcastTransform(rangeScanners[num].tf);
 	      /*
 	         ROS_INFO("Sending transform frame: %s child: %s",
 	         rangeScanners[num].tf.header.frame_id.c_str(),
@@ -532,7 +532,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	  num = objectSensorIndex (objectSensors, sw->name);
 	  if (copyObjectSensor (&objectSensors[num], sw) == 1)
 	    {
-	      rosTfBroadcaster.sendTransform (objectSensors[num].tf);
+	      broadcastTransform(objectSensors[num].tf);
 	      objectSensors[num].pub.publish (objectSensors[num].objSense);
 	    }
 	  else
@@ -542,7 +542,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	case SW_SEN_OBJECTSENSOR_SET:
 	  num = objectSensorIndex (objectSensors, sw->name);
 	  if (copyObjectSensor (&objectSensors[num], sw) == 1)
-	    rosTfBroadcaster.sendTransform (objectSensors[num].tf);
+	    broadcastTransform(objectSensors[num].tf);
 	  else
 	    ROS_ERROR ("Object sensor error for %s: can't copy it.",
 		       sw->name.c_str ());
@@ -554,33 +554,25 @@ ServoInf::peerMsg (sw_struct * sw)
 	}
       break;
     case SW_EFF_GRIPPER:
-      switch (sw->op)
+  switch (sw->op)
 	{
 	case SW_EFF_GRIPPER_STAT:
 	  //	  ROS_WARN ("Commented out SW_EFF_GRIPPER_STAT");
 	  //	  break;
-	  //	  ROS_ERROR( "Received SW_EFF_GRIPPER_STAT" );
+	  //	  ROS_DEBUG( "Received SW_EFF_GRIPPER_STAT" );
 	  num = gripperEffectorIndex (grippers, sw->name);
 	  if (copyGripperEffector (&grippers[num], sw) == 1)
 	    {
 	      //if we aren't building an URDF file, but this item is mounted on an actuator link, publish it as a joint
-	      //otherwise publish its transformation directly.
-	      if (!buildTFTree && grippers[num].linkOffset >= 0)
-		{
-		  ROS_DEBUG( "****publishing gripper joints %f %f %f",
-			     grippers[num].tf.transform.translation.x,
-			     grippers[num].tf.transform.translation.y,
-			     grippers[num].tf.transform.translation.z);
-		  publishJoints ();
-		}
-	      else
-		{
-		  rosTfBroadcaster.sendTransform (grippers[num].tf);
-		  ROS_DEBUG( "****publishing gripper tf %f %f %f",
-			     grippers[num].tf.transform.translation.x,
-			     grippers[num].tf.transform.translation.y,
-			     grippers[num].tf.transform.translation.z);
-		}
+	      //otherwise compute and publish its transformation directly.
+      if (!buildTFTree && grippers[num].linkOffset >= 0)
+		    {
+		      publishJoints ();
+		    }
+      else
+	      {
+	        broadcastTransform(grippers[num].tf);
+	      }
 	      grippers[num].pub.publish (grippers[num].status);
 	      if (grippers[num].isActive () && grippers[num].isDone ())
 		grippers[num].clearActive ();
@@ -598,12 +590,8 @@ ServoInf::peerMsg (sw_struct * sw)
 	  num = gripperEffectorIndex (grippers, sw->name);
 	  if (copyGripperEffector (&grippers[num], sw) == 1)
 	    {
-	      ROS_DEBUG( "****<1>publishing gripper tf %f %f %f",
-			 grippers[num].tf.transform.translation.x,
-			 grippers[num].tf.transform.translation.y,
-			 grippers[num].tf.transform.translation.z);
-
-	      rosTfBroadcaster.sendTransform (grippers[num].tf);
+	      setTransform(&grippers[num], sw->data.gripper.mount, sw->data.gripper.tip);
+	      broadcastTransform(grippers[num].tf);
 	    }
 	  else
 	    {
@@ -629,7 +617,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	      if (!buildTFTree && toolchangers[num].linkOffset >= 0)
 		publishJoints ();
 	      else
-		rosTfBroadcaster.sendTransform (toolchangers[num].tf);
+		broadcastTransform (toolchangers[num].tf);
 	      toolchangers[num].pub.publish (toolchangers[num].status);
 	    }
 	  else
@@ -642,10 +630,11 @@ ServoInf::peerMsg (sw_struct * sw)
 	  num = toolchangerIndex (toolchangers, sw->name);
 	  if (copyToolchanger (&toolchangers[num], sw) == 1)
 	    {
+	      setTransform (&toolchangers[num], sw->data.toolchanger.mount);
 	      if (!buildTFTree && toolchangers[num].linkOffset >= 0)
-		publishJoints ();
+		      publishJoints ();
 	      else
-		rosTfBroadcaster.sendTransform (toolchangers[num].tf);
+		      broadcastTransform(toolchangers[num].tf);
 	    }
 	  else
 	    {
@@ -666,7 +655,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	  if (copyRangeImager (&rangeImagers[num], sw) == 1)
 	    {
 
-	      rosTfBroadcaster.sendTransform (rangeImagers[num].tf);
+	      broadcastTransform (rangeImagers[num].tf);
 	      rosTfBroadcaster.
 		sendTransform (rangeImagers[num].opticalTransform);
 	      //since virtual range imaging is slow, wait for a full scan before publishing the camera info and depth image
@@ -692,7 +681,7 @@ ServoInf::peerMsg (sw_struct * sw)
 	  num = rangeImagerIndex (rangeImagers, sw->name);
 	  if (copyRangeImager (&rangeImagers[num], sw) == 1)
 	    {
-	      rosTfBroadcaster.sendTransform (rangeImagers[num].tf);
+	      broadcastTransform (rangeImagers[num].tf);
 	      rosTfBroadcaster.
 		sendTransform (rangeImagers[num].opticalTransform);
 	    }
@@ -779,7 +768,8 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
       act->maxValues.push_back (sw->data.actuator.link[i].maxvalue);
       act->maxTorques.push_back (sw->data.actuator.link[i].maxtorque);
     }
-  //  ROS_ERROR( "CopyAct success!!" );
+    
+    //ROS_ERROR( "CopyAct success!!" );
   return 1;
 }
 
@@ -800,10 +790,10 @@ ServoInf::updateActuatorTF (UsarsimActuator * act, const sw_struct * sw,
   act->jointTf.clear ();
   currentJointTf.header.stamp = currentTime;
 
-  setTransform (act, sw->data.actuator.mount, currentTime);
+  setTransform (act, sw->data.actuator.mount);
   act->tf.child_frame_id = act->name + "_link0";
   if (broadcastTF)
-    rosTfBroadcaster.sendTransform (act->tf);
+    broadcastTransform(act->tf);
 
   lastTipTransform.setOrigin (tf::Vector3 (0, 0, 0));
   lastTipTransform.setRotation (tf::Quaternion (0, 0, 0, 1));
@@ -954,7 +944,7 @@ ServoInf::copyIns (UsarsimOdomSensor * sen, const sw_struct * sw)
   currentTime = ros::Time::now ();
 
 
-  setTransform (sen, sw->data.ins.mount, currentTime);
+  setTransform (sen, sw->data.ins.mount);
   quat = tf::createQuaternionFromRPY (sw->data.ins.mount.roll,
 				      sw->data.ins.mount.pitch,
 				      sw->data.ins.mount.yaw);
@@ -1062,7 +1052,7 @@ ServoInf::copyRangeScanner (UsarsimRngScnSensor * sen, const sw_struct * sw)
   geometry_msgs::Quaternion quatMsg;
   currentTime = ros::Time::now ();
 
-  setTransform (sen, sw->data.rangescanner.mount, currentTime);
+  setTransform (sen, sw->data.rangescanner.mount);
 
   sen->scan.header.stamp = currentTime;
   //  sen->scan.header.frame_id = sen->tf.header.frame_id;
@@ -1102,7 +1092,7 @@ ServoInf::copyObjectSensor (UsarsimObjectSensor * sen, const sw_struct * sw)
   tf::Quaternion quat;
   geometry_msgs::Quaternion quatMsg;
   currentTime = ros::Time::now ();
-  setTransform (sen, sw->data.objectsensor.mount, currentTime);
+  setTransform (sen, sw->data.objectsensor.mount);
 
   sen->objSense.header.stamp = currentTime;
   sen->objSense.header.frame_id = sen->name;
@@ -1158,7 +1148,7 @@ int
 ServoInf::copyRangeImager (UsarsimRngImgSensor * sen, const sw_struct * sw)
 {
   ros::Time currentTime = ros::Time::now ();
-  setTransform (sen, sw->data.rangeimager.mount, currentTime);
+  setTransform (sen, sw->data.rangeimager.mount);
   sen->opticalTransform.header.stamp = currentTime;
   sen->depthImage.header.stamp = currentTime;
   sen->depthImage.header.frame_id = sen->name + "_optical";
@@ -1230,98 +1220,7 @@ ServoInf::copyGripperEffector (UsarsimGripperEffector * effector,
 			       const sw_struct * sw)
 {
   ros::Time currentTime = ros::Time::now ();
-  tf::Transform baseTransform;
-  tf::Transform tipTransform;
-  tf::Transform absoluteTransform;	//relative to actuator base
-  tf::Quaternion quat;
-  std::stringstream tempSS;
-
-
-  // set time stamp
-  effector->tf.header.stamp = currentTime;
-  tempSS.str ("");
-  tempSS << sw->data.gripper.tip.linkOffset;
-  effector->tf.header.frame_id = std::string(sw->data.gripper.tip.offsetFrom) + tempSS.str();
-  effector->tf.child_frame_id = effector->name + "_tip";
-  tipTransform.setOrigin (tf::Vector3 (0, 0, 0));
-  tipTransform.setRotation (tf::Quaternion (0, 0, 0, 1));
-
-  // old tip code
-  setTransform (effector, sw->data.gripper.mount, currentTime);
-  //adjust transform for gripper by tip offset
-  tipTransform.setRotation (tf::Quaternion (0, 0, 0, 1));
-  tipTransform.setOrigin (tf::Vector3
-			  (sw->data.gripper.tip.x, sw->data.gripper.tip.y,
-			   sw->data.gripper.tip.z));
-  tf::transformMsgToTF (effector->tf.transform, baseTransform);
-  tf::transformTFToMsg (baseTransform * tipTransform, effector->tf.transform);
-  //////////////////////////////////////////////////////////////
-  // end of old code
-
-  sw_pose mount = sw->data.gripper.mount;
-  ROS_DEBUG( "copyGripperEffector: mount point: <%f %f %f> <%f %f %f> %s %d tip point: <%f %f %f> <%f %f %f> %s %d",
-	     mount.x,
-	     mount.y,
-	     mount.z,
-	     mount.roll,
-	     mount.pitch,
-	     mount.yaw,
-	     mount.offsetFrom,
-	     mount.linkOffset,
-	     sw->data.gripper.tip.x,
-	     sw->data.gripper.tip.y,
-	     sw->data.gripper.tip.z,
-	     sw->data.gripper.tip.roll,
-	     sw->data.gripper.tip.pitch,
-	     sw->data.gripper.tip.yaw,
-	     sw->data.gripper.tip.offsetFrom,
-	     sw->data.gripper.tip.linkOffset);
-  /*
-  /////////////////////////////////////////////////////////////
-  // new tip transformation code
-  //find the position of the next link tip in the global coordinate frame
-  tf::Vector3 tipOffset (sw->data.gripper.tip.x, sw->data.gripper.tip.y,
-			 sw->data.gripper.tip.z);
-  //  currentTipPosition += tipOffset;
-  ROS_DEBUG( "copyGripperEffector: currentTipPosition %f %f %f",
-	     tipOffset.getX(),
-	     tipOffset.getY(),
-	     tipOffset.getZ());
-
-  //tip z-axis points along the tip offset, so get the rotation between actuator z-axis and tip offset
-  if (tipOffset.length2 () == 0)
-    quat = tf::Quaternion (0, 0, 0, 1);
-  else
-    {
-      tf::Vector3 tipZAxis = tipOffset.normalized ();
-      //rotation axis is k cross tipOffset
-      tf::Vector3 rotationAxis = tf::Vector3 (-1 * tipZAxis.getY (), 
-					      tipZAxis.getX (), 0.0);	
-      if (rotationAxis.length2 () == 0)
-	{
-	  rotationAxis = tf::Vector3 (0, 1, 0);
-	}
-      double angle = acos (tipZAxis.getZ ());
-      quat = tf::Quaternion (rotationAxis, angle);
-    }
-  absoluteTransform.setRotation (quat);
-  //  absoluteTransform.setOrigin (currentTipPosition);
-  absoluteTransform.setOrigin (tipOffset);
-  //find the transformation from the tip of the last link to the tip of the arm
-  tf::Transform relativeTransform =
-    tipTransform.inverseTimes (absoluteTransform);
-
-  //  tf::transformTFToMsg (relativeTransform, currentJointTf.transform);
-  tf::transformTFToMsg (relativeTransform, effector->tf.transform);
-
-  //tip transformation has no joint or link, so always publish it
-  //rosTfBroadcaster.sendTransform (currentJointTf);
-  // end of new code
-  ////////////////////////////////////////////////////////////
-  */
-
-  //////////////////////////////////////////////////////////////
-
+  
   // added the next two lines at top
     effector->status.header.stamp = currentTime;
     effector->status.header.frame_id = effector->name;
@@ -1345,18 +1244,24 @@ ServoInf::copyToolchanger (UsarsimToolchanger * effector,
   ros::Time currentTime = ros::Time::now ();
   effector->status.header.stamp = currentTime;
   effector->status.header.frame_id = effector->name;
-  setTransform (effector, sw->data.toolchanger.mount, currentTime);
 
   if (sw->data.toolchanger.status == SW_EFF_OPEN) {
     //if the toolchanger was previously closed, and is now open, remove the attached part
     if(effector->status.effector_status.state == usarsim_inf::EffectorStatus::CLOSE) {
+      sw_struct sw;
+      sw.op = SW_ROS_DELETE;
+      sw.name = effector->status.tool_name;
       switch(effector->status.tool_type.type) {
       case usarsim_inf::ToolType::GRIPPER:
       case usarsim_inf::ToolType::VACUUM:
         removeEffector(grippers, effector->status.tool_name);
+        sw.type = SW_EFF_GRIPPER;
+        sibling->peerMsg(&sw);
         break;
       case usarsim_inf::ToolType::TOOLCHANGER:
+        sw.type = SW_EFF_TOOLCHANGER;
         removeEffector(toolchangers, effector->status.tool_name);
+        sibling->peerMsg(&sw);
         break;
       case usarsim_inf::ToolType::UNKNOWN:
       default:
@@ -1401,8 +1306,7 @@ ServoInf::copyToolchanger (UsarsimToolchanger * effector,
 Set up the tf transformation for a component with the given pose
 */
 void
-ServoInf::setTransform (UsarsimSensor * sen, const sw_pose & pose,
-			ros::Time currentTime)
+ServoInf::setTransform (UsarsimSensor * sen, const sw_pose & pose)
 {
   std::stringstream tempSS;
   tf::Quaternion quat;
@@ -1416,7 +1320,6 @@ ServoInf::setTransform (UsarsimSensor * sen, const sw_pose & pose,
   sen->tf.transform.translation.y = pose.y;
   sen->tf.transform.translation.z = pose.z;
   sen->tf.transform.rotation = quatMsg;
-  sen->tf.header.stamp = currentTime;
   sen->tf.child_frame_id = sen->name;
   //if the object is mounted on the robot, mount it on base_link
   if (!ulapi_strcasecmp
@@ -1481,6 +1384,37 @@ ServoInf::setTransform (UsarsimSensor * sen, const sw_pose & pose,
 	}
     }
   sen->linkOffset = pose.linkOffset;
+}
+
+/*
+  Convenience method to set the transform for a component and then adjust it by the position of that component's tip
+*/
+void
+ServoInf::setTransform(UsarsimSensor *sen, const sw_pose &mount, const sw_pose &tip)
+{
+  tf::Transform baseTransform;
+  tf::Transform tipTransform;
+  
+  //calculate base transformation
+  setTransform (sen, mount);
+  tf::transformMsgToTF (sen->tf.transform, baseTransform);
+  
+  //calculate tip transformation
+  tipTransform.setOrigin (tf::Vector3(tip.x, tip.y,tip.z));
+  tipTransform.setRotation (tf::Quaternion (0, 0, 0, 1));
+  
+  //adjust old base transformation
+  tf::transformTFToMsg (baseTransform * tipTransform, sen->tf.transform);
+}
+
+/*
+  update timestamp of tf message, and then broadcast it
+*/
+void
+ServoInf::broadcastTransform(geometry_msgs::TransformStamped &tf)
+{
+  tf.header.stamp = ros::Time::now();
+  rosTfBroadcaster.sendTransform (tf);
 }
 
 /*
@@ -1786,7 +1720,8 @@ bool ServoInf::updateTrajectory (UsarsimActuator * act, const sw_struct * sw)
 	    currentTime.nsec, currentPoint.time.sec, currentPoint.time.nsec);
   sw_struct
     newSw;
-  newSw.type = SW_ROS_CMD_TRAJ;
+  newSw.type = SW_ACT;
+  newSw.op = SW_ROS_CMD_TRAJ;
   newSw.name = sw->name;
   newSw.data.roscmdtraj.number = currentPoint.numJoints;
   for (unsigned int i = 0; i < currentPoint.numJoints; i++)

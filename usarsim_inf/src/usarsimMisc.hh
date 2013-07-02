@@ -95,6 +95,7 @@ public:
     return &sw;
   }
   UsarsimList *classFind (std::string name);
+  UsarsimList *remove (std::string name);
   int didConf ()
   {
     return didConfMsg;

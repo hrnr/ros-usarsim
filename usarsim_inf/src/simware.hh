@@ -98,9 +98,9 @@ enum
   SW_ROS_CMD_TRAJ,
   SW_ROS_CMD_GRIP,
   SW_ROS_CMD_TOOLCHANGE,
-  SW_ROS_CMD_SCAN
+  SW_ROS_CMD_SCAN,
+  SW_ROS_DELETE
 };
-
 enum
 {
   SW_ROBOT_SKID_MOVE = 1,	/*!< move the vehicle the skid way */
@@ -479,6 +479,7 @@ typedef struct
 {
   int dummy;
 } sw_ros_cmd_scan_struct;
+
 typedef struct
 {
   double time;

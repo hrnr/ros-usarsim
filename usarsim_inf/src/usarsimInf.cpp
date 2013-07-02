@@ -205,9 +205,10 @@ UsarsimInf::init (GenericInf * siblingIn)
    */
   robot = new UsarsimList (SW_TYPE_UNINITIALIZED);
   robot->setName (robotName.c_str ());
-
+  
+  sleep (1); //sleep for a second to wait for simulator to initialize
+  
   ROS_INFO ("usarsim interface initialized");
-  //sleep (20);
   return 1;
 }
 
@@ -247,198 +248,222 @@ UsarsimInf::peerMsg (sw_struct * swIn)
   //  ROS_INFO ("In usarsimInf peerMsg");
 
   switch (swIn->type)
+  {
+  case SW_ROBOT_GROUNDVEHICLE:
+    switch(swIn->op)
     {
     case SW_ROS_CMD_VEL:
       sw = robot->getSW ();
       if (sw->type == SW_ROBOT_GROUNDVEHICLE)
-	{
-	  /* equations of motion:
-	     SL = rTh
-	     SR = (r + b)Th
-	     SM = (r +b/2)Th
-	   */
-	  if (sw->data.groundvehicle.steertype == SW_STEER_SKID)
-	    {
-	      if (swIn->data.roscmdvel.lineary != 0
-		  || swIn->data.roscmdvel.linearz != 0)
-		{
-		  ROS_WARN ("Invalid skid steering message <%f %f %f>",
-			    swIn->data.roscmdvel.linearx,
-			    swIn->data.roscmdvel.lineary,
-			    swIn->data.roscmdvel.linearz);
-		}
-	      if (swIn->data.roscmdvel.angularz != 0)
-		{
-		  turnRadius =
-		    swIn->data.roscmdvel.linearx /
-		    swIn->data.roscmdvel.angularz -
-		    sw->data.groundvehicle.wheel_separation / 2.;
-		  leftVel = turnRadius * swIn->data.roscmdvel.angularz;
-		  rightVel = (turnRadius +
-			      sw->data.groundvehicle.wheel_separation) *
-		    swIn->data.roscmdvel.angularz;
-		}
-	      else
-		{
-		  leftVel = swIn->data.roscmdvel.linearx;
-		  rightVel = swIn->data.roscmdvel.linearx;
-		}
-	      leftVel /= sw->data.groundvehicle.wheel_radius;
-	      rightVel /= sw->data.groundvehicle.wheel_radius;
-	      if (leftVel > sw->data.groundvehicle.max_speed)
-		{
-		  scale = sw->data.groundvehicle.max_speed / leftVel;
-		  ROS_WARN ("Left wheel spin speed too high! Scaling by %f%%",	// note that %% prints %
-			    100 * scale);
-		  leftVel = sw->data.groundvehicle.max_speed;
-		  rightVel *= scale;
-		}
-	      if (rightVel > sw->data.groundvehicle.max_speed)
-		{
-		  scale = sw->data.groundvehicle.max_speed / rightVel;
-		  ROS_WARN
-		    ("Right wheel spin speed too high! Scaling by %f%%",
-		     100. * scale);
-		  rightVel = sw->data.groundvehicle.max_speed;
-		  leftVel *= scale;
-		}
-	      /*
-	         ROS_INFO
-	         ("Sent skid steering with sep: %f radius: %f and vel <%f %f>",
-	         sw->data.groundvehicle.wheel_separation,
-	         sw->data.groundvehicle.wheel_radius, leftVel, rightVel);
-	       */
-	      ulapi_snprintf (str, sizeof (str),
-			      "Drive {Left %f} {Right %f}\r\n", leftVel,
-			      rightVel);
-	      NULLTERM (str);
-	      ulapi_mutex_take (socket_mutex);
-	      usarsim_socket_write (socket_fd, str, strlen (str));
-	      ulapi_mutex_give (socket_mutex);
-	    }
-	  else if (sw->data.groundvehicle.steertype == SW_STEER_ACKERMAN)
-	    {
-	      if (swIn->data.roscmdvel.lineary != 0
-		  || swIn->data.roscmdvel.linearz != 0
-		  || swIn->data.roscmdvel.angularx != 0
-		  || swIn->data.roscmdvel.angulary != 0)
-		{
-		  ROS_WARN
-		    ("Invalid skid steering message <%f %f %f> <%f %f %f>",
-		     swIn->data.roscmdvel.linearx,
-		     swIn->data.roscmdvel.lineary,
-		     swIn->data.roscmdvel.linearz,
-		     swIn->data.roscmdvel.angularx,
-		     swIn->data.roscmdvel.angulary,
-		     swIn->data.roscmdvel.angularz);
-		}
-	      if (swIn->data.roscmdvel.linearx == 0)
-		{
-		  steerAngle = swIn->data.roscmdvel.angularz;
-		  vehVel = 0.;
-		}
-	      else
-		{
-		  steerAngle = atan2 (swIn->data.roscmdvel.angularz *
-				      sw->data.groundvehicle.wheel_base,
-				      swIn->data.roscmdvel.linearx);
-		  vehVel = swIn->data.roscmdvel.linearx / cos (steerAngle);
-		}
-	      // fixeme! How do I know if it is front or rear steer?
-	      ulapi_snprintf (str, sizeof (str),
-			      "Drive {Speed %f} {FrontSteer %f} {RearSteer %f}\r\n",
-			      vehVel, steerAngle, steerAngle);
-	      NULLTERM (str);
-	      ulapi_mutex_take (socket_mutex);
-	      usarsim_socket_write (socket_fd, str, strlen (str));
-	      ulapi_mutex_give (socket_mutex);
-	      ROS_INFO ("Wrote %s", str);
-	    }
-	  else
-	    {
-	      ROS_ERROR
-		("Currently only support skid steered and Ackerman steeredrobots");
-	      break;
-	    }
-	}
+      {
+        /* equations of motion:
+        SL = rTh
+        SR = (r + b)Th
+        SM = (r +b/2)Th
+        */
+        if (sw->data.groundvehicle.steertype == SW_STEER_SKID)
+        {
+          if (swIn->data.roscmdvel.lineary != 0
+          || swIn->data.roscmdvel.linearz != 0)
+          {
+            ROS_WARN ("Invalid skid steering message <%f %f %f>",
+            swIn->data.roscmdvel.linearx,
+            swIn->data.roscmdvel.lineary,
+            swIn->data.roscmdvel.linearz);
+          }
+          if (swIn->data.roscmdvel.angularz != 0)
+          {
+            turnRadius =
+            swIn->data.roscmdvel.linearx /
+            swIn->data.roscmdvel.angularz -
+            sw->data.groundvehicle.wheel_separation / 2.;
+            leftVel = turnRadius * swIn->data.roscmdvel.angularz;
+            rightVel = (turnRadius +
+            sw->data.groundvehicle.wheel_separation) *
+            swIn->data.roscmdvel.angularz;
+          }
+          else
+          {
+            leftVel = swIn->data.roscmdvel.linearx;
+            rightVel = swIn->data.roscmdvel.linearx;
+          }
+          leftVel /= sw->data.groundvehicle.wheel_radius;
+          rightVel /= sw->data.groundvehicle.wheel_radius;
+          if (leftVel > sw->data.groundvehicle.max_speed)
+          {
+            scale = sw->data.groundvehicle.max_speed / leftVel;
+            ROS_WARN ("Left wheel spin speed too high! Scaling by %f%%",	// note that %% prints %
+            100 * scale);
+            leftVel = sw->data.groundvehicle.max_speed;
+            rightVel *= scale;
+          }
+          if (rightVel > sw->data.groundvehicle.max_speed)
+          {
+            scale = sw->data.groundvehicle.max_speed / rightVel;
+            ROS_WARN
+            ("Right wheel spin speed too high! Scaling by %f%%",
+            100. * scale);
+            rightVel = sw->data.groundvehicle.max_speed;
+            leftVel *= scale;
+          }
+          /*
+          ROS_INFO
+          ("Sent skid steering with sep: %f radius: %f and vel <%f %f>",
+          sw->data.groundvehicle.wheel_separation,
+          sw->data.groundvehicle.wheel_radius, leftVel, rightVel);
+          */
+          ulapi_snprintf (str, sizeof (str),
+          "Drive {Left %f} {Right %f}\r\n", leftVel,
+          rightVel);
+          NULLTERM (str);
+          ulapi_mutex_take (socket_mutex);
+          usarsim_socket_write (socket_fd, str, strlen (str));
+          ulapi_mutex_give (socket_mutex);
+        }
+        else if (sw->data.groundvehicle.steertype == SW_STEER_ACKERMAN)
+        {
+          if (swIn->data.roscmdvel.lineary != 0
+          || swIn->data.roscmdvel.linearz != 0
+          || swIn->data.roscmdvel.angularx != 0
+          || swIn->data.roscmdvel.angulary != 0)
+          {
+            ROS_WARN
+            ("Invalid skid steering message <%f %f %f> <%f %f %f>",
+            swIn->data.roscmdvel.linearx,
+            swIn->data.roscmdvel.lineary,
+            swIn->data.roscmdvel.linearz,
+            swIn->data.roscmdvel.angularx,
+            swIn->data.roscmdvel.angulary,
+            swIn->data.roscmdvel.angularz);
+          }
+          if (swIn->data.roscmdvel.linearx == 0)
+          {
+            steerAngle = swIn->data.roscmdvel.angularz;
+            vehVel = 0.;
+          }
+          else
+          {
+            steerAngle = atan2 (swIn->data.roscmdvel.angularz *
+            sw->data.groundvehicle.wheel_base,
+            swIn->data.roscmdvel.linearx);
+            vehVel = swIn->data.roscmdvel.linearx / cos (steerAngle);
+          }
+          // fixeme! How do I know if it is front or rear steer?
+          ulapi_snprintf (str, sizeof (str),
+          "Drive {Speed %f} {FrontSteer %f} {RearSteer %f}\r\n",
+          vehVel, steerAngle, steerAngle);
+          NULLTERM (str);
+          ulapi_mutex_take (socket_mutex);
+          usarsim_socket_write (socket_fd, str, strlen (str));
+          ulapi_mutex_give (socket_mutex);
+          ROS_INFO ("Wrote %s", str);
+        }
+        else
+        {
+          ROS_ERROR
+          ("Currently only support skid steered and Ackerman steeredrobots");
+          break;
+        }
+      }
       else
-	{
-	  ROS_ERROR ("Currently only support ground robot");
-	  break;
-	}
+      {
+        ROS_ERROR ("Currently only support ground robot");
+        break;
+      }
 
       /*
-         case SW_ROBOT_ACKERMAN_MOVE:
-         // FIXME -- how do we know if the vehicle is front steered or rear steered? 
-         ulapi_snprintf (str, sizeof (str),
-         "Drive {Speed %f} {FrontSteer %f} {RearSteer %f} {Normalized False} {Light False} {Flip False}\r\n",
-         sw->data.groundvehicle.speed,
-         sw->data.groundvehicle.heading,
-         -sw->data.groundvehicle.heading);
-         NULLTERM (str);
-         ulapi_mutex_take (socket_mutex);
-         usarsim_socket_write (socket_fd, str, strlen (str));
-         ulapi_mutex_give (socket_mutex);
-         break;
-       */
+      case SW_ROBOT_ACKERMAN_MOVE:
+      // FIXME -- how do we know if the vehicle is front steered or rear steered? 
+      ulapi_snprintf (str, sizeof (str),
+      "Drive {Speed %f} {FrontSteer %f} {RearSteer %f} {Normalized False} {Light False} {Flip False}\r\n",
+      sw->data.groundvehicle.speed,
+      sw->data.groundvehicle.heading,
+      -sw->data.groundvehicle.heading);
+      NULLTERM (str);
+      ulapi_mutex_take (socket_mutex);
+      usarsim_socket_write (socket_fd, str, strlen (str));
+      ulapi_mutex_give (socket_mutex);
       break;
+      */
+      break;
+    }
+    break;
+  case SW_ACT:
+    switch(swIn->op)
+    {
     case SW_ROS_CMD_TRAJ:
       command = "ACT {Name " + swIn->name + "}";
       for (int i = 0; i < swIn->data.roscmdtraj.number; i++)
-	{
-	  tempSS.str ("");
-	  tempSS << i;
-	  command += " {Link " + tempSS.str () + "}";
-	  tempSS.str ("");
-	  tempSS << swIn->data.roscmdtraj.goal[i];
-	  command += " {Value " + tempSS.str () + "}";
-	}
+      {
+      tempSS.str ("");
+      tempSS << i;
+      command += " {Link " + tempSS.str () + "}";
+      tempSS.str ("");
+      tempSS << swIn->data.roscmdtraj.goal[i];
+      command += " {Value " + tempSS.str () + "}";
+      }
       ulapi_snprintf (str, sizeof (str), "%s\r\n", command.c_str ());
       NULLTERM (str);
       ulapi_mutex_take (socket_mutex);
       usarsim_socket_write (socket_fd, str, strlen (str));
       ulapi_mutex_give (socket_mutex);
       break;
-    case SW_ROS_CMD_GRIP:
-      if (swIn->data.roscmdeff.goal == SW_EFF_OPEN)
-	command = "OPEN";
-      else
-	command = "CLOSE";
-      ulapi_snprintf (str, sizeof (str),
-		      "SET {Type Gripper} {Name %s} {Opcode %s}\r\n",
-		      swIn->name.c_str (), command.c_str ());
-      NULLTERM (str);
-      usarsim_socket_write (socket_fd, str, strlen (str));
-      ulapi_mutex_give (socket_mutex);
-      break;
+    }
+    break;
+  case SW_EFF_GRIPPER:
+    switch(swIn->op)
+    {
+      case SW_ROS_CMD_GRIP:
+        if (swIn->data.roscmdeff.goal == SW_EFF_OPEN)
+        command = "OPEN";
+        else
+        command = "CLOSE";
+        ulapi_snprintf (str, sizeof (str),
+        "SET {Type Gripper} {Name %s} {Opcode %s}\r\n",
+        swIn->name.c_str (), command.c_str ());
+        NULLTERM (str);
+        usarsim_socket_write (socket_fd, str, strlen (str));
+        ulapi_mutex_give (socket_mutex);
+        break;
+      case SW_ROS_DELETE:
+        grippers = grippers->remove(swIn->name);
+        break;
+    }
+    break;
+  case SW_EFF_TOOLCHANGER:
+    switch(swIn->op)
+    {
     case SW_ROS_CMD_TOOLCHANGE:
       if (swIn->data.roscmdeff.goal == SW_EFF_OPEN)
-	command = "OPEN";
+      command = "OPEN";
       else
-	command = "CLOSE";
+      command = "CLOSE";
       ulapi_snprintf (str, sizeof (str),
-		      "SET {Type ToolChanger} {Name %s} {Opcode %s}\r\n",
-		      swIn->name.c_str (), command.c_str ());
+      "SET {Type ToolChanger} {Name %s} {Opcode %s}\r\n",
+      swIn->name.c_str (), command.c_str ());
       NULLTERM (str);
       usarsim_socket_write (socket_fd, str, strlen (str));
       ulapi_mutex_give (socket_mutex);
       break;
+    }
+    break;
+  case SW_SEN_RANGEIMAGER:
+    switch(swIn->op)
+    {
     case SW_ROS_CMD_SCAN:
       ulapi_snprintf (str, sizeof (str),
-		      "SET {Type RangeImager} {Name %s} {Opcode SCAN}\r\n",
-		      swIn->name.c_str ());
+      "SET {Type RangeImager} {Name %s} {Opcode SCAN}\r\n",
+      swIn->name.c_str ());
       NULLTERM (str);
       usarsim_socket_write (socket_fd, str, strlen (str));
       ulapi_mutex_give (socket_mutex);
       break;
-    default:
-      ROS_ERROR ("usarsimInf::peerMsg: not handling type %s",
-		 swTypeToString (swIn->type));
-      break;
-
-
     }
-
+  default:
+    ROS_ERROR ("usarsimInf::peerMsg: not handling type %s",
+    swTypeToString (swIn->type));
+    break;
+  }
   return 1;
 }
 
@@ -762,8 +787,9 @@ UsarsimInf::handleMsg (char *msg)
   doSenConfs (objectsensors, (char *) "ObjectSensor");
   //  doSenConfs (misstas, (char *) "MisPkg");
   doSenConfs (misstas, (char *) "Actuator");
-  doEffConfs (grippers, (char *) "Gripper");
+  //need to do toolchanger confs first if grippers are mounted on them
   doEffConfs (toolchangers, (char *) "ToolChanger");
+  doEffConfs (grippers, (char *) "Gripper");
 
   doRobotConfs (robot);
 
@@ -1542,7 +1568,7 @@ UsarsimInf::handleSenIns (char *msg, const char *sensorType)
       return info.count;
     }
 
-  ROS_INFO( "Groundtruth: %s\n", msg );
+  //ROS_INFO( "Groundtruth: %s\n", msg );
   sw = myList->getSW ();
   while (1)
     {

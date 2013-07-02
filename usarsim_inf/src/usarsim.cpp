@@ -74,7 +74,6 @@ main (int argc, char **argv)
 
   ulapi_task_start (rosTask, rosThread, (void *) servo, ulapi_prio_lowest (),
 		    1);
-
   // main loop
   while ((usarsim->getNH ())->ok ())
     {

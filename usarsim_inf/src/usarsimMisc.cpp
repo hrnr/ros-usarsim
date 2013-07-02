@@ -80,6 +80,38 @@ UsarsimList::classFind (std::string name)
   ptr->next = new UsarsimList (ptr->sw.type);
   return ptr;
 }
+/*
+  Remove a usarsim robot component from the list.
+  Return the new front element of the list.
+*/
+UsarsimList*
+UsarsimList::remove(std::string name)
+{
+  if(name != "")
+  {
+    UsarsimList *ptr;
+    UsarsimList *next;
+    ptr = this;
+    next = ptr->next;
+    if(this->sw.name == name)
+    {
+      delete this;
+      return next;
+    }
+    while(next->sw.name != "")
+    {
+      if(next->sw.name == name)
+      {
+        ptr->next = next->next;
+        delete next;
+        return this;
+      }
+      ptr = next;
+      next = next->next;
+    }
+  }
+  return this;
+}
 
 ////////////////////////////////////////////////////////////////////////
 // UsarsimPlatform
@@ -187,7 +219,8 @@ UsarsimGripperEffector::commandCallback (const usarsim_inf::
       goal.state = msg->state;
       ROS_INFO ("Received gripper command, opcode %d", msg->state);
       sw_struct newSw;
-      newSw.type = SW_ROS_CMD_GRIP;
+      newSw.type = SW_EFF_GRIPPER;
+      newSw.op = SW_ROS_CMD_GRIP;
       newSw.name = name;
       if (msg->state == usarsim_inf::EffectorCommand::OPEN)
 	newSw.data.roscmdeff.goal = SW_EFF_OPEN;
@@ -243,7 +276,8 @@ UsarsimRngImgSensor::commandCallback (const usarsim_inf::
   if (ready)
     {
       sw_struct newSw;
-      newSw.type = SW_ROS_CMD_SCAN;
+      newSw.type = SW_SEN_RANGEIMAGER;
+      newSw.op = SW_ROS_CMD_SCAN;
       newSw.name = name;
       newSw.data.roscmdscan.dummy = 1;
       infHandle->sibling->peerMsg (&newSw);
@@ -267,7 +301,8 @@ UsarsimToolchanger::commandCallback (const usarsim_inf::
   goal.state = msg->state;
   ROS_INFO ("Received toolchanger command, opcode %d", msg->state);
   sw_struct newSw;
-  newSw.type = SW_ROS_CMD_TOOLCHANGE;
+  newSw.type = SW_EFF_TOOLCHANGER;
+  newSw.op = SW_ROS_CMD_TOOLCHANGE;
   newSw.name = name;
   if (msg->state == usarsim_inf::EffectorCommand::OPEN)
     newSw.data.roscmdeff.goal = SW_EFF_OPEN;
@@ -374,7 +409,8 @@ UsarsimActuator::trajectoryCallback ()
   currentTrajectory.goals.pop_front ();
 
   sw_struct sw;
-  sw.type = SW_ROS_CMD_TRAJ;
+  sw.type = SW_ACT;
+  sw.op = SW_ROS_CMD_TRAJ;
   sw.name = name;
   sw.data.roscmdtraj.number = goal.numJoints;
   for (unsigned int i = 0; i < goal.numJoints; i++)

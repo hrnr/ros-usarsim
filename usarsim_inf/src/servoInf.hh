@@ -88,7 +88,9 @@ private:
   UsarsimGrdVeh grdVehSettings;
   UsarsimSensor sensorSettings;
   
-  void setTransform(UsarsimSensor *sen, const sw_pose &pose, ros::Time currentTime);
+  void setTransform(UsarsimSensor *sen, const sw_pose &pose);
+  void setTransform(UsarsimSensor *sen, const sw_pose &pose, const sw_pose &tip);
+  void broadcastTransform(geometry_msgs::TransformStamped &tf);
   void addJoint(std::string jointName, double jointValue);
   void publishJoints();
   
