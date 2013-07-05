@@ -1,13 +1,17 @@
 <launch>
+  <arg name = "hostname" default = "yosemite" />
+  <arg name = "urdf_path" default = "urdf/KR60.xml" />
+  <arg name = "robot" default = "KR60" />
   <arg name = "coordinate_change" default = "false" />
   
   <param if="$(arg coordinate_change)" name="usarsim/globalFrame" value="/world_base" />
   <param unless="$(arg coordinate_change)" name="usarsim/globalFrame" value="/odom" />
-
-  <param name = "robot_description" command = "cat $(find usarsim_inf)/urdf/KR60.xml" />
-  <param name="usarsim/robotType" value="KR60" />
-  <param name="usarsim/robotName" value="KR60" />
-  <param name="usarsim/hostname" value="yosemite" />
+  
+  <param name = "robot_description" command = "cat $(find usarsim_inf)/$(arg urdf_path)" />
+  <param name="usarsim/hostname" value="$(arg hostname)" />
+  <param name="usarsim/robotType" value="$(arg robot)" />
+  <param name="usarsim/robotName" value="$(arg robot)" />
+  
   <param name="usarsim/port" value="3000" />
   <param name="usarsim/startPosition" value="RobotStart1" />
   <param name="usarsim/odomSensor" value="GroundTruth" />
