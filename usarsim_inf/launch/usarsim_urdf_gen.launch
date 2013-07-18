@@ -1,7 +1,10 @@
 <launch>
-  <param name="usarsim/robotType" value="KR60" />
-  <param name="usarsim/robotName" value="KR60" />
-  <param name="usarsim/hostname" value="rogerrabbit" />
+  <arg name="robot" default="KR60" /> 
+  <arg name="hostname" default="yosemite" />
+  
+  <param name="usarsim/robotType" value="$(arg robot)" />
+  <param name="usarsim/robotName" value="$(arg robot)" />
+  <param name="usarsim/hostname" value="$(arg hostname)" />
   <param name="usarsim/port" value="3000" />
   <param name="usarsim/odomSensor" value="GroundTruth" />
   <param name="usarsim/startPosition" value="RobotStart1" />

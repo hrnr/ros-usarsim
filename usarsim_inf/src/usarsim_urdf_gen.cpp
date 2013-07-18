@@ -173,7 +173,8 @@ main (int argc, char **argv)
 			 actPt->jointTf[j].transform.translation.z *
 			 actPt->jointTf[j].transform.translation.z);
 	  pitch = -1 * atan2 (actPt->jointTf[j].transform.translation.z,
-			      actPt->jointTf[j].transform.translation.x);
+			      sqrt(actPt->jointTf[j].transform.translation.x * actPt->jointTf[j].transform.translation.x + 
+			      actPt->jointTf[j].transform.translation.y * actPt->jointTf[j].transform.translation.y));
 	  yaw = atan2 (actPt->jointTf[j].transform.translation.y,
 		       actPt->jointTf[j].transform.translation.x);
 	  fprintf (fp, "\t\t\t\t<box size = \"%.2f 0.05 0.05\"/>\n",	//"\t\t\t\t<cylinder length=\"%f\" radius =\".05\"/>\n",
@@ -186,6 +187,18 @@ main (int argc, char **argv)
 		   (actPt->jointTf[j].transform.translation.z) / 2., 0.,
 		   pitch, yaw);
 	  fprintf (fp, "\t\t</visual>\n");
+	  fprintf (fp, "\t\t<collision>\n");
+	  fprintf (fp, "\t\t\t<geometry>\n");	  
+	  fprintf (fp, "\t\t\t\t<box size = \"%.2f 0.05 0.05\"/>\n",	//"\t\t\t\t<cylinder length=\"%f\" radius =\".05\"/>\n",
+		   length * 0.8);
+	  fprintf (fp, "\t\t\t</geometry>\n");
+	  fprintf (fp,
+		   "\t\t\t<origin xyz=\"%.2f %.2f %.2f\" rpy=\"%.2f %.2f %.2f\" />\n",
+		   (actPt->jointTf[j].transform.translation.x) / 2.,
+		   (actPt->jointTf[j].transform.translation.y) / 2.,
+		   (actPt->jointTf[j].transform.translation.z) / 2., 0.,
+		   pitch, yaw);
+	  fprintf (fp, "\t\t</collision>\n");
 	  fprintf (fp, "\t</link>\n");
 	}
     }

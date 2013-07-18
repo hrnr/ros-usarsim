@@ -11,6 +11,8 @@
   <depend package="roscpp"/>
   <depend package="tf"/>
   <depend package="usarsim_inf" />
+  <depend package="arm_navigation_msgs" />
+  <depend package="planning_environment" />
 
 </package>
 
