@@ -1,6 +1,8 @@
 <launch>
+
   <arg name="robot" default="KR60" /> 
   <arg name="hostname" default="yosemite" />
+  <arg name="boxes" default="false" />
   
   <param name="usarsim/robotType" value="$(arg robot)" />
   <param name="usarsim/robotName" value="$(arg robot)" />
@@ -8,5 +10,6 @@
   <param name="usarsim/port" value="3000" />
   <param name="usarsim/odomSensor" value="GroundTruth" />
   <param name="usarsim/startPosition" value="RobotStart1" />
-  <node name="URDFGenerate" pkg="usarsim_inf" type="usarsim_urdf" output="screen"/>
+  <node unless="$(arg boxes)" name="URDFGenerate" pkg="usarsim_inf" type="usarsim_urdf" output="screen" args="-v urdf/meshes -c urdf/stl" />
+  <node if="$(arg boxes)" name="URDFGenerate" pkg="usarsim_inf" type="usarsim_urdf" output="screen" />
 </launch>

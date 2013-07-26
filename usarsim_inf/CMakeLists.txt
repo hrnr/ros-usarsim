@@ -16,6 +16,14 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
+set(usarsim_inf_SOURCES
+	src/ulapi.cpp
+	src/genericInf.cpp
+	src/servoInf.cpp
+	src/usarsimInf.cpp
+	src/usarsimMisc.cpp
+	src/simware.cpp)
+
 #uncomment if you have defined messages
 rosbuild_genmsg()
 #uncomment if you have defined services
@@ -28,18 +36,11 @@ rosbuild_genmsg()
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
-rosbuild_add_executable( usarsim_node src/usarsim.cpp 
-                                      src/ulapi.cpp 
-				      				  src/genericInf.cpp
-                                      src/servoInf.cpp 
-                                      src/usarsimInf.cpp
-				      				  src/usarsimMisc.cpp
-				      				  src/simware.cpp )
-				      
-rosbuild_add_executable( usarsim_urdf src/usarsim_urdf_gen.cpp 
-										src/ulapi.cpp
-										src/genericInf.cpp
-										src/servoInf.cpp
-										src/usarsimInf.cpp
-										src/usarsimMisc.cpp
-										src/simware.cpp )
+
+rosbuild_add_library(usarsim_inf ${usarsim_inf_SOURCES})
+
+rosbuild_add_executable(usarsim_node src/usarsim.cpp)
+rosbuild_add_executable(usarsim_urdf src/usarsim_urdf_gen.cpp)
+
+target_link_libraries(usarsim_node usarsim_inf)
+target_link_libraries(usarsim_urdf usarsim_inf)

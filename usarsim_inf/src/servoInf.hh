@@ -30,6 +30,8 @@
 #ifndef __servoInf__
 #define __servoInf__
 
+#define USE_JOINT_COORDINATES 0
+
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <tf/transform_listener.h>

@@ -318,6 +318,7 @@ public:
   std::vector<float> maxValues; 
   std::vector<float> maxTorques; //config data needed for URDF generation
   std::vector <geometry_msgs::TransformStamped> jointTf; // transforms for links
+  std::vector <tf::Vector3> jointAxes; //joint axes
   
   sensor_msgs::JointState jstate;
   GenericInf *infHandle;
