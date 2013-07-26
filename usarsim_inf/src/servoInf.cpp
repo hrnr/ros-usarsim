@@ -821,6 +821,7 @@ ServoInf::updateActuatorTF (UsarsimActuator * act, const sw_struct * sw,
     {
       //find the position of the next link tip in the actuator coordinate frame
       tf::Transform tipOffset;
+      tipOffset.setIdentity();
       tipOffset.setOrigin(tf::Vector3 (sw->data.actuator.link[i].mount.x,
          sw->data.actuator.link[i].mount.y,
          sw->data.actuator.link[i].mount.z));
