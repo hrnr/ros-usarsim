@@ -247,8 +247,9 @@ main (int argc, char **argv)
   ROS_INFO ("Done with actuator links.");
   for (i = 0; i < servo->getNumExtras (); i++)
   {
-    if (servo->getComponent (i)->linkOffset >= 0)
-      addComponentLink (servo->getComponent (i), fp);
+    const UsarsimSensor *sen = servo->getComponent (i);
+    if(sen != NULL && sen->linkOffset >= 0)
+      addComponentLink (sen, fp);
   }
   ROS_INFO ("Done with component links.");
   i = 0;
@@ -275,8 +276,17 @@ main (int argc, char **argv)
     fprintf (fp, "\t</joint>\n");
     for (unsigned int j = 0; j < actPt->jointTf.size () - 1; j++)
     {
-      fprintf (fp, "\t<joint name=\"%s_joint_%d\" type=\"revolute\">\n",
-	       actPt->name.c_str (), j + 1);
+      switch(actPt->jointTypes[i])
+      { 
+      case SW_LINK_REVOLUTE:
+        fprintf (fp, "\t<joint name=\"%s_joint_%d\" type=\"revolute\">\n",
+	         actPt->name.c_str (), j + 1);
+	break;
+      case SW_LINK_PRISMATIC:
+	fprintf (fp, "\t<joint name=\"%s_joint_%d\" type=\"prismatic\">\n",
+	         actPt->name.c_str (), j + 1);
+	break;
+      }
       fprintf (fp, "\t\t<parent link=\"%s\"/>\n",
 	       actPt->jointTf[j].header.frame_id.c_str ());
       fprintf (fp, "\t\t<child link=\"%s\"/>\n",
@@ -303,8 +313,9 @@ main (int argc, char **argv)
   }
   for (i = 0; i < servo->getNumExtras (); i++)
   {
-    if (servo->getComponent (i)->linkOffset >= 0)
-      addComponentParentJoint (servo->getComponent (i), fp);
+    const UsarsimSensor *sen = servo->getComponent (i);
+    if (sen != NULL && sen->linkOffset >= 0)
+      addComponentParentJoint (sen, fp);
   }
   fprintf (fp, "</robot>\n");
   ulapi_exit ();

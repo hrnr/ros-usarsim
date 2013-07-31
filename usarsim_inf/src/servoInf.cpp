@@ -86,19 +86,31 @@ std::list < UsarsimActuator >::iterator ServoInf::getActuatorEnd ()
 unsigned int
 ServoInf::getNumExtras ()
 {
-  return grippers.size () + toolchangers.size ();  //should include any components that are specified in the robot URDF file
+  return grippers.size () + 
+     toolchangers.size () + 
+     rangeScanners.size() + 
+     objectSensors.size() +
+     rangeImagers.size();  //should include any components that are specified in the robot URDF file
 }
 
 const UsarsimSensor *
 ServoInf::getComponent (unsigned int num)
 {
-  if (num >= grippers.size () || grippers.empty ())
-  {
-    if (num - grippers.size () >= toolchangers.size ())
-      return NULL;
-    return &toolchangers[num - grippers.size ()];
-  }
-  return &grippers[num];
+  if(num < grippers.size())
+    return &grippers[num];
+  num -= grippers.size();
+  if(num < toolchangers.size())
+    return &toolchangers[num];
+  num-= toolchangers.size();
+  if(num < rangeScanners.size())
+    return &rangeScanners[num];
+  num -= rangeScanners.size();
+  if(num < objectSensors.size())
+    return &objectSensors[num];
+  num -= objectSensors.size();
+  if(num < rangeImagers.size())
+    return &rangeImagers[num];
+  return NULL;
 }
 
 const
@@ -181,25 +193,25 @@ ServoInf::peerMsg (sw_struct * sw)
         //actuators[num].pub.publish (actuators[num].jstate);
         updateActuatorTF (actPtr, sw, buildTFTree);
         if (!buildTFTree)
-    publishJoints ();
+	  publishJoints ();
         updateActuatorCycle (actPtr);
         if (actPtr->isTrajectoryActive ()
-      && updateTrajectory (actPtr, sw))
-  {
-    control_msgs::FollowJointTrajectoryResult result;
-    if (checkTrajectoryGoal (actPtr, sw))
-    {
-      ROS_INFO ("Trajectory succeeded");
-      result.error_code = result.SUCCESSFUL;
-    }
-    else
-    {
-      ROS_ERROR
-        ("Trajectory aborted: arm position not at goal");
-      result.error_code = result.GOAL_TOLERANCE_VIOLATED;
-    }
-    actPtr->setTrajectoryResult (result);
-  }
+	    && updateTrajectory (actPtr, sw))
+	{
+	  control_msgs::FollowJointTrajectoryResult result;
+	  if (checkTrajectoryGoal (actPtr, sw))
+	  {
+	    ROS_INFO ("Trajectory succeeded");
+	    result.error_code = result.SUCCESSFUL;
+	  }
+	  else
+	  {
+	    ROS_ERROR
+	      ("Trajectory aborted: arm position not at goal");
+	    result.error_code = result.GOAL_TOLERANCE_VIOLATED;
+	  }
+	  actPtr->setTrajectoryResult (result);
+	}
       }
 
       break;
@@ -228,12 +240,12 @@ ServoInf::peerMsg (sw_struct * sw)
     {
     case SW_SEN_INS_STAT:
       /*
-  ROS_DEBUG
-  ("Ins status for %s at time %f: %f,%f,%f %f,%f,%f",
-  sw->name.c_str (), sw->time, sw->data.ins.position.x,
-  sw->data.ins.position.y, sw->data.ins.position.z,
-  sw->data.ins.position.roll,
-  sw->data.ins.position.pitch, sw->data.ins.position.yaw);
+	ROS_DEBUG
+	("Ins status for %s at time %f: %f,%f,%f %f,%f,%f",
+	sw->name.c_str (), sw->time, sw->data.ins.position.x,
+	sw->data.ins.position.y, sw->data.ins.position.z,
+	sw->data.ins.position.roll,
+	sw->data.ins.position.pitch, sw->data.ins.position.yaw);
       */
 
       num = odomSensorIndex (odometers, sw->name);
@@ -241,52 +253,52 @@ ServoInf::peerMsg (sw_struct * sw)
       {
         rosTfBroadcaster.sendTransform (odometers[num].tf);
         if (odometers[num].name == odomName)
-    rosTfBroadcaster.sendTransform (basePlatform->tf);
+	  rosTfBroadcaster.sendTransform (basePlatform->tf);
         /*
-    ROS_INFO("Sending transform frame: %s child: %s",
-    odometers[num].tf.header.frame_id.c_str(),
-    odometers[num].tf.child_frame_id.c_str());
-  */
+	  ROS_INFO("Sending transform frame: %s child: %s",
+	  odometers[num].tf.header.frame_id.c_str(),
+	  odometers[num].tf.child_frame_id.c_str());
+	*/
       }
       /*
-  ROS_INFO("Sending odometer message for %s <%f %f>", 
-  odometers[num].odom.header.frame_id.c_str (),
-  odometers[num].odom.pose.pose.position.x,
-  odometers[num].odom.pose.pose.position.y);
+	ROS_INFO("Sending odometer message for %s <%f %f>", 
+	odometers[num].odom.header.frame_id.c_str (),
+	odometers[num].odom.pose.pose.position.x,
+	odometers[num].odom.pose.pose.position.y);
       */
       odometers[num].pub.publish (odometers[num].odom);
       break;
     case SW_SEN_INS_SET:
       ROS_DEBUG ("Ins settings for %s: %f %f,%f,%f %f,%f,%f",
-     sw->name.c_str (),
-     sw->data.ins.period,
-     sw->data.ins.mount.x,
-     sw->data.ins.mount.y,
-     sw->data.ins.mount.z,
-     sw->data.ins.mount.roll,
-     sw->data.ins.mount.pitch, sw->data.ins.mount.yaw);
+		 sw->name.c_str (),
+		 sw->data.ins.period,
+		 sw->data.ins.mount.x,
+		 sw->data.ins.mount.y,
+		 sw->data.ins.mount.z,
+		 sw->data.ins.mount.roll,
+		 sw->data.ins.mount.pitch, sw->data.ins.mount.yaw);
       num = odomSensorIndex (odometers, sw->name);
       if (copyIns (&odometers[num], sw) == 1)
       {
         rosTfBroadcaster.sendTransform (odometers[num].tf);
         if (odometers[num].name == odomName)
-  {
-    rosTfBroadcaster.sendTransform (basePlatform->tf);
-    if (!basePlatform->groundTruthSet)
-      ROS_INFO ("Ground truth set.");
-    basePlatform->groundTruthSet = true;
-  }
+	{
+	  rosTfBroadcaster.sendTransform (basePlatform->tf);
+	  if (!basePlatform->groundTruthSet)
+	    ROS_INFO ("Ground truth set.");
+	  basePlatform->groundTruthSet = true;
+	}
         else if (!basePlatform->groundTruthSet)
-  {
-    ROS_ERROR
-      ("Got status for INS sensor \"%s\" but have not yet received status for expected ground truth sensor \"%s\"",
-       odometers[num].name.c_str (), odomName.c_str ());
-  }
+	{
+	  ROS_ERROR
+	    ("Got status for INS sensor \"%s\" but have not yet received status for expected ground truth sensor \"%s\"",
+	     odometers[num].name.c_str (), odomName.c_str ());
+	}
         /*
-    ROS_INFO("Sending transform frame: %s child: %s",
-    odometers[num].tf.header.frame_id.c_str(),
-    odometers[num].tf.child_frame_id.c_str());
-  */
+	  ROS_INFO("Sending transform frame: %s child: %s",
+	  odometers[num].tf.header.frame_id.c_str(),
+	  odometers[num].tf.child_frame_id.c_str());
+	*/
       }
       break;
     default:
@@ -306,26 +318,26 @@ ServoInf::peerMsg (sw_struct * sw)
         // first time we know about the robot type
         copyStaticVehSettings (basePlatform, sw);
         if (!basePlatform->groundTruthSet)
-    ROS_INFO ("Waiting for ground truth...");
+	  ROS_INFO ("Waiting for ground truth...");
       }
       else if (botType != SW_ROBOT_STATIC_VEH)
       {
         // it was already set to something else
         ROS_WARN ("Fixed Robot.stat overriding %s\n",
-      swRobotType (botType));
+		  swRobotType (botType));
       }
       else
       {
         if (!basePlatform->groundTruthSet)
-    ROS_INFO ("Waiting for ground truth...");
+	  ROS_INFO ("Waiting for ground truth...");
         //rosTfBroadcaster.sendTransform (basePlatform->tf);
         /*
-    ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
-    basePlatform->tf.header.frame_id.c_str(),
-    basePlatform->tf.child_frame_id.c_str(),
-    basePlatform->tf.transform.translation.x,
-    basePlatform->tf.transform.translation.y);
-  */
+	  ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
+	  basePlatform->tf.header.frame_id.c_str(),
+	  basePlatform->tf.child_frame_id.c_str(),
+	  basePlatform->tf.transform.translation.x,
+	  basePlatform->tf.transform.translation.y);
+	*/
       }
       break;
 
@@ -335,43 +347,43 @@ ServoInf::peerMsg (sw_struct * sw)
         // first time we know about the robot type
         botType = SW_ROBOT_STATIC_VEH;
         if (copyStaticVehSettings (basePlatform, sw) == 1)
-  {
+	{
 
-    //rosTfBroadcaster.sendTransform (basePlatform->tf);
-    /*
-      ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
-      basePlatform->tf.header.frame_id.c_str(),
-      basePlatform->tf.child_frame_id.c_str(),
-      basePlatform->tf.transform.translation.x,
-      basePlatform->tf.transform.translation.y);
-    */
-  }
+	  //rosTfBroadcaster.sendTransform (basePlatform->tf);
+	  /*
+	    ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
+	    basePlatform->tf.header.frame_id.c_str(),
+	    basePlatform->tf.child_frame_id.c_str(),
+	    basePlatform->tf.transform.translation.x,
+	    basePlatform->tf.transform.translation.y);
+	  */
+	}
         else
-  {
-    ROS_ERROR ("Error copying robot status");
-  }
+	{
+	  ROS_ERROR ("Error copying robot status");
+	}
       }
       else if (botType != SW_ROBOT_STATIC_VEH)
       {
         // it was already set to something else
         ROS_WARN ("StaticVehicle.set overriding %s\n",
-      swRobotType (botType));
+		  swRobotType (botType));
       }
       else
       {
         //rosTfBroadcaster.sendTransform (basePlatform->tf);
         /*
-    ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
-    basePlatform->tf.header.frame_id.c_str(),
-    basePlatform->tf.child_frame_id.c_str(),
-    basePlatform->tf.transform.translation.x,
-    basePlatform->tf.transform.translation.y);
-  */
+	  ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
+	  basePlatform->tf.header.frame_id.c_str(),
+	  basePlatform->tf.child_frame_id.c_str(),
+	  basePlatform->tf.transform.translation.x,
+	  basePlatform->tf.transform.translation.y);
+	*/
       }
       break;
     default:
       ROS_WARN ("unknown sw operand for class %s with operand %d",
-    swTypeToString (sw->type), sw->op);
+		swTypeToString (sw->type), sw->op);
       break;
     }
     break;
@@ -385,33 +397,33 @@ ServoInf::peerMsg (sw_struct * sw)
         botType = SW_ROBOT_GRD_VEH;
         // first time we know about the robot type
         if (copyGrdVehSettings (&grdVehSettings, sw) == 1)
-  {
-    rosTfBroadcaster.sendTransform (grdVehSettings.tf);
-    /*
-      ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
-      grdVehSettings.tf.header.frame_id.c_str(),
-      grdVehSettings.tf.child_frame_id.c_str(),
-      grdVehSettings.tf.transform.translation.x,
-      grdVehSettings.tf.transform.translation.y);
-    */
-  }
+	{
+	  rosTfBroadcaster.sendTransform (grdVehSettings.tf);
+	  /*
+	    ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
+	    grdVehSettings.tf.header.frame_id.c_str(),
+	    grdVehSettings.tf.child_frame_id.c_str(),
+	    grdVehSettings.tf.transform.translation.x,
+	    grdVehSettings.tf.transform.translation.y);
+	  */
+	}
       }
       else if (botType != SW_ROBOT_GRD_VEH)
       {
         // it was already set to something else
         ROS_WARN ("GroundVehicle.stat overriding %s\n",
-      swRobotType (botType));
+		  swRobotType (botType));
       }
       else
       {
         rosTfBroadcaster.sendTransform (grdVehSettings.tf);
         /*
-    ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
-    grdVehSettings.tf.header.frame_id.c_str(),
-    grdVehSettings.tf.child_frame_id.c_str(),
-    grdVehSettings.tf.transform.translation.x,
-    grdVehSettings.tf.transform.translation.y);
-  */
+	  ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
+	  grdVehSettings.tf.header.frame_id.c_str(),
+	  grdVehSettings.tf.child_frame_id.c_str(),
+	  grdVehSettings.tf.transform.translation.x,
+	  grdVehSettings.tf.transform.translation.y);
+	*/
       }
       break;
 
@@ -421,37 +433,37 @@ ServoInf::peerMsg (sw_struct * sw)
         // first time we know about the robot type
         botType = SW_ROBOT_GRD_VEH;
         if (copyGrdVehSettings (&grdVehSettings, sw) == 1)
-  {
-    rosTfBroadcaster.sendTransform (grdVehSettings.tf);
-    /*
-      ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
-      grdVehSettings.tf.header.frame_id.c_str(),
-      grdVehSettings.tf.child_frame_id.c_str(),
-      grdVehSettings.tf.transform.translation.x,
-      grdVehSettings.tf.transform.translation.y);
-    */
-  }
+	{
+	  rosTfBroadcaster.sendTransform (grdVehSettings.tf);
+	  /*
+	    ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
+	    grdVehSettings.tf.header.frame_id.c_str(),
+	    grdVehSettings.tf.child_frame_id.c_str(),
+	    grdVehSettings.tf.transform.translation.x,
+	    grdVehSettings.tf.transform.translation.y);
+	  */
+	}
         else
-  {
-    ROS_ERROR ("Error copying robot status");
-  }
+	{
+	  ROS_ERROR ("Error copying robot status");
+	}
       }
       else if (botType != SW_ROBOT_GRD_VEH)
       {
         // it was already set to something else
         ROS_WARN ("GroundVehicle.set overriding %s\n",
-      swRobotType (botType));
+		  swRobotType (botType));
       }
       else
       {
         rosTfBroadcaster.sendTransform (grdVehSettings.tf);
         /*
-    ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
-    grdVehSettings.tf.header.frame_id.c_str(),
-    grdVehSettings.tf.child_frame_id.c_str(),
-    grdVehSettings.tf.transform.translation.x,
-    grdVehSettings.tf.transform.translation.y);
-  */
+	  ROS_INFO("Sending vehicle transform frame: %s child: %s <%f %f>",
+	  grdVehSettings.tf.header.frame_id.c_str(),
+	  grdVehSettings.tf.child_frame_id.c_str(),
+	  grdVehSettings.tf.transform.translation.x,
+	  grdVehSettings.tf.transform.translation.y);
+	*/
       }
       break;
     }
@@ -462,60 +474,63 @@ ServoInf::peerMsg (sw_struct * sw)
     {
     case SW_SEN_RANGESCANNER_STAT:
       ROS_DEBUG ("RangeScanner status for %s at time %f: ",
-     sw->name.c_str (), sw->time);
+		 sw->name.c_str (), sw->time);
       num = rangeSensorIndex (rangeScanners, sw->name);
       if (copyRangeScanner (&rangeScanners[num], sw) == 1)
       {
-        broadcastTransform(rangeScanners[num].tf);
-        /*
-    ROS_INFO("Sending transform frame: %s child: %s",
-    rangeScanners[num].tf.header.frame_id.c_str(),
-    rangeScanners[num].tf.child_frame_id.c_str());
-    ROS_INFO("Sending rangescanner message for %s", sw->name.c_str ());
-  */
-        rangeScanners[num].pub.publish (rangeScanners[num].scan);
+        if (!buildTFTree && rangeScanners[num].linkOffset >= 0)
+        {
+          publishJoints ();
+        }
+	else
+        {
+          if(!rangeScanners[num].transformSet)
+          {
+            setTransform(&rangeScanners[num], sw->data.rangescanner.mount);
+          }
+          broadcastTransform(rangeScanners[num].tf);
+        }
       }
       else
       {
         ROS_ERROR
-    ("RangeScanner error for %s: can't copy it.",
-     sw->name.c_str ());
+	  ("RangeScanner error for %s: can't copy it.",
+	   sw->name.c_str ());
         return -1;
       }
       break;
 
     case SW_SEN_RANGESCANNER_SET:
       ROS_DEBUG ("RangeScanner settings for %s mount: %s ",
-     sw->name.c_str (),
-     sw->data.rangescanner.mount.offsetFrom);
+		 sw->name.c_str (),
+		 sw->data.rangescanner.mount.offsetFrom);
       /*
-  ROS_DEBUG ("%f %f %f %f %f,%f,%f %f,%f,%f",
-  sw->data.rangescanner.minrange,
-  sw->data.rangescanner.maxrange,
-  sw->data.rangescanner.resolution,
-  sw->data.rangescanner.fov,
-  sw->data.rangescanner.mount.x,
-  sw->data.rangescanner.mount.y,
-  sw->data.rangescanner.mount.z,
-  sw->data.rangescanner.mount.roll,
-  sw->data.rangescanner.mount.pitch,
-  sw->data.rangescanner.mount.yaw);
+	ROS_DEBUG ("%f %f %f %f %f,%f,%f %f,%f,%f",
+	sw->data.rangescanner.minrange,
+	sw->data.rangescanner.maxrange,
+	sw->data.rangescanner.resolution,
+	sw->data.rangescanner.fov,
+	sw->data.rangescanner.mount.x,
+	sw->data.rangescanner.mount.y,
+	sw->data.rangescanner.mount.z,
+	sw->data.rangescanner.mount.roll,
+	sw->data.rangescanner.mount.pitch,
+	sw->data.rangescanner.mount.yaw);
       */
       num = rangeSensorIndex (rangeScanners, sw->name);
       if (copyRangeScanner (&rangeScanners[num], sw) == 1)
       {
+        if(!rangeScanners[num].transformSet)
+        {
+          setTransform(&rangeScanners[num], sw->data.rangescanner.mount);
+        }
         broadcastTransform(rangeScanners[num].tf);
-        /*
-    ROS_INFO("Sending transform frame: %s child: %s",
-    rangeScanners[num].tf.header.frame_id.c_str(),
-    rangeScanners[num].tf.child_frame_id.c_str());
-  */
       }
       else
       {
         ROS_ERROR
-    ("RangeScanner error for %s: can't copy it.",
-     sw->name.c_str ());
+	  ("RangeScanner error for %s: can't copy it.",
+	   sw->name.c_str ());
         return -1;
       }
       break;
@@ -532,20 +547,36 @@ ServoInf::peerMsg (sw_struct * sw)
       num = objectSensorIndex (objectSensors, sw->name);
       if (copyObjectSensor (&objectSensors[num], sw) == 1)
       {
-        broadcastTransform(objectSensors[num].tf);
-        objectSensors[num].pub.publish (objectSensors[num].objSense);
+        if (!buildTFTree && objectSensors[num].linkOffset >= 0)
+        {
+          publishJoints ();
+        }
+	else
+        {
+          if(!objectSensors[num].transformSet)
+          {
+            setTransform(&objectSensors[num], sw->data.objectsensor.mount);
+          }
+          broadcastTransform(objectSensors[num].tf);
+        }
       }
       else
-  ROS_ERROR ("Object sensor error for %s: can't copy it.",
-       sw->name.c_str ());
+	ROS_ERROR ("Object sensor error for %s: can't copy it.",
+		   sw->name.c_str ());
       break;
     case SW_SEN_OBJECTSENSOR_SET:
       num = objectSensorIndex (objectSensors, sw->name);
       if (copyObjectSensor (&objectSensors[num], sw) == 1)
-  broadcastTransform(objectSensors[num].tf);
+      {
+	if(!objectSensors[num].transformSet)
+        {
+          setTransform(&objectSensors[num], sw->data.rangescanner.mount);
+        }
+        broadcastTransform(objectSensors[num].tf);
+      }
       else
-  ROS_ERROR ("Object sensor error for %s: can't copy it.",
-       sw->name.c_str ());
+	ROS_ERROR ("Object sensor error for %s: can't copy it.",
+		   sw->name.c_str ());
       break;
     default:
       ROS_ERROR ("invalid operation: %d\n", sw->op);
@@ -565,38 +596,45 @@ ServoInf::peerMsg (sw_struct * sw)
       {
         //if we aren't building an URDF file, but this item is mounted on an actuator link, publish it as a joint
         //otherwise compute and publish its transformation directly.
-  if (!buildTFTree && grippers[num].linkOffset >= 0)
+	if (!buildTFTree && grippers[num].linkOffset >= 0)
         {
           publishJoints ();
         }
-  else
+	else
         {
+          if(!grippers[num].transformSet)
+          {
+            setTransform(&grippers[num], sw->data.gripper.mount, sw->data.gripper.tip);
+          }
           broadcastTransform(grippers[num].tf);
         }
         grippers[num].pub.publish (grippers[num].status);
         if (grippers[num].isActive () && grippers[num].isDone ())
-    grippers[num].clearActive ();
+	  grippers[num].clearActive ();
 
       }
       else
       {
         ROS_ERROR ("Gripper effector error for %s: couldn't copy",
-       sw->name.c_str ());
+		   sw->name.c_str ());
       }
       break;
     case SW_EFF_GRIPPER_SET:
-      ROS_ERROR( "SW_EFF_GRIPPER_SET with type %s received", 
-     swTypeToString(sw->type) );
+      ROS_DEBUG( "SW_EFF_GRIPPER_SET with type %s received", 
+		 swTypeToString(sw->type) );
       num = gripperEffectorIndex (grippers, sw->name);
       if (copyGripperEffector (&grippers[num], sw) == 1)
       {
-        setTransform(&grippers[num], sw->data.gripper.mount, sw->data.gripper.tip);
+        if(!grippers[num].transformSet)
+        {
+          setTransform(&grippers[num], sw->data.gripper.mount, sw->data.gripper.tip);
+        }
         broadcastTransform(grippers[num].tf);
       }
       else
       {
         ROS_ERROR ("Gripper effector error for %s: couldn't copy",
-       sw->name.c_str ());
+		   sw->name.c_str ());
       }
       break;
     default:
@@ -615,22 +653,33 @@ ServoInf::peerMsg (sw_struct * sw)
         //if we aren't building an URDF file, but this item is mounted on an actuator link, publish it as a joint
         //otherwise publish its transformation directly.
         if (!buildTFTree && toolchangers[num].linkOffset >= 0)
-    publishJoints ();
+        {
+	  publishJoints ();
+	}
         else
-    broadcastTransform (toolchangers[num].tf);
+        {
+          if(!toolchangers[num].transformSet)
+          {
+	    setTransform (&toolchangers[num], sw->data.toolchanger.mount);
+          }
+	  broadcastTransform (toolchangers[num].tf);
+	}
         toolchangers[num].pub.publish (toolchangers[num].status);
       }
       else
       {
         ROS_ERROR ("Toolchanger error for %s: couldn't copy",
-       sw->name.c_str ());
+		   sw->name.c_str ());
       }
       break;
     case SW_EFF_TOOLCHANGER_SET:
       num = toolchangerIndex (toolchangers, sw->name);
       if (copyToolchanger (&toolchangers[num], sw) == 1)
       {
-        setTransform (&toolchangers[num], sw->data.toolchanger.mount);
+        if(!toolchangers[num].transformSet)
+		{
+		  setTransform (&toolchangers[num], sw->data.toolchanger.mount);
+		}
         if (!buildTFTree && toolchangers[num].linkOffset >= 0)
           publishJoints ();
         else
@@ -639,7 +688,7 @@ ServoInf::peerMsg (sw_struct * sw)
       else
       {
         ROS_ERROR ("Toolchanger error for %s: couldn't copy",
-       sw->name.c_str ());
+		   sw->name.c_str ());
       }
       break;
     default:
@@ -655,40 +704,54 @@ ServoInf::peerMsg (sw_struct * sw)
       if (copyRangeImager (&rangeImagers[num], sw) == 1)
       {
 
-        broadcastTransform (rangeImagers[num].tf);
-        rosTfBroadcaster.
-    sendTransform (rangeImagers[num].opticalTransform);
+        if (!buildTFTree && rangeImagers[num].linkOffset >= 0)
+        {
+          publishJoints ();
+        }
+	else
+        {
+          if(!rangeImagers[num].transformSet)
+          {
+            setTransform(&rangeImagers[num], sw->data.rangeimager.mount);
+          }
+          broadcastTransform(rangeImagers[num].tf);
+        }
+        rosTfBroadcaster.sendTransform (rangeImagers[num].opticalTransform);
         //since virtual range imaging is slow, wait for a full scan before publishing the camera info and depth image
         if (rangeImagers[num].isReady ())
-  {
-    rangeImagers[num].depthImage.header.stamp = currentTime;
-    rangeImagers[num].camInfo.header.stamp = currentTime;
-    //camera info and depth image need to be published in sync
-    rangeImagers[num].pub.
-      publish (rangeImagers[num].depthImage);
-    rangeImagers[num].cameraInfoPub.
-      publish (rangeImagers[num].camInfo);
+	{
+	  rangeImagers[num].depthImage.header.stamp = currentTime;
+	  rangeImagers[num].camInfo.header.stamp = currentTime;
+	  //camera info and depth image need to be published in sync
+	  rangeImagers[num].pub.
+	    publish (rangeImagers[num].depthImage);
+	  rangeImagers[num].cameraInfoPub.
+	    publish (rangeImagers[num].camInfo);
 
-  }
+	}
       }
       else
       {
         ROS_ERROR ("Range imager error for %s, couldn't copy.",
-       sw->name.c_str ());
+		   sw->name.c_str ());
       }
       break;
     case SW_SEN_RANGEIMAGER_SET:
       num = rangeImagerIndex (rangeImagers, sw->name);
       if (copyRangeImager (&rangeImagers[num], sw) == 1)
       {
-        broadcastTransform (rangeImagers[num].tf);
+        if(!rangeImagers[num].transformSet)
+        {
+          setTransform(&rangeImagers[num], sw->data.rangeimager.mount);
+        }
+        broadcastTransform(rangeImagers[num].tf);
         rosTfBroadcaster.
-    sendTransform (rangeImagers[num].opticalTransform);
+	  sendTransform (rangeImagers[num].opticalTransform);
       }
       else
       {
         ROS_ERROR ("Range imager error for %s: couldn't copy",
-       sw->name.c_str ());
+		   sw->name.c_str ());
       }
       break;
     default:
@@ -698,7 +761,7 @@ ServoInf::peerMsg (sw_struct * sw)
     break;
   default:
     ROS_WARN ("unknown sw class %s with operand %d",
-        swTypeToString (sw->type), sw->op);
+	      swTypeToString (sw->type), sw->op);
     break;
   }
 
@@ -754,6 +817,7 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
   act->minValues.clear ();
   act->maxValues.clear ();
   act->maxTorques.clear ();
+  act->jointTypes.clear ();
 
   //create actuator joints
   for (int i = 0; i < sw->data.actuator.number; i++)
@@ -767,6 +831,7 @@ ServoInf::copyActuator (UsarsimActuator * act, const sw_struct * sw)
     act->minValues.push_back (sw->data.actuator.link[i].minvalue);
     act->maxValues.push_back (sw->data.actuator.link[i].maxvalue);
     act->maxTorques.push_back (sw->data.actuator.link[i].maxtorque);
+    act->jointTypes.push_back (sw->data.actuator.link[i].type);
   }
     
   //ROS_ERROR( "CopyAct success!!" );
@@ -1064,8 +1129,6 @@ ServoInf::copyRangeScanner (UsarsimRngScnSensor * sen, const sw_struct * sw)
   geometry_msgs::Quaternion quatMsg;
   currentTime = ros::Time::now ();
 
-  setTransform (sen, sw->data.rangescanner.mount);
-
   sen->scan.header.stamp = currentTime;
   //  sen->scan.header.frame_id = sen->tf.header.frame_id;
   sen->scan.header.frame_id = sen->name;
@@ -1103,8 +1166,6 @@ ServoInf::copyObjectSensor (UsarsimObjectSensor * sen, const sw_struct * sw)
   ros::Time currentTime;
   tf::Quaternion quat;
   geometry_msgs::Quaternion quatMsg;
-  currentTime = ros::Time::now ();
-  setTransform (sen, sw->data.objectsensor.mount);
 
   sen->objSense.header.stamp = currentTime;
   sen->objSense.header.frame_id = sen->name;
@@ -1160,7 +1221,6 @@ int
 ServoInf::copyRangeImager (UsarsimRngImgSensor * sen, const sw_struct * sw)
 {
   ros::Time currentTime = ros::Time::now ();
-  setTransform (sen, sw->data.rangeimager.mount);
   sen->opticalTransform.header.stamp = currentTime;
   sen->depthImage.header.stamp = currentTime;
   sen->depthImage.header.frame_id = sen->name + "_optical";
@@ -1338,10 +1398,12 @@ ServoInf::setTransform (UsarsimSensor * sen, const sw_pose & pose)
       (pose.offsetFrom, basePlatform->platformName.c_str ()))
   {
     sen->tf.header.frame_id = "base_link";
+    sen->transformSet = true;
   }
   else if (!ulapi_strcasecmp (pose.offsetFrom, "HARD"))
   {
     sen->tf.header.frame_id = "base_link";
+    sen->transformSet = true;
   }
   else
   {
@@ -1389,10 +1451,11 @@ ServoInf::setTransform (UsarsimSensor * sen, const sw_pose & pose)
       absoluteTransform.setOrigin (parentTransform.getOrigin () +
            tf::Vector3 (pose.x, pose.y, pose.z));
       absoluteTransform.setRotation (quat);
-
       relativeTransform =
   parentTransform.inverseTimes (absoluteTransform);
       tf::transformTFToMsg (relativeTransform, sen->tf.transform);
+      
+      sen->transformSet = true;
     }
   }
   sen->linkOffset = pose.linkOffset;
@@ -1598,7 +1661,7 @@ ServoInf::gripperEffectorIndex (std::vector < UsarsimGripperEffector >
     if (name == effectors[t].name)
       return t;    // found it
   }
-  ROS_ERROR ("Adding effector: %s", name.c_str ());
+  ROS_INFO ("Adding effector: %s", name.c_str ());
   UsarsimGripperEffector newEffector (this);
   effectors.push_back (newEffector);
   UsarsimGripperEffector *effectPtr = &(effectors.back ());
@@ -1716,15 +1779,24 @@ bool ServoInf::updateTrajectory (UsarsimActuator * act, const sw_struct * sw)
         currentTime.nsec);
     return true;
   }
-  currentPoint = act->currentTrajectory.goals.front ();
-  // find next point to execute by looking at where we are likely to be the next time that this routine is called
-  currentTime += ros::Duration (act->cycleTimer.cycleTime);
-  while (currentPoint.time < currentTime)
+  
+  if(SKIP_TRAJECTORY)
   {
-    act->currentTrajectory.goals.pop_front ();
-    if (act->currentTrajectory.goals.size () == 0)
-      break;
+    currentPoint = act->currentTrajectory.goals.back ();
+    act->currentTrajectory.goals.clear();
+  } 
+  else
+  {
     currentPoint = act->currentTrajectory.goals.front ();
+    // find next point to execute by looking at where we are likely to be the next time that this routine is called
+    currentTime += ros::Duration (act->cycleTimer.cycleTime);
+    while (currentPoint.time < currentTime)
+    {
+      act->currentTrajectory.goals.pop_front ();
+      if (act->currentTrajectory.goals.size () == 0)
+        break;
+      currentPoint = act->currentTrajectory.goals.front ();
+    }
   }
 
   currentTime = ros::Time::now ();

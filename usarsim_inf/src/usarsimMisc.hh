@@ -217,7 +217,8 @@ public:
   double time;			// usarsim time of last report
   ros::Publisher pub;		// publisher for data
   geometry_msgs::TransformStamped tf;	// transform for sensor
-  int linkOffset; //which link this component is mounted on. -1 if not parented to a link.  
+  int linkOffset; //which link this component is mounted on. -1 if not parented to a link.
+  bool transformSet;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -317,6 +318,7 @@ public:
   std::vector<float> minValues;
   std::vector<float> maxValues; 
   std::vector<float> maxTorques; //config data needed for URDF generation
+  std::vector<link_type> jointTypes; //prismatic or revolute (ignore fixed joints)
   std::vector <geometry_msgs::TransformStamped> jointTf; // transforms for links
   std::vector <tf::Vector3> jointAxes; //joint axes
   

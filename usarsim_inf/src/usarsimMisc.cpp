@@ -170,6 +170,11 @@ UsarsimFlippers::UsarsimFlippers ()
 UsarsimSensor::UsarsimSensor ()
 {
   time = 0;
+  
+  transformSet = false;
+  tf::Transform transform;
+  transform.setIdentity();
+  tf::transformTFToMsg(transform, tf.transform);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -350,6 +355,7 @@ UsarsimActuator::UsarsimActuator (GenericInf * parentInf):UsarsimSensor ()
     cycleTimer.cycleDeque.push_back (0.);
   cycleTimer.lastTime = ros::Time::now ();
   cycleTimer.cycleTime = 0;
+  
 }
 
 UsarsimActuator::~UsarsimActuator ()
