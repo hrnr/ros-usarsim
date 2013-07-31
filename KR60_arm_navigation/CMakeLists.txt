@@ -28,3 +28,10 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
+
+# Library containing IKFast plugin 
+rosbuild_add_library(KR60_kinematics_lib
+  src/KR60_KR60Arm_ikfast_plugin.cpp
+  )
+  
+target_link_libraries(KR60_kinematics_lib lapack)
