@@ -1,10 +1,11 @@
+<?xml version='1.0' encoding='ASCII'?>
 <launch>
-    <include file="$(find KR60_arm_navigation)/launch/KR60_planning_environment.launch" />
-    <node pkg="arm_kinematics_constraint_aware" type="arm_kinematics_constraint_aware" name="KR60_KR60Arm_kinematics">
-        <param name="group" type="string" value="KR60Arm" />
-        <param name="KR60Arm/root_name" type="string" value="KR60Arm_link0" />
-        <param name="KR60Arm/tip_name" type="string" value="KR60Arm_link6" />
-        <param name="kinematics_solver" type="string" value="arm_kinematics_constraint_aware/KDLArmKinematicsPlugin" />
-        <param name="KR60Arm/max_solver_iterations" type="int" value="1000" />
-    </node>
+  <include file="$(find KR60_arm_navigation)/launch/KR60_planning_environment.launch"/>
+  <node pkg="arm_kinematics_constraint_aware" type="arm_kinematics_constraint_aware" name="KR60_KR60Arm_kinematics">
+    <param name="group" type="string" value="KR60Arm"/>
+    <param name="KR60Arm/root_name" type="string" value="KR60Arm_link0"/>
+    <param name="KR60Arm/tip_name" type="string" value="KR60Arm_link6"/>
+    <param name="kinematics_solver" type="string" value="KR60_KR60Arm_kinematics/IKFastKinematicsPlugin"/>
+    <param name="OLDkinematics_solver" type="string" value="arm_kinematics_constraint_aware/KDLArmKinematicsPlugin"/>
+  </node>
 </launch>

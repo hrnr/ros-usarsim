@@ -7,6 +7,13 @@ groups:
   - name: KR60Arm
     base_link: KR60Arm_link0
     tip_link: KR60Arm_link6
+#    joints:
+#      - KR60Arm_joint_1
+#      - KR60Arm_joint_2
+#      - KR60Arm_joint_3
+#      - KR60Arm_joint_4
+#      - KR60Arm_joint_5
+#      - KR60Arm_joint_6
 default_collision_operations:
   - object1: base_link
     object2: KR60Arm_link0
@@ -41,19 +48,11 @@ default_collision_operations:
     operation: disable  # Adjacent in collision
   -
     object1: KR60Arm_link0
-    object2: KR60Arm_link2
-    operation: disable  # Never in collision
-  -
-    object1: KR60Arm_link0
     object2: KR60Arm_link3
     operation: disable  # Never in collision
   -
     object1: KR60Arm_link1
     object2: KR60Arm_link3
-    operation: disable  # Never in collision
-  -
-    object1: KR60Arm_link2
-    object2: KR60Arm_link5
     operation: disable  # Never in collision
   -
     object1: KR60Arm_link3
