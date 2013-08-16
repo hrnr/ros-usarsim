@@ -209,6 +209,7 @@ namespace KR60_KR60Arm_kinematics
       double harmonize_old(const std::vector<double> &ik_seed_state, std::vector<double> &solution);
       //void getOrderedSolutions(const std::vector<double> &ik_seed_state, std::vector<std::vector<double> >& solslist);
       void getClosestSolution(const std::vector<double> &ik_seed_state, std::vector<double> &solution);
+      int getClosestSolution(const std::vector<double> &ik_seed_state, std::vector<double> &solution, std::vector<std::vector<double> > &solutionsVector);
       void fillFreeParams(int count, int *array);
       bool getCount(int &count, const int &max_count, const int &min_count);
 
@@ -361,22 +362,22 @@ namespace KR60_KR60Arm_kinematics
   {
     double dist_sqr = 0;
     std::vector<double> ss = ik_seed_state;
-    for(size_t i=0; i< ik_seed_state.size(); ++i)
-    {
-      while(ss[i] > 2*M_PI) {
-        ss[i] -= 2*M_PI;
-      }
-      while(ss[i] < 2*M_PI) {
-        ss[i] += 2*M_PI;
-      }
-      while(solution[i] > 2*M_PI) {
-        solution[i] -= 2*M_PI;
-      }
-      while(solution[i] < 2*M_PI) {
-        solution[i] += 2*M_PI;
-      }
-      dist_sqr += fabs(ik_seed_state[i] - solution[i]);
-    }
+    for(unsigned int i = 0; i < solution.size(); i++) {
+			float ipartS;
+			float ipartSS;
+			std::modf(solution[i] / (2 * M_PI), &ipartS);
+			std::modf(ss[i] / (2 * M_PI), &ipartSS);
+			solution[i] -= ipartS * (2 * M_PI);
+			ss[i] -= ipartSS * (2 * M_PI);
+			if(solution[i] < -M_PI)
+				solution[i] += 2 * M_PI;
+			else if(solution[i] > M_PI)
+				solution[i] -= 2 * M_PI;
+			if(ss[i] < -M_PI)
+				ss[i] += 2 * M_PI;
+			else if(ss[i] > M_PI)
+				ss[i] -= 2 * M_PI;
+		}
     return dist_sqr;
   }
 
@@ -438,6 +439,30 @@ namespace KR60_KR60Arm_kinematics
       getSolution(minindex,solution);
       harmonize(ik_seed_state, solution);
     }
+  }
+  
+  int IKFastKinematicsPlugin::getClosestSolution(const std::vector<double> &ik_seed_state, std::vector<double> &solution, std::vector<std::vector<double> > &solutionsVector)
+  {
+    double mindist = DBL_MAX;
+    int minindex = -1;
+    std::vector<double> sol;
+
+    // IKFast56/61
+    for(size_t i=0; i < solutionsVector.size(); ++i)
+    {
+      double dist = harmonize(ik_seed_state, solutionsVector[i]);
+      ROS_INFO_STREAM("Dist " << i << " dist " << dist);
+      //std::cout << "dist[" << i << "]= " << dist << std::endl;
+      if(minindex == -1 || dist<mindist){
+        minindex = i;
+        mindist = dist;
+      }
+    }
+    if(minindex >= 0){
+      solution = solutionsVector[minindex];
+      harmonize(ik_seed_state, solution);
+    }
+    return minindex;
   }
 
   void IKFastKinematicsPlugin::fillFreeParams(int count, int *array)
@@ -530,36 +555,39 @@ namespace KR60_KR60Arm_kinematics
     tf::PoseMsgToKDL(ik_pose,frame);
 
     int numsol = solve(frame,vfree);
-		
-    if(numsol){
-      for(int s = 0; s < numsol; ++s)
-      {
-        std::vector<double> sol;
-        getSolution(s,sol);
-        //printf("Sol %d: %e   %e   %e   %e   %e   %e    \n", s, sol[0], sol[1], sol[2], sol[3], sol[4], sol[5] );
-
-        bool obeys_limits = true;
-        for(unsigned int i = 0; i < sol.size(); i++) {
-          // Add tolerance to limit check
-          if(joint_has_limits_vector_[i] && ( (sol[i] < (joint_min_vector_[i]-LIMIT_TOLERANCE)) || 
-                                                                     (sol[i] > (joint_max_vector_[i]+LIMIT_TOLERANCE)) ) ) 
-          {
-            // One element of solution is not within limits
-            obeys_limits = false;
-            //ROS_INFO_STREAM("      Num " << i << " value " << sol[i] << " has limit: " << joint_has_limits_vector_[i] << "  being  " << joint_min_vector_[i] << " to " << joint_max_vector_[i] << "\n");
-            break;
-          }
-        }
-        if(obeys_limits) {
-          // All elements of solution obey limits
-          getSolution(s,solution);
-          error_code = kinematics::SUCCESS;
-          //printf("obeys limits \n\n");
-          return true;
-        }
-      }
-    }else{
-      //printf("No IK solution \n");
+		std::vector<std::vector<double> > tempSolutions;
+		std::vector<double> sol;
+		tempSolutions.resize(numsol);
+		for(int i = 0;i < numsol;i++)
+		{
+			getSolution(i, sol);
+			tempSolutions[i] = sol;
+		}
+		while(!tempSolutions.empty()){
+			
+			int index = getClosestSolution(ik_seed_state, sol, tempSolutions);
+			if(index != -1)
+			{
+				bool obeys_limits = true;
+				for(unsigned int i = 0; i < sol.size(); i++) {
+					if(joint_has_limits_vector_[i] && (sol[i] < joint_min_vector_[i] || sol[i] > joint_max_vector_[i])) {
+						ROS_ERROR("jt %i has %f, out of limit (%f, %f)", i, sol[i], joint_min_vector_[i], joint_max_vector_[i]);
+						obeys_limits = false;
+						break;
+					}
+				}
+				if(obeys_limits) {
+					solution = sol;
+					error_code = kinematics::SUCCESS;
+					return true;
+				} else {
+					tempSolutions.erase(tempSolutions.begin() + index);
+				}
+			}
+			else
+			{
+				break;
+			}
     }
 	
     error_code = kinematics::NO_IK_SOLUTION; 
@@ -820,7 +848,6 @@ namespace KR60_KR60Arm_kinematics
     std::vector<double> sol;
     while(1) {
       int numsol = solve(frame,vfree);
-
       if(solvecount == 0) {
         if(numsol == 0) {
           ROS_DEBUG_STREAM("Bad solve time is " << ros::WallTime::now()-start);
