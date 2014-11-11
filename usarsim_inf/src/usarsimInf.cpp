@@ -119,43 +119,43 @@ UsarsimInf::init (GenericInf * siblingIn)
      come back empty.] <--  THIS IS NO LONGER TRUE!
    */
   /*ulapi_snprintf (str, sizeof (str), "GETCONF {Type Actuator}\r\n");
-     NULLTERM (str);
-     ulapi_mutex_take (socket_mutex);
-     usarsim_socket_write (socket_fd, str, strlen (str));
-     ulapi_mutex_give (socket_mutex);
+  NULLTERM (str);
+  ulapi_mutex_take (socket_mutex);
+  usarsim_socket_write (socket_fd, str, strlen (str));
+  ulapi_mutex_give (socket_mutex);
 
-     ulapi_snprintf (str, sizeof (str), "GETGEO {Type Actuator}\r\n");
-     NULLTERM (str);
-     ulapi_mutex_take (socket_mutex);
-     usarsim_socket_write (socket_fd, str, strlen (str));
-     ulapi_mutex_give (socket_mutex); */
+  ulapi_snprintf (str, sizeof (str), "GETGEO {Type Actuator}\r\n");
+  NULLTERM (str);
+  ulapi_mutex_take (socket_mutex);
+  usarsim_socket_write (socket_fd, str, strlen (str));
+  ulapi_mutex_give (socket_mutex);*/
 
   /*
-     ulapi_snprintf (str, sizeof (str), "GETCONF {Type MisPkg}\r\n");
-     NULLTERM (str);
-     ulapi_mutex_take (socket_mutex);
-     usarsim_socket_write (socket_fd, str, strlen (str));
-     ulapi_mutex_give (socket_mutex);
+  ulapi_snprintf (str, sizeof (str), "GETCONF {Type MisPkg}\r\n");
+  NULLTERM (str);
+  ulapi_mutex_take (socket_mutex);
+  usarsim_socket_write (socket_fd, str, strlen (str));
+  ulapi_mutex_give (socket_mutex);
 
-     ulapi_snprintf (str, sizeof (str), "GETGEO {Type MisPkg}\r\n");
-     NULLTERM (str);
-     ulapi_mutex_take (socket_mutex);
-     usarsim_socket_write (socket_fd, str, strlen (str));
-     ulapi_mutex_give (socket_mutex);
-   */
+  ulapi_snprintf (str, sizeof (str), "GETGEO {Type MisPkg}\r\n");
+  NULLTERM (str);
+  ulapi_mutex_take (socket_mutex);
+  usarsim_socket_write (socket_fd, str, strlen (str));
+  ulapi_mutex_give (socket_mutex);
+  */
 
   //  printf( "usarsiminf: Getting gripper(2) conf\n");
   /*ulapi_snprintf (str, sizeof (str), "GETCONF {Type Gripper}\r\n");
-     NULLTERM (str);
-     ulapi_mutex_take (socket_mutex);
-     usarsim_socket_write (socket_fd, str, strlen (str));
-     ulapi_mutex_give (socket_mutex);
+  NULLTERM (str);
+  ulapi_mutex_take (socket_mutex);
+  usarsim_socket_write (socket_fd, str, strlen (str));
+  ulapi_mutex_give (socket_mutex);
 
-     ulapi_snprintf (str, sizeof (str), "GETGEO {Type Gripper}\r\n");
-     NULLTERM (str);
-     ulapi_mutex_take (socket_mutex);
-     usarsim_socket_write (socket_fd, str, strlen (str));
-     ulapi_mutex_give (socket_mutex); */
+  ulapi_snprintf (str, sizeof (str), "GETGEO {Type Gripper}\r\n");
+  NULLTERM (str);
+  ulapi_mutex_take (socket_mutex);
+  usarsim_socket_write (socket_fd, str, strlen (str));
+  ulapi_mutex_give (socket_mutex);*/
 
   //  printf( "usarsiminf: Getting rfid conf\n");
   ulapi_snprintf (str, sizeof (str), "GETCONF {Type RFID}\r\n");
@@ -188,12 +188,12 @@ UsarsimInf::init (GenericInf * siblingIn)
   tachometers = new UsarsimList (SW_SEN_TACHOMETER);
   acoustics = new UsarsimList (SW_SEN_ACOUSTIC);
   objectsensors = new UsarsimList (SW_SEN_OBJECTSENSOR);
-
+  
 
   misstas = new UsarsimList (SW_ACT);
 
   grippers = new UsarsimList (SW_EFF_GRIPPER);
-  toolchangers = new UsarsimList (SW_EFF_TOOLCHANGER);
+  toolchangers = new UsarsimList(SW_EFF_TOOLCHANGER);
 
   /*
      Note: the name of a robot appears to be ignored, and USARSim will
@@ -205,10 +205,9 @@ UsarsimInf::init (GenericInf * siblingIn)
    */
   robot = new UsarsimList (SW_TYPE_UNINITIALIZED);
   robot->setName (robotName.c_str ());
-  
-  sleep (1); //sleep for a second to wait for simulator to initialize
-  
+
   ROS_INFO ("usarsim interface initialized");
+  //sleep (20);
   return 1;
 }
 
@@ -217,12 +216,13 @@ UsarsimInf::msgout (sw_struct * sw, componentInfo info)
 {
   if (sw->name == "")
     {
-      ROS_ERROR ("Peer message must contain a name");
+      ROS_ERROR( "Peer message must contain a name" );
       return -1;
     }
   else
     {
       sw->time = info.time;
+      //      ROS_ERROR( "time: %f swtime: %f", info.time, sw->time );
       sw->op = info.op;
       sibling->peerMsg (sw);
     }
@@ -248,222 +248,193 @@ UsarsimInf::peerMsg (sw_struct * swIn)
   //  ROS_INFO ("In usarsimInf peerMsg");
 
   switch (swIn->type)
-  {
-  case SW_ROBOT_GROUNDVEHICLE:
-    switch(swIn->op)
     {
     case SW_ROS_CMD_VEL:
       sw = robot->getSW ();
       if (sw->type == SW_ROBOT_GROUNDVEHICLE)
-      {
-        /* equations of motion:
-        SL = rTh
-        SR = (r + b)Th
-        SM = (r +b/2)Th
-        */
-        if (sw->data.groundvehicle.steertype == SW_STEER_SKID)
-        {
-          if (swIn->data.roscmdvel.lineary != 0
-          || swIn->data.roscmdvel.linearz != 0)
-          {
-            ROS_WARN ("Invalid skid steering message <%f %f %f>",
-            swIn->data.roscmdvel.linearx,
-            swIn->data.roscmdvel.lineary,
-            swIn->data.roscmdvel.linearz);
-          }
-          if (swIn->data.roscmdvel.angularz != 0)
-          {
-            turnRadius =
-            swIn->data.roscmdvel.linearx /
-            swIn->data.roscmdvel.angularz -
-            sw->data.groundvehicle.wheel_separation / 2.;
-            leftVel = turnRadius * swIn->data.roscmdvel.angularz;
-            rightVel = (turnRadius +
-            sw->data.groundvehicle.wheel_separation) *
-            swIn->data.roscmdvel.angularz;
-          }
-          else
-          {
-            leftVel = swIn->data.roscmdvel.linearx;
-            rightVel = swIn->data.roscmdvel.linearx;
-          }
-          leftVel /= sw->data.groundvehicle.wheel_radius;
-          rightVel /= sw->data.groundvehicle.wheel_radius;
-          if (leftVel > sw->data.groundvehicle.max_speed)
-          {
-            scale = sw->data.groundvehicle.max_speed / leftVel;
-            ROS_WARN ("Left wheel spin speed too high! Scaling by %f%%",	// note that %% prints %
-            100 * scale);
-            leftVel = sw->data.groundvehicle.max_speed;
-            rightVel *= scale;
-          }
-          if (rightVel > sw->data.groundvehicle.max_speed)
-          {
-            scale = sw->data.groundvehicle.max_speed / rightVel;
-            ROS_WARN
-            ("Right wheel spin speed too high! Scaling by %f%%",
-            100. * scale);
-            rightVel = sw->data.groundvehicle.max_speed;
-            leftVel *= scale;
-          }
-          /*
-          ROS_INFO
-          ("Sent skid steering with sep: %f radius: %f and vel <%f %f>",
-          sw->data.groundvehicle.wheel_separation,
-          sw->data.groundvehicle.wheel_radius, leftVel, rightVel);
-          */
-          ulapi_snprintf (str, sizeof (str),
-          "Drive {Left %f} {Right %f}\r\n", leftVel,
-          rightVel);
-          NULLTERM (str);
-          ulapi_mutex_take (socket_mutex);
-          usarsim_socket_write (socket_fd, str, strlen (str));
-          ulapi_mutex_give (socket_mutex);
-        }
-        else if (sw->data.groundvehicle.steertype == SW_STEER_ACKERMAN)
-        {
-          if (swIn->data.roscmdvel.lineary != 0
-          || swIn->data.roscmdvel.linearz != 0
-          || swIn->data.roscmdvel.angularx != 0
-          || swIn->data.roscmdvel.angulary != 0)
-          {
-            ROS_WARN
-            ("Invalid skid steering message <%f %f %f> <%f %f %f>",
-            swIn->data.roscmdvel.linearx,
-            swIn->data.roscmdvel.lineary,
-            swIn->data.roscmdvel.linearz,
-            swIn->data.roscmdvel.angularx,
-            swIn->data.roscmdvel.angulary,
-            swIn->data.roscmdvel.angularz);
-          }
-          if (swIn->data.roscmdvel.linearx == 0)
-          {
-            steerAngle = swIn->data.roscmdvel.angularz;
-            vehVel = 0.;
-          }
-          else
-          {
-            steerAngle = atan2 (swIn->data.roscmdvel.angularz *
-            sw->data.groundvehicle.wheel_base,
-            swIn->data.roscmdvel.linearx);
-            vehVel = swIn->data.roscmdvel.linearx / cos (steerAngle);
-          }
-          // fixeme! How do I know if it is front or rear steer?
-          ulapi_snprintf (str, sizeof (str),
-          "Drive {Speed %f} {FrontSteer %f} {RearSteer %f}\r\n",
-          vehVel, steerAngle, steerAngle);
-          NULLTERM (str);
-          ulapi_mutex_take (socket_mutex);
-          usarsim_socket_write (socket_fd, str, strlen (str));
-          ulapi_mutex_give (socket_mutex);
-          ROS_INFO ("Wrote %s", str);
-        }
-        else
-        {
-          ROS_ERROR
-          ("Currently only support skid steered and Ackerman steeredrobots");
-          break;
-        }
-      }
+	{
+	  /* equations of motion:
+	     SL = rTh
+	     SR = (r + b)Th
+	     SM = (r +b/2)Th
+	   */
+	  if (sw->data.groundvehicle.steertype == SW_STEER_SKID)
+	    {
+	      if (swIn->data.roscmdvel.lineary != 0
+		  || swIn->data.roscmdvel.linearz != 0)
+		{
+		  ROS_WARN ("Invalid skid steering message <%f %f %f>",
+			    swIn->data.roscmdvel.linearx,
+			    swIn->data.roscmdvel.lineary,
+			    swIn->data.roscmdvel.linearz);
+		}
+	      if (swIn->data.roscmdvel.angularz != 0)
+		{
+		  turnRadius =
+		    swIn->data.roscmdvel.linearx /
+		    swIn->data.roscmdvel.angularz -
+		    sw->data.groundvehicle.wheel_separation / 2.;
+		  leftVel = turnRadius * swIn->data.roscmdvel.angularz;
+		  rightVel = (turnRadius +
+			      sw->data.groundvehicle.wheel_separation) *
+		    swIn->data.roscmdvel.angularz;
+		}
+	      else
+		{
+		  leftVel = swIn->data.roscmdvel.linearx;
+		  rightVel = swIn->data.roscmdvel.linearx;
+		}
+	      leftVel /= sw->data.groundvehicle.wheel_radius;
+	      rightVel /= sw->data.groundvehicle.wheel_radius;
+	      if (leftVel > sw->data.groundvehicle.max_speed)
+		{
+		  scale = sw->data.groundvehicle.max_speed / leftVel;
+		  ROS_WARN ("Left wheel spin speed too high! Scaling by %f%%",	// note that %% prints %
+			    100 * scale);
+		  leftVel = sw->data.groundvehicle.max_speed;
+		  rightVel *= scale;
+		}
+	      if (rightVel > sw->data.groundvehicle.max_speed)
+		{
+		  scale = sw->data.groundvehicle.max_speed / rightVel;
+		  ROS_WARN
+		    ("Right wheel spin speed too high! Scaling by %f%%",
+		     100. * scale);
+		  rightVel = sw->data.groundvehicle.max_speed;
+		  leftVel *= scale;
+		}
+	      /*
+	      ROS_INFO
+		("Sent skid steering with sep: %f radius: %f and vel <%f %f>",
+		 sw->data.groundvehicle.wheel_separation,
+		 sw->data.groundvehicle.wheel_radius, leftVel, rightVel);
+	      */
+	      ulapi_snprintf (str, sizeof (str),
+			      "Drive {Left %f} {Right %f}\r\n", leftVel,
+			      rightVel);
+	      NULLTERM (str);
+	      ulapi_mutex_take (socket_mutex);
+	      usarsim_socket_write (socket_fd, str, strlen (str));
+	      ulapi_mutex_give (socket_mutex);
+	    }
+	  else if (sw->data.groundvehicle.steertype == SW_STEER_ACKERMAN)
+	    {
+	      if (swIn->data.roscmdvel.lineary != 0
+		  || swIn->data.roscmdvel.linearz != 0
+		  || swIn->data.roscmdvel.angularx != 0
+		  || swIn->data.roscmdvel.angulary != 0)
+		{
+		  ROS_WARN ("Invalid skid steering message <%f %f %f> <%f %f %f>",
+			    swIn->data.roscmdvel.linearx,
+			    swIn->data.roscmdvel.lineary,
+			    swIn->data.roscmdvel.linearz,
+			    swIn->data.roscmdvel.angularx,
+			    swIn->data.roscmdvel.angulary,
+			    swIn->data.roscmdvel.angularz);
+		}
+	      if( swIn->data.roscmdvel.linearx == 0 )
+		{
+		  steerAngle = swIn->data.roscmdvel.angularz;
+		  vehVel = 0.;
+		}
+	      else
+		{
+		  steerAngle = atan2(swIn->data.roscmdvel.angularz *
+				     sw->data.groundvehicle.wheel_base,
+				     swIn->data.roscmdvel.linearx);
+		  vehVel = swIn->data.roscmdvel.linearx/cos(steerAngle);
+		}
+	      // fixeme! How do I know if it is front or rear steer?
+	      ulapi_snprintf (str, sizeof (str),
+			      "Drive {Speed %f} {FrontSteer %f} {RearSteer %f}\r\n", 
+			      vehVel, steerAngle, steerAngle );
+	      NULLTERM (str);
+	      ulapi_mutex_take (socket_mutex);
+	      usarsim_socket_write (socket_fd, str, strlen (str));
+	      ulapi_mutex_give (socket_mutex);
+	      ROS_ERROR ("Wrote %s", str );
+	    }
+	  else
+	    {
+	      ROS_ERROR ("Currently only support skid steered and Ackerman steeredrobots");
+	      break;
+	    }
+	}
       else
-      {
-        ROS_ERROR ("Currently only support ground robot");
-        break;
-      }
+	{
+	  ROS_ERROR ("Currently only support ground robot");
+	  break;
+	}
 
       /*
-      case SW_ROBOT_ACKERMAN_MOVE:
-      // FIXME -- how do we know if the vehicle is front steered or rear steered? 
-      ulapi_snprintf (str, sizeof (str),
-      "Drive {Speed %f} {FrontSteer %f} {RearSteer %f} {Normalized False} {Light False} {Flip False}\r\n",
-      sw->data.groundvehicle.speed,
-      sw->data.groundvehicle.heading,
-      -sw->data.groundvehicle.heading);
-      NULLTERM (str);
-      ulapi_mutex_take (socket_mutex);
-      usarsim_socket_write (socket_fd, str, strlen (str));
-      ulapi_mutex_give (socket_mutex);
+         case SW_ROBOT_ACKERMAN_MOVE:
+         // FIXME -- how do we know if the vehicle is front steered or rear steered? 
+         ulapi_snprintf (str, sizeof (str),
+         "Drive {Speed %f} {FrontSteer %f} {RearSteer %f} {Normalized False} {Light False} {Flip False}\r\n",
+         sw->data.groundvehicle.speed,
+         sw->data.groundvehicle.heading,
+         -sw->data.groundvehicle.heading);
+         NULLTERM (str);
+         ulapi_mutex_take (socket_mutex);
+         usarsim_socket_write (socket_fd, str, strlen (str));
+         ulapi_mutex_give (socket_mutex);
+         break;
+       */
       break;
-      */
-      break;
-    }
-    break;
-  case SW_ACT:
-    switch(swIn->op)
-    {
     case SW_ROS_CMD_TRAJ:
-      command = "ACT {Name " + swIn->name + "}";
-      for (int i = 0; i < swIn->data.roscmdtraj.number; i++)
-      {
-      tempSS.str ("");
-      tempSS << i;
-      command += " {Link " + tempSS.str () + "}";
-      tempSS.str ("");
-      tempSS << swIn->data.roscmdtraj.goal[i];
-      command += " {Value " + tempSS.str () + "}";
-      }
-      ulapi_snprintf (str, sizeof (str), "%s\r\n", command.c_str ());
-      NULLTERM (str);
-      ulapi_mutex_take (socket_mutex);
-      usarsim_socket_write (socket_fd, str, strlen (str));
-      ulapi_mutex_give (socket_mutex);
-      break;
-    }
-    break;
-  case SW_EFF_GRIPPER:
-    switch(swIn->op)
-    {
-      case SW_ROS_CMD_GRIP:
-        if (swIn->data.roscmdeff.goal == SW_EFF_OPEN)
-        command = "OPEN";
-        else
-        command = "CLOSE";
-        ulapi_snprintf (str, sizeof (str),
-        "SET {Type Gripper} {Name %s} {Opcode %s}\r\n",
-        swIn->name.c_str (), command.c_str ());
+	command = "ACT {Name " + swIn->name + "}";
+	for(int i = 0;i<swIn->data.roscmdtraj.number;i++)
+	{
+	  tempSS.str("");
+	  tempSS<<i;
+	  command += " {Link " + tempSS.str() + "}";
+	  tempSS.str("");
+	  tempSS << swIn->data.roscmdtraj.goal[i];
+	  command += " {Value "+tempSS.str() + "}";
+	}
+        ulapi_snprintf(str, sizeof(str), "%s\r\n",command.c_str());
         NULLTERM (str);
-        usarsim_socket_write (socket_fd, str, strlen (str));
-        ulapi_mutex_give (socket_mutex);
+        ulapi_mutex_take (socket_mutex);
+	usarsim_socket_write (socket_fd, str, strlen (str));
+	ulapi_mutex_give (socket_mutex);
         break;
-      case SW_ROS_DELETE:
-        grippers = grippers->remove(swIn->name);
-        break;
-    }
-    break;
-  case SW_EFF_TOOLCHANGER:
-    switch(swIn->op)
-    {
-    case SW_ROS_CMD_TOOLCHANGE:
-      if (swIn->data.roscmdeff.goal == SW_EFF_OPEN)
-      command = "OPEN";
-      else
-      command = "CLOSE";
-      ulapi_snprintf (str, sizeof (str),
-      "SET {Type ToolChanger} {Name %s} {Opcode %s}\r\n",
-      swIn->name.c_str (), command.c_str ());
-      NULLTERM (str);
-      usarsim_socket_write (socket_fd, str, strlen (str));
-      ulapi_mutex_give (socket_mutex);
+      case SW_ROS_CMD_GRIP:
+        if(swIn->data.roscmdeff.goal == SW_EFF_OPEN)
+        	command = "OPEN";
+        else
+        	command = "CLOSE";
+      	ulapi_snprintf(str, sizeof(str), "SET {Type Gripper} {Name %s} {Opcode %s}\r\n", 
+      	swIn->name.c_str(), command.c_str());
+      	NULLTERM(str);
+      	usarsim_socket_write (socket_fd, str, strlen (str));
+		ulapi_mutex_give (socket_mutex);
       break;
-    }
-    break;
-  case SW_SEN_RANGEIMAGER:
-    switch(swIn->op)
-    {
-    case SW_ROS_CMD_SCAN:
-      ulapi_snprintf (str, sizeof (str),
-      "SET {Type RangeImager} {Name %s} {Opcode SCAN}\r\n",
-      swIn->name.c_str ());
-      NULLTERM (str);
-      usarsim_socket_write (socket_fd, str, strlen (str));
-      ulapi_mutex_give (socket_mutex);
+      case SW_ROS_CMD_TOOLCHANGE:
+        if(swIn->data.roscmdeff.goal == SW_EFF_OPEN)
+        	command = "OPEN";
+        else
+        	command = "CLOSE";
+      	ulapi_snprintf(str, sizeof(str), "SET {Type ToolChanger} {Name %s} {Opcode %s}\r\n", 
+      	swIn->name.c_str(), command.c_str());
+      	NULLTERM(str);
+      	usarsim_socket_write (socket_fd, str, strlen (str));
+		ulapi_mutex_give (socket_mutex);
+      break; 
+      case SW_ROS_CMD_SCAN:
+      ulapi_snprintf(str, sizeof(str), "SET {Type RangeImager} {Name %s} {Opcode SCAN}\r\n",
+      swIn->name.c_str());
+      NULLTERM(str);
+      usarsim_socket_write(socket_fd, str, strlen (str));
+		ulapi_mutex_give (socket_mutex);
       break;
+    default:
+      ROS_ERROR ("usarsimInf::peerMsg: not handling type %s",
+		 swTypeToString (swIn->type));
+      break;
+      
+
     }
-  default:
-    ROS_ERROR ("usarsimInf::peerMsg: not handling type %s",
-    swTypeToString (swIn->type));
-    break;
-  }
+
   return 1;
 }
 
@@ -612,12 +583,12 @@ int
 UsarsimInf::getName (UsarsimList * list, componentInfo * info, int op)
 {
   /* why?
-     if (info->sawname)
-     {
-     info->op = op;
-     msgout (list->getSW (), *info);
-     }
-   */
+  if (info->sawname)
+    {
+      info->op = op;
+      msgout (list->getSW (), *info);
+    }
+  */
   info->sawname = 1;
   info->nextptr = getValue (info->ptr, info->token);
   if (info->nextptr == info->ptr)
@@ -700,7 +671,7 @@ UsarsimInf::handleMsg (char *msg)
   unsigned int headindex = 0;
   int count;
 
-  //  ROS_INFO ("incomming msg to usarsimInf: %s", msg);
+  //ROS_ERROR ("msg: %s", msg);
 
   while (isspace (*ptr))
     ptr++;			/* skip over space  */
@@ -734,13 +705,13 @@ UsarsimInf::handleMsg (char *msg)
     {
       count = handleNfo (msg);
     }
-
-  else if (!strcmp (head, "EFF"))
-    {
-      count = handleEff (msg);
-    }
-
-  else if (!strcmp (head, "STA"))
+  
+     else if (!strcmp (head, "EFF"))
+     {
+     count = handleEff (msg);
+     }
+   
+  else if (!strcmp (head, "STA") )
     {
       count = handleSta (msg);
     }
@@ -756,12 +727,12 @@ UsarsimInf::handleMsg (char *msg)
    */
   else if (!strcmp (head, "CONF"))
     {
-      ROS_INFO ("CONF: %s", msg);
+      ROS_INFO ("CONF: %s", msg );
       count = handleConf (msg);
     }
   else if (!strcmp (head, "GEO"))
     {
-      ROS_INFO ("GEO: %s", msg);
+      ROS_INFO ("GEO: %s", msg );
 
       count = handleGeo (msg);
     }
@@ -787,9 +758,8 @@ UsarsimInf::handleMsg (char *msg)
   doSenConfs (objectsensors, (char *) "ObjectSensor");
   //  doSenConfs (misstas, (char *) "MisPkg");
   doSenConfs (misstas, (char *) "Actuator");
-  //need to do toolchanger confs first if grippers are mounted on them
-  doEffConfs (toolchangers, (char *) "ToolChanger");
   doEffConfs (grippers, (char *) "Gripper");
+  doEffConfs (toolchangers, (char *) "ToolChanger");
 
   doRobotConfs (robot);
 
@@ -866,7 +836,7 @@ UsarsimInf::doEffConfs (UsarsimList * where, char *type)
 	  waitingForGeo = 1;
 	}
       where = where->getNext ();
-      sw = where->getSW ();
+      sw = where->getSW();
     }
 
   return 0;
@@ -983,7 +953,7 @@ UsarsimInf::handleStaGroundvehicle (char *msg)
 
   if (!info.where->didConf ())
     {
-      if (!didError)
+      if (!didError )
 	{
 	  ROS_WARN ("usarsimInf: Received groundvehicle sta before conf");
 	  didError = 1;
@@ -1180,7 +1150,7 @@ UsarsimInf::handleNfo (char *msg)
 int
 UsarsimInf::handleSenRangeimager (char *msg)
 {
-
+  
   componentInfo info;;
   int number;
   sw_struct *sw = rangeimagers->getSW ();
@@ -1189,7 +1159,7 @@ UsarsimInf::handleSenRangeimager (char *msg)
   setComponentInfo (msg, &info);
 
   number = 0;
-
+  
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -1558,17 +1528,16 @@ UsarsimInf::handleSenIns (char *msg, const char *sensorType)
 
   setComponentInfo (msg, &info);
 
-  if (!strcmp (sensorType, "INS"))
+  if( !strcmp(sensorType, "INS" ))
     myList = inses;
-  else if (!strcmp (sensorType, "GroundTruth"))
+  else if ( !strcmp(sensorType, "GroundTruth" ) )
     myList = groundtruths;
   else
     {
-      ROS_ERROR ("Unknown Ins type: %s", sensorType);
+      ROS_ERROR ("Unknown Ins type: %s", sensorType );
       return info.count;
     }
 
-  //ROS_INFO( "Groundtruth: %s\n", msg );
   sw = myList->getSW ();
   while (1)
     {
@@ -2142,103 +2111,88 @@ UsarsimInf::handleSenRangescanner (char *msg)
   return info.count;
 }
 
-int
-UsarsimInf::handleSenObjectSensor (char *msg)
+int UsarsimInf::handleSenObjectSensor(char *msg)
 {
-  componentInfo info;
-  sw_struct *sw = objectsensors->getSW ();
-  int objectIndex = -1;
-  setComponentInfo (msg, &info);
-
-  while (1)
-    {
-      info.nextptr = getKey (info.ptr, info.token);
-      if (info.nextptr == info.ptr)
-	break;
-      info.ptr = info.nextptr;
-      if (!strcmp (info.token, "Type"))
+    componentInfo info;
+    sw_struct *sw = objectsensors->getSW();
+    int objectIndex = -1;
+    setComponentInfo(msg, &info);
+    
+	while(1)
 	{
-	  expect (&info, "ObjectSensor");
+		info.nextptr = getKey(info.ptr, info.token);
+		if(info.nextptr == info.ptr)
+			break;
+		info.ptr = info.nextptr;
+		if(!strcmp(info.token, "Type"))
+		{
+			expect(&info, "ObjectSensor");
+		}else if(!strcmp(info.token, "Name"))
+		{
+			getName (objectsensors, &info, SW_SEN_OBJECTSENSOR_STAT);
+			sw = info.where->getSW();
+			objectIndex = -1;
+		}
+		else if (!strcmp (info.token, "Time"))
+		{
+			getTime (&info);
+		}else if(!strcmp(info.token, "Object"))
+		{
+			objectIndex++;
+			if(objectIndex >= SW_SEN_RANGESCANNER_MAX)
+			{
+			}
+			else
+			{
+				info.nextptr = getValue (info.ptr, info.token);
+		  		if (info.nextptr == info.ptr)
+					return -1;
+				strcpy(sw->data.objectsensor.objects[objectIndex].tag, info.token);
+	    	}
+		}
+		else if (!strcmp(info.token, "Location"))
+		{
+			if(objectIndex < 0)
+				return -1;
+			sw->data.objectsensor.objects[objectIndex].position.x = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].position.y = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].position.z = getReal (&info);
+		}
+		else if (!strcmp(info.token, "Orientation"))
+		{
+			if(objectIndex < 0)
+				return -1;
+			sw->data.objectsensor.objects[objectIndex].position.roll = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].position.pitch = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].position.yaw = getReal (&info);
+		}
+		else if (!strcmp(info.token, "HitLoc"))
+		{
+			if(objectIndex < 0)
+				return -1;
+			sw->data.objectsensor.objects[objectIndex].hit_location.x = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].hit_location.y = getReal (&info);
+	  		sw->data.objectsensor.objects[objectIndex].hit_location.z = getReal (&info);
+		}
+		else if (!strcmp(info.token, "Material"))
+		{
+			info.nextptr = getValue (info.ptr, info.token);
+			if (info.nextptr == info.ptr)
+				return -1;
+			strcpy(sw->data.objectsensor.objects[objectIndex].material_name, info.token);
+		}
+		else
+		{
+			
+			info.nextptr = getValue (info.ptr, info.token);
+		}
 	}
-      else if (!strcmp (info.token, "Name"))
-	{
-	  getName (objectsensors, &info, SW_SEN_OBJECTSENSOR_STAT);
-	  sw = info.where->getSW ();
-	  objectIndex = -1;
-	}
-      else if (!strcmp (info.token, "Time"))
-	{
-	  getTime (&info);
-	}
-      else if (!strcmp (info.token, "Object"))
-	{
-	  objectIndex++;
-	  if (objectIndex >= SW_SEN_RANGESCANNER_MAX)
-	    {
-	    }
-	  else
-	    {
-	      info.nextptr = getValue (info.ptr, info.token);
-	      if (info.nextptr == info.ptr)
-		return -1;
-	      strcpy (sw->data.objectsensor.objects[objectIndex].tag,
-		      info.token);
-	    }
-	}
-      else if (!strcmp (info.token, "Location"))
-	{
-	  if (objectIndex < 0)
-	    return -1;
-	  sw->data.objectsensor.objects[objectIndex].position.x =
-	    getReal (&info);
-	  sw->data.objectsensor.objects[objectIndex].position.y =
-	    getReal (&info);
-	  sw->data.objectsensor.objects[objectIndex].position.z =
-	    getReal (&info);
-	}
-      else if (!strcmp (info.token, "Orientation"))
-	{
-	  if (objectIndex < 0)
-	    return -1;
-	  sw->data.objectsensor.objects[objectIndex].position.roll =
-	    getReal (&info);
-	  sw->data.objectsensor.objects[objectIndex].position.pitch =
-	    getReal (&info);
-	  sw->data.objectsensor.objects[objectIndex].position.yaw =
-	    getReal (&info);
-	}
-      else if (!strcmp (info.token, "HitLoc"))
-	{
-	  if (objectIndex < 0)
-	    return -1;
-	  sw->data.objectsensor.objects[objectIndex].hit_location.x =
-	    getReal (&info);
-	  sw->data.objectsensor.objects[objectIndex].hit_location.y =
-	    getReal (&info);
-	  sw->data.objectsensor.objects[objectIndex].hit_location.z =
-	    getReal (&info);
-	}
-      else if (!strcmp (info.token, "Material"))
-	{
-	  info.nextptr = getValue (info.ptr, info.token);
-	  if (info.nextptr == info.ptr)
-	    return -1;
-	  strcpy (sw->data.objectsensor.objects[objectIndex].material_name,
-		  info.token);
-	}
-      else
-	{
-
-	  info.nextptr = getValue (info.ptr, info.token);
-	}
-    }
-  sw->data.objectsensor.number = objectIndex + 1;
-  info.op = SW_SEN_OBJECTSENSOR_STAT;
-
-  msgout (sw, info);
-  return 0;
+	sw->data.objectsensor.number = objectIndex + 1;
+	info.op = SW_SEN_OBJECTSENSOR_STAT;
+	
+	msgout(sw, info);
+	return 0;
 }
-
 int
 UsarsimInf::handleSen (char *msg)
 {
@@ -2312,7 +2266,7 @@ UsarsimInf::handleSen (char *msg)
 	    {
 	      return handleSenAcoustic (msg);
 	    }
-	  else if (!strcmp (token, "ObjectSensor"))
+	  else if (!strcmp(token, "ObjectSensor"))
 	    {
 	      return handleSenObjectSensor (msg);
 	    }
@@ -2675,13 +2629,13 @@ UsarsimInf::handleConfIns (char *msg, const char *sensorType)
   UsarsimList *myList;
 
   setComponentInfo (msg, &info);
-  if (!strcmp (sensorType, "INS"))
+  if( !strcmp(sensorType, "INS" ))
     myList = inses;
-  else if (!strcmp (sensorType, "GroundTruth"))
+  else if ( !strcmp(sensorType, "GroundTruth" ) )
     myList = groundtruths;
   else
     {
-      ROS_ERROR ("Unknown Ins type: %s", sensorType);
+      ROS_ERROR ("Unknown Ins type: %s", sensorType );
       return info.count;
     }
 
@@ -2940,10 +2894,10 @@ UsarsimInf::handleConfGripper (char *msg)
 	  sw = info.where->getSW ();
 	  info.where->setDidConf (1);
 	}
-      else if (!strcmp (info.token, "Opcode"))
+	else if(!strcmp (info.token, "Opcode"))
 	{
-	  info.nextptr = getValue (info.ptr, info.token);
-	  //add this to the list of available opcodes for this gripper
+		info.nextptr = getValue (info.ptr, info.token);
+		//add this to the list of available opcodes for this gripper
 	}
       else
 	{
@@ -2983,10 +2937,10 @@ UsarsimInf::handleConfToolchanger (char *msg)
 	  sw = info.where->getSW ();
 	  info.where->setDidConf (1);
 	}
-      else if (!strcmp (info.token, "Opcode"))
+	else if(!strcmp (info.token, "Opcode"))
 	{
-	  info.nextptr = getValue (info.ptr, info.token);
-	  //add this to the list of available opcodes for this gripper
+		info.nextptr = getValue (info.ptr, info.token);
+		//add this to the list of available opcodes for this gripper
 	}
       else
 	{
@@ -3318,10 +3272,9 @@ UsarsimInf::handleConfStaticplatform (char *msg)
   return info.count;
 }
 
-int
-UsarsimInf::handleConfObjectsensor (char *msg)
+int UsarsimInf::handleConfObjectsensor(char *msg)
 {
-  componentInfo info;
+	componentInfo info;
   sw_struct *sw = objectsensors->getSW ();
 
   setComponentInfo (msg, &info);
@@ -3343,7 +3296,7 @@ UsarsimInf::handleConfObjectsensor (char *msg)
 	  sw = info.where->getSW ();
 	  info.where->setDidConf (1);
 	}
-      else if (!strcmp (info.token, "Fov"))
+	  else if (!strcmp (info.token, "Fov"))
 	{
 	  sw->data.objectsensor.fov = getReal (&info);
 	}
@@ -3440,9 +3393,9 @@ UsarsimInf::handleConf (char *msg)
 	      return handleConfGripper (msg);
 	    }
 	  else if (!strcmp (token, "ToolChanger"))
-	    {
-	      return handleConfToolchanger (msg);
-	    }
+	  {
+	  	return handleConfToolchanger (msg);
+	  }
 	  else if (!strcmp (token, "Actuator"))
 	    {
 	      return handleConfActuator (msg);
@@ -3459,9 +3412,9 @@ UsarsimInf::handleConf (char *msg)
 	    {
 	      return handleConfStaticplatform (msg);
 	    }
-	  else if (!strcmp (token, "ObjectSensor"))
+	  else if (!strcmp(token, "ObjectSensor"))
 	    {
-	      return handleConfObjectsensor (msg);
+	      return handleConfObjectsensor(msg);
 	    }
 	  else
 	    {
@@ -3773,13 +3726,13 @@ UsarsimInf::handleGeoIns (char *msg, const char *sensorType)
   UsarsimList *myList;
 
   setComponentInfo (msg, &info);
-  if (!strcmp (sensorType, "INS"))
+  if( !strcmp(sensorType, "INS" ))
     myList = inses;
-  else if (!strcmp (sensorType, "GroundTruth"))
+  else if ( !strcmp(sensorType, "GroundTruth" ) )
     myList = groundtruths;
   else
     {
-      ROS_ERROR ("Unknown Ins type: %s", sensorType);
+      ROS_ERROR ("Unknown Ins type: %s", sensorType );
       return info.count;
     }
 
@@ -4051,14 +4004,11 @@ UsarsimInf::handleGeoVictim (char *msg)
 /*
 GEO {Type componentName} {Name <name>} {Location 0.0600,0.0000,-0.0087} {Orientation 0.0000,0.0000,0.0000} {Mount Parent} {Link 5}
 */
-int
-UsarsimInf::handleGeoComponent (const char *componentName, char *msg,
-				sw_pose & mount, UsarsimList * list,
-				int opcode)
+int UsarsimInf::handleGeoComponent(const char* componentName, char* msg, sw_pose &mount, UsarsimList *list, int opcode)
 {
-  componentInfo info;
-  setComponentInfo (msg, &info);
-  sw_struct *sw = list->getSW ();
+	componentInfo info;
+    setComponentInfo (msg, &info);
+    sw_struct *sw = list->getSW();
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -4086,16 +4036,17 @@ UsarsimInf::handleGeoComponent (const char *componentName, char *msg,
 	  mount.yaw = getReal (&info);
 	  expect (&info, "Mount");
 	  info.nextptr = getValue (info.ptr, info.token);
-	  ulapi_strncpy (mount.offsetFrom, info.token, SW_NAME_MAX);
+	  ulapi_strncpy (mount.offsetFrom, info.token,
+			 SW_NAME_MAX);
 	  info.count++;
 	  info.ptr = info.nextptr;
 	}
-      else if (!strcmp (info.token, "MountLink"))
+	  else if(!strcmp(info.token, "MountLink"))
 	{
-	  info.nextptr = getValue (info.ptr, info.token);
-	  if (info.nextptr == info.ptr)
+	   info.nextptr = getValue (info.ptr, info.token);
+	   if (info.nextptr == info.ptr)
 	    return -1;
-	  mount.linkOffset = getReal (&info);
+	   mount.linkOffset = getReal(&info); 
 	}
       else
 	{
@@ -4124,12 +4075,11 @@ UsarsimInf::handleGeoActuator (char *msg)
   componentInfo info;
   int i;
   int linkindex;
-  sw_struct *sw = misstas->getSW ();
+  sw_struct *sw = misstas->getSW();
 
-  setComponentInfo (msg, &info);
+  setComponentInfo( msg, &info );
   linkindex = 0;
-
-  ROS_INFO( "usarsimInf Actuator geo information: %s", msg );
+  
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -4142,10 +4092,10 @@ UsarsimInf::handleGeoActuator (char *msg)
 	  expect (&info, "Actuator");
 	}
       else if (!strcmp (info.token, "Name"))
-	{
+	{ 
 	  getName (misstas, &info, SW_ACT_SET);
-	  sw = info.where->getSW ();
-	  info.where->setDidConf (1);
+	  sw = info.where->getSW();
+	  info.where->setDidConf(1);
 	  sw->data.actuator.number = 0;
 	  sw->data.actuator.mount.linkOffset = -1;
 	  expect (&info, "Location");
@@ -4168,29 +4118,28 @@ UsarsimInf::handleGeoActuator (char *msg)
 	  info.nextptr = getValue (info.ptr, info.token);
 	  if (info.nextptr == info.ptr)
 	    {
-	      ROS_ERROR ("Missing link number for mispackage message");
+	      ROS_ERROR( "Missing link number for mispackage message" );
 	      return -1;
 	    }
 	  if (sscanf (info.token, "%i", &i) != 1)
 	    {
-	      ROS_ERROR ("Missing link number for mispackage message");
+	      ROS_ERROR( "Missing link number for mispackage message" );
 	      return -1;
 	    }
 	  if (i < 1)
 	    {
-	      ROS_ERROR ("invalid link number for %s: %d", sw->name.c_str (),
+	      ROS_ERROR ("invalid link number for %s: %d", sw->name.c_str(),
 			 i);
 	      return -1;
 	    }
 	  else if (i > SW_ACT_LINK_MAX)
 	    {
-	      ROS_ERROR
-		("invalid link number for %s: %d (greater than max %d)",
-		 sw->name.c_str (), i, SW_ACT_LINK_MAX);
+	      ROS_ERROR ("invalid link number for %s: %d (greater than max %d)", sw->name.c_str(),
+			 i, SW_ACT_LINK_MAX);
 	      return -1;
 	    }
-	  linkindex = i - 1;	// links start at 1, arrays at 0
-	  if (i > sw->data.actuator.number)	//more links!
+	  linkindex = i - 1; // links start at 1, arrays at 0
+	  if (i > sw->data.actuator.number) //more links!
 	    sw->data.actuator.number = i;
 	  info.count++;
 	  info.ptr = info.nextptr;
@@ -4201,68 +4150,60 @@ UsarsimInf::handleGeoActuator (char *msg)
 	  info.nextptr = getValue (info.ptr, info.token);
 	  if (info.nextptr == info.ptr)
 	    {
-	      ROS_ERROR ("Missing parent link number for mispackage message");
+	      ROS_ERROR( "Missing parent link number for mispackage message" );
 	      return -1;
 	    }
-	  if (sscanf (info.token, "%i", &i) != 1)
+	  if (sscanf (info.token, "%i", &i)!= 1)
 	    {
-	      ROS_ERROR ("Missing parent link number for mispackage message");
+	      ROS_ERROR( "Missing parent link number for mispackage message" );
 	      return -1;
 	    }
 	  if (i < -1)
 	    {
-	      ROS_ERROR ("invalid parent link number for %s: %d",
-			 sw->name.c_str (), i);
+	      ROS_ERROR ("invalid parent link number for %s: %d", sw->name.c_str(),
+			 i);
 	      return -1;
 	    }
 	  else if (i > SW_ACT_LINK_MAX)
 	    {
-	      ROS_ERROR
-		("invalid parent link number for %s: %d (greater than max %d)",
-		 sw->name.c_str (), i, SW_ACT_LINK_MAX);
+	      ROS_ERROR ("invalid parent link number for %s: %d (greater than max %d)" , sw->name.c_str(),
+			 i, SW_ACT_LINK_MAX);
 	      return -1;
 	    }
 	  // change convention of base at -1 to base at 0 
-	  //      if (i < 0)
-	  //        i = 0;
+	  //	  if (i < 0)
+	  //	    i = 0;
 	  sw->data.actuator.link[linkindex].parent = i;
 	  info.count++;
 	  info.ptr = info.nextptr;
 	}
       else if (!strcmp (info.token, "Location"))
 	{
-	  sw->data.actuator.link[linkindex].mount.x = getReal (&info);
-	  sw->data.actuator.link[linkindex].mount.y = getReal (&info);
-	  sw->data.actuator.link[linkindex].mount.z = getReal (&info);
+	  sw->data.actuator.link[linkindex].mount.x = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.y = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.z = getReal(&info); 
 	}
       else if (!strcmp (info.token, "Orientation"))
 	{
-	  sw->data.actuator.link[linkindex].mount.roll = getReal (&info);
-	  sw->data.actuator.link[linkindex].mount.pitch = getReal (&info);
-	  sw->data.actuator.link[linkindex].mount.yaw = getReal (&info);
+	  sw->data.actuator.link[linkindex].mount.roll = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.pitch = getReal(&info); 
+	  sw->data.actuator.link[linkindex].mount.yaw = getReal(&info); 
 	}
-      else if (!strcmp (info.token, "MountLink"))
+	else if (!strcmp (info.token, "MountLink"))
 	{
-	  sw->data.actuator.mount.linkOffset = getReal (&info);
-	  /*
-	  ROS_INFO ("Mountlink for %s is %d", sw->name.c_str (),
-		     sw->data.actuator.mount.linkOffset);
-	  */
+	   sw->data.actuator.mount.linkOffset = getReal(&info);
+	   ROS_ERROR("Mountlink for %s is %d", sw->name.c_str(), sw->data.actuator.mount.linkOffset);
 	}
-      else if (!strcmp (info.token, "Tip"))
+	else if (!strcmp (info.token, "Tip"))
 	{
-	  sw->data.actuator.tip.x = getReal (&info);
-	  sw->data.actuator.tip.y = getReal (&info);
-	  sw->data.actuator.tip.z = getReal (&info);
-	  ROS_DEBUG( "Got tip for actuator %f %f %f",
-		     sw->data.actuator.tip.x,
-		     sw->data.actuator.tip.y,
-		     sw->data.actuator.tip.z);
+	  sw->data.actuator.tip.x = getReal(&info); 
+	  sw->data.actuator.tip.y = getReal(&info); 
+	  sw->data.actuator.tip.z = getReal(&info); 
 	}
       else
 	{
 	  // skip unknown entry 
-	  ROS_WARN ("Unknown entry in ACTUATOR: %s", info.ptr);
+	  ROS_WARN ("Unknown entry in ACTUATOR: %s", info.ptr );
 	  info.nextptr = getValue (info.ptr, info.token);
 	}
     }
@@ -4271,20 +4212,17 @@ UsarsimInf::handleGeoActuator (char *msg)
   if (info.count > 0)
     {
       info.op = SW_ACT_SET;
-      msgout (sw, info);
+      msgout (sw, info );
     }
   info.where->setDidGeo (1);
   return info.count;
 }
 
-int
-UsarsimInf::handleGeoGripper (char *msg)
+int UsarsimInf::handleGeoGripper (char *msg)
 {
-  componentInfo info;
-  setComponentInfo (msg, &info);
-  sw_struct *sw = grippers->getSW ();
-
-  ROS_INFO( "usarsimInf Gripper geo information: %s", msg );
+	componentInfo info;
+    setComponentInfo (msg, &info);
+    sw_struct *sw = grippers->getSW();
   while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
@@ -4314,33 +4252,22 @@ UsarsimInf::handleGeoGripper (char *msg)
 	  info.nextptr = getValue (info.ptr, info.token);
 	  ulapi_strncpy (sw->data.gripper.mount.offsetFrom, info.token,
 			 SW_NAME_MAX);
-	  // set up tip references here since not provided by message
-	  ulapi_strncpy (sw->data.gripper.tip.offsetFrom, 
-			 sw->data.gripper.mount.offsetFrom,
-			 SW_NAME_MAX);
-	  info.ptr = info.nextptr;
 	  info.count++;
-	}
-      else if (!strcmp (info.token, "MountLink"))
-	{
-	  info.nextptr = getValue (info.ptr, info.token);
-	  if (info.nextptr == info.ptr)
-	    return -1;
-	  sw->data.gripper.mount.linkOffset = getReal (&info);
-	  // set up tip references here since not provided by message
-	  sw->data.gripper.tip.linkOffset = sw->data.gripper.mount.linkOffset;
 	  info.ptr = info.nextptr;
 	}
-      else if (!strcmp (info.token, "Tip"))
+	  else if(!strcmp(info.token, "MountLink"))
+	{
+	   info.nextptr = getValue (info.ptr, info.token);
+	   if (info.nextptr == info.ptr)
+	    return -1;
+	   sw->data.gripper.mount.linkOffset = getReal(&info); 
+	}
+	  else if(!strcmp(info.token, "Tip"))
 	{
 	  //adjust position to be at the tip of the effector instead of the base
-	  sw->data.gripper.tip.x = getReal (&info);
-	  sw->data.gripper.tip.y = getReal (&info);
-	  sw->data.gripper.tip.z = getReal (&info);
-	  ROS_INFO( "Got tip for gripper %f %f %f",
-		     sw->data.gripper.tip.x,
-		     sw->data.gripper.tip.y,
-		     sw->data.gripper.tip.z);
+	  sw->data.gripper.tip.x = getReal(&info);
+	  sw->data.gripper.tip.y = getReal(&info);
+	  sw->data.gripper.tip.z = getReal(&info);
 	}
       else
 	{
@@ -4486,7 +4413,7 @@ UsarsimInf::handleGeo (char *msg)
   char *nextptr;
   sw_struct *sw;
   waitingForGeo = 0;
-  //  ROS_ERROR ("usarsimInf: geo message: %s", msg );
+  ROS_DEBUG ("waitingForGeo cleared");
   while (1)
     {
       nextptr = getKey (ptr, token);
@@ -4506,19 +4433,13 @@ UsarsimInf::handleGeo (char *msg)
 	    }
 	  else if (!strcmp (token, "RangeScanner"))
 	    {
-	      sw = rangescanners->getSW ();
-	      return handleGeoComponent ("RangeScanner", msg,
-					 sw->data.rangescanner.mount,
-					 rangescanners,
-					 SW_SEN_RANGESCANNER_SET);
+	      sw = rangescanners->getSW();
+	      return handleGeoComponent("RangeScanner", msg, sw->data.rangescanner.mount, rangescanners, SW_SEN_RANGESCANNER_SET);
 	    }
 	  else if (!strcmp (token, "RangeImager"))
 	    {
-	      sw = rangeimagers->getSW ();
-	      return handleGeoComponent ("RangeImager", msg,
-					 sw->data.rangeimager.mount,
-					 rangeimagers,
-					 SW_SEN_RANGEIMAGER_SET);
+	      sw = rangeimagers->getSW();
+	      return handleGeoComponent("RangeImager", msg, sw->data.rangeimager.mount, rangeimagers, SW_SEN_RANGEIMAGER_SET);
 	    }
 	  else if (!strcmp (token, "Encoder"))
 	    {
@@ -4562,15 +4483,12 @@ UsarsimInf::handleGeo (char *msg)
 	    }
 	  else if (!strcmp (token, "Gripper"))
 	    {
-	      return handleGeoGripper (msg);
+	      return handleGeoGripper(msg);
 	    }
 	  else if (!strcmp (token, "ToolChanger"))
 	    {
-	      sw = toolchangers->getSW ();
-	      return handleGeoComponent ("ToolChanger", msg,
-					 sw->data.toolchanger.mount,
-					 toolchangers,
-					 SW_EFF_TOOLCHANGER_SET);
+	      sw = toolchangers->getSW();
+	      return handleGeoComponent("ToolChanger", msg, sw->data.toolchanger.mount, toolchangers, SW_EFF_TOOLCHANGER_SET);
 	    }
 	  else if (!strcmp (token, "Actuator"))
 	    {
@@ -4588,13 +4506,10 @@ UsarsimInf::handleGeo (char *msg)
 	    {
 	      return handleGeoStaticplatform (msg);
 	    }
-	  else if (!strcmp (token, "ObjectSensor"))
+	  else if(!strcmp(token, "ObjectSensor"))
 	    {
-	      sw = objectsensors->getSW ();
-	      return handleGeoComponent ("ObjectSensor", msg,
-					 sw->data.objectsensor.mount,
-					 objectsensors,
-					 SW_SEN_OBJECTSENSOR_SET);
+	      sw = objectsensors->getSW();
+	      return handleGeoComponent("ObjectSensor", msg, sw->data.objectsensor.mount, objectsensors, SW_SEN_OBJECTSENSOR_SET);
 	    }
 	  else
 	    {
@@ -4620,8 +4535,8 @@ UsarsimInf::handleAsta (char *msg)
   int i;
   int linkindex = 0;
 
-  sw_struct *sw = misstas->getSW ();
-  setComponentInfo (msg, &info);
+  sw_struct *sw = misstas->getSW();
+  setComponentInfo( msg, &info );
   //  ROS_ERROR( "%s", msg );
 
   while (1)
@@ -4633,13 +4548,13 @@ UsarsimInf::handleAsta (char *msg)
 
       if (!strcmp (info.token, "Time"))
 	{
-	  getTime (&info);
+	  getTime(&info);
 	}
       else if (!strcmp (info.token, "Name"))
 	{
 	  getName (misstas, &info, SW_ACT_STAT);
 	  sw = info.where->getSW ();
-	  //      info.where->setDidConf (1);
+	  //	  info.where->setDidConf (1);
 	  sw->data.actuator.number = 0;
 	}
       else if (!strcmp (info.token, "Link"))
@@ -4652,14 +4567,14 @@ UsarsimInf::handleAsta (char *msg)
 	    return -1;
 	  if (i < 1)
 	    {
-	      ROS_ERROR ("invalid link number for %s: %d\n",
-			 sw->name.c_str (), i);
+	      ROS_ERROR ("invalid link number for %s: %d\n", sw->name.c_str(),
+			 i);
 	      i = 1;
 	    }
 	  else if (i > SW_ACT_LINK_MAX)
 	    {
-	      ROS_ERROR ("invalid link number for %s: %d\n",
-			 sw->name.c_str (), i);
+	      ROS_ERROR ("invalid link number for %s: %d\n", sw->name.c_str(),
+			 i);
 	      i = SW_ACT_LINK_MAX;
 	    }
 	  linkindex = i - 1;
@@ -4687,9 +4602,7 @@ UsarsimInf::handleAsta (char *msg)
   msgout (sw, info);
   return info.count;
 }
-
-int
-UsarsimInf::handleEff (char *msg)
+int UsarsimInf::handleEff(char *msg)
 {
   char token[MAX_TOKEN_LEN];
   char *ptr = msg;
@@ -4698,150 +4611,133 @@ UsarsimInf::handleEff (char *msg)
     {
       nextptr = getKey (ptr, token);
       if (nextptr == ptr)
-	break;
+		break;
       ptr = nextptr;
       /* look for {Type <name>}, and pass the whole msg to the effector */
-      if (!strcmp (token, "Type"))
-	{
-	  nextptr = getValue (ptr, token);
-	  if (nextptr == ptr)
-	    return -1;
-	  if (!strcmp (token, "Gripper"))
-	    {
-	      return handleEffGripper (msg);
-	    }
-	  else if (!strcmp (token, "ToolChanger"))
-	    {
-	      return handleEffToolchanger (msg);
-	    }
-	  else
-	    {
-	      ROS_ERROR ("Unknown effector type %s", token);
-	      /* skip it and keep going */
-	    }
-	}
+		if (!strcmp (token, "Type"))
+		{
+		  nextptr = getValue (ptr, token);
+		  if (nextptr == ptr)
+			return -1;
+		  if (!strcmp (token, "Gripper"))
+			{
+			  return handleEffGripper (msg);
+			}
+		  else if (!strcmp (token, "ToolChanger"))
+		    {
+		      return handleEffToolchanger (msg);
+		    }
+		  else
+			{
+			  ROS_ERROR ("Unknown effector type %s", token);
+			  /* skip it and keep going */
+			}
+		}
       /* else something else to be handled, probably {Time #} */
     }
 
   return 0;
 }
-
-int
-UsarsimInf::handleEffGripper (char *msg)
+int UsarsimInf::handleEffGripper(char *msg)
 {
-  componentInfo info;
-  sw_struct *sw = grippers->getSW ();
+	componentInfo info;
+	sw_struct *sw = grippers->getSW();
 
-  setComponentInfo (msg, &info);
-
-  while (1)
+  	setComponentInfo (msg, &info);
+  
+  	while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
       if (info.nextptr == info.ptr)
-	break;
+		break;
       info.ptr = info.nextptr;
-      if (!strcmp (info.token, "Time"))
-	{
-	  getTime (&info);
-	}
-      else if (!strcmp (info.token, "Type"))
-	{
-	  expect (&info, "Gripper");
-	}
+      if (!strcmp (info.token, "Type"))
+	  {
+	  	expect (&info, "Gripper");
+	  }
       else if (!strcmp (info.token, "Name"))
-	{
-	  getName (grippers, &info, SW_EFF_GRIPPER_STAT);
-	  sw = info.where->getSW ();
-	}
+	  {
+	  	getName (grippers, &info, SW_EFF_GRIPPER_STAT);
+	  	sw = info.where->getSW ();
+	  }
       else if (!strcmp (info.token, "Status"))
-	{
-	  info.nextptr = getValue (info.ptr, info.token);
-	  if (info.nextptr == info.ptr)
-	    return -1;
-	  if (!ulapi_strcasecmp (info.token, "OPEN"))
-	    sw->data.gripper.status = SW_EFF_OPEN;
-	  else if (!ulapi_strcasecmp (info.token, "CLOSED"))
-	    sw->data.gripper.status = SW_EFF_CLOSE;
-	  else
+	  {
+	  	info.nextptr = getValue (info.ptr, info.token);
+	  	if (info.nextptr == info.ptr)
+	    	return -1;
+	    if(!ulapi_strcasecmp(info.token,"OPEN"))
+	    	sw->data.gripper.status = SW_EFF_OPEN;
+	    else if(!ulapi_strcasecmp(info.token, "CLOSED"))
+	    	sw->data.gripper.status = SW_EFF_CLOSE;
+	    else
 	    {
-	      ROS_ERROR ("Bad gripper status %s", info.token);
+	    	ROS_ERROR("Bad gripper status %s",info.token);
 	    }
-	}
+	  }
       else
-	{
-	  // skip unknown entry  
-	  info.nextptr = getValue (info.ptr, info.token);
-	}
+	  {
+		  // skip unknown entry  
+		  info.nextptr = getValue (info.ptr, info.token);
+	  }
     }
   info.op = SW_EFF_GRIPPER_STAT;
   msgout (sw, info);
 
   return 0;
 }
-
-int
-UsarsimInf::handleEffToolchanger (char *msg)
+int UsarsimInf::handleEffToolchanger(char *msg)
 {
-  componentInfo info;
-  sw_struct *sw = toolchangers->getSW ();
-  setComponentInfo (msg, &info);
-  while (1)
+	componentInfo info;
+	sw_struct *sw = toolchangers->getSW();
+  	setComponentInfo (msg, &info);
+  	while (1)
     {
       info.nextptr = getKey (info.ptr, info.token);
       if (info.nextptr == info.ptr)
-	break;
+		break;
       info.ptr = info.nextptr;
-      if (!strcmp (info.token, "Time"))
-	{
-	  getTime (&info);
-	}
-      else if (!strcmp (info.token, "Type"))
-	{
-	  expect (&info, "ToolChanger");
-	}
+      if (!strcmp (info.token, "Type"))
+	  {
+	  	expect (&info, "ToolChanger");
+	  }
       else if (!strcmp (info.token, "Name"))
-	{
-	  getName (toolchangers, &info, SW_EFF_TOOLCHANGER_STAT);
-	  sw = info.where->getSW ();
-	}
+	  {
+	  	getName (toolchangers, &info, SW_EFF_TOOLCHANGER_STAT);
+	  	sw = info.where->getSW ();
+	  }
       else if (!strcmp (info.token, "Status"))
-	{
-	  info.nextptr = getValue (info.ptr, info.token);
-	  if (info.nextptr == info.ptr)
-	    return -1;
-	  if (!ulapi_strcasecmp (info.token, "OPEN"))
-	    sw->data.toolchanger.status = SW_EFF_OPEN;
-	  else if (!ulapi_strcasecmp (info.token, "CLOSED"))
-	    sw->data.toolchanger.status = SW_EFF_CLOSE;
-	  else
+	  {
+	  	info.nextptr = getValue (info.ptr, info.token);
+	  	if (info.nextptr == info.ptr)
+	    	return -1;
+	    if(!ulapi_strcasecmp(info.token,"OPEN"))
+	    	sw->data.toolchanger.status = SW_EFF_OPEN;
+	    else if(!ulapi_strcasecmp(info.token, "CLOSED"))
+	    	sw->data.toolchanger.status = SW_EFF_CLOSE;
+	    else
 	    {
-	      ROS_ERROR ("Bad toolchanger status %s", info.token);
+	    	ROS_ERROR("Bad toolchanger status %s",info.token);
 	    }
-	}
-      else if (!strcmp (info.token, "ToolType"))
-	{
-	  info.nextptr = getValue (info.ptr, info.token);
-	  if (info.nextptr == info.ptr)
-	    return -1;
-	  if (!strcmp (info.token, "Gripper"))
-	    sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_GRIPPER;
-	  else if (!strcmp (info.token, "Vacuum"))
-	    sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_VACUUM;
-	  else if (!strcmp (info.token, "ToolChanger"))
-	    sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_TOOLCHANGER;
-	  else
-	    sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_UNKNOWN_TYPE;
-	} else if(!strcmp(info.token, "Tool")) {
-	  info.nextptr = getValue (info.ptr, info.token);
-	  if(info.nextptr == info.ptr)
-	    return -1;
-	  strcpy(sw->data.toolchanger.tool_name, info.token);
-	}
+	  }
+	  else if (!strcmp(info.token, "Tool"))
+	  {
+	  	info.nextptr = getValue (info.ptr, info.token);
+	  	if (info.nextptr == info.ptr)
+	    	return -1;
+	    if(!strcmp(info.token, "Gripper"))
+	    	sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_GRIPPER;
+	    else if(!strcmp(info.token, "Vacuum"))
+	    	sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_VACUUM;
+	    else if(!strcmp(info.token, "ToolChanger"))
+	    	sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_TOOLCHANGER;
+	    else
+	    	sw->data.toolchanger.tooltype = SW_EFF_TOOLCHANGER_UNKNOWN_TYPE;
+	  }
       else
-	{
-	  // skip unknown entry  
-	  info.nextptr = getValue (info.ptr, info.token);
-	}
+	  {
+		  // skip unknown entry  
+		  info.nextptr = getValue (info.ptr, info.token);
+	  }
     }
   info.op = SW_EFF_TOOLCHANGER_STAT;
   msgout (sw, info);
