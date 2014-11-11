@@ -1,21 +1,32 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION 2.8.3)
+project(usarsim_inf)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
+# build dependencies
+find_package(catkin REQUIRED COMPONENTS roscpp tf actionlib message_generation 
+	std_msgs geometry_msgs nav_msgs sensor_msgs control_msgs)
+find_package(Boost REQUIRED COMPONENTS thread system)
+# include_directories(${Boost_INCLUDE_DIRS})
+# include_directories(${catkin_INCLUDE_DIRS})
 
-rosbuild_init()
 
-#set the default path for built executables to the "bin" directory
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+# generate messages
+add_message_files(FILES
+	EffectorCommand.msg
+	RangeImageScan.msg
+	ToolchangerStatus.msg
+	EffectorStatus.msg
+	SenseObject.msg
+	ToolType.msg)
+generate_messages(DEPENDENCIES 
+	std_msgs geometry_msgs nav_msgs sensor_msgs control_msgs)
 
+# runtime dependencies
+catkin_package(
+	CATKIN_DEPENDS roscpp tf actionlib message_runtime
+		std_msgs geometry_msgs nav_msgs sensor_msgs control_msgs
+	LIBRARIES ${PROJECT_NAME})
+
+# build targets
 set(usarsim_inf_SOURCES
 	src/ulapi.cpp
 	src/genericInf.cpp
@@ -24,23 +35,14 @@ set(usarsim_inf_SOURCES
 	src/usarsimMisc.cpp
 	src/simware.cpp)
 
-#uncomment if you have defined messages
-rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
+add_library(usarsim_inf ${usarsim_inf_SOURCES})
+add_executable(usarsim_node src/usarsim.cpp)
+add_executable(usarsim_urdf src/usarsim_urdf_gen.cpp)
 
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
+add_dependencies(usarsim_inf ${PROJECT_NAME}_generate_messages_cpp)
+target_link_libraries(usarsim_node usarsim_inf ${Boost_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(usarsim_urdf usarsim_inf ${Boost_LIBRARIES} ${catkin_LIBRARIES})
 
-rosbuild_add_library(usarsim_inf ${usarsim_inf_SOURCES})
-
-rosbuild_add_executable(usarsim_node src/usarsim.cpp)
-rosbuild_add_executable(usarsim_urdf src/usarsim_urdf_gen.cpp)
-
-target_link_libraries(usarsim_node usarsim_inf)
-target_link_libraries(usarsim_urdf usarsim_inf)
+# install roslaunch files
+install(DIRECTORY launch/
+	DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch)
