@@ -23,8 +23,7 @@ generate_messages(DEPENDENCIES
 # runtime dependencies
 catkin_package(
 	CATKIN_DEPENDS roscpp tf actionlib message_runtime
-		std_msgs geometry_msgs nav_msgs sensor_msgs control_msgs
-	LIBRARIES ${PROJECT_NAME})
+		std_msgs geometry_msgs nav_msgs sensor_msgs control_msgs)
 
 # build targets
 set(usarsim_inf_SOURCES
